@@ -31,11 +31,38 @@ export const authOptions = {
           id: user.id,
           email: user.email,
           role: user.role,
-          kycVerified: user.kyc?.verified || false
+          isKycVerified: user.isKycVerified || false,
+          isEmailVerified: user.isEmailVerified || false
         }
       }
     })
-  ]
+  ],
+  callbacks: {
+    jwt: async ({ token, user }) => {
+      if (user) {
+        token.id = user.id;
+        token.role = user.role;
+        token.isKycVerified = user.isKycVerified;
+        token.isEmailVerified = user.isEmailVerified;
+      }
+      return token;
+    },
+    session: async ({ session, token }) => {
+      if (token) {
+        session.user.id = token.id;
+        session.user.role = token.role;
+        session.user.isKycVerified = token.isKycVerified;
+        session.user.isEmailVerified = token.isEmailVerified;
+      }
+      return session;
+    },
+  },
+  pages: {
+    signIn: '/login',
+  },
+  session: {
+    strategy: 'jwt',
+  },
 }
 
 const handler = NextAuth(authOptions)

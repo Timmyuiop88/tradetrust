@@ -20,33 +20,9 @@ export async function GET() {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    const steps = [
-      {
-        id: 1,
-        type: "identity",
-        title: "Identity Verification",
-        description: "Upload a valid government ID",
-        status: user.kyc?.idDocUrl ? "completed" : "pending"
-      },
-      {
-        id: 2,
-        type: "address",
-        title: "Address Verification",
-        description: "Proof of address document",
-        status: user.kyc?.address ? "completed" : 
-                user.kyc?.idDocUrl ? "pending" : "locked"
-      },
-      {
-        id: 3,
-        type: "face",
-        title: "Face Verification",
-        description: "Quick selfie verification",
-        status: user.kyc?.verified ? "completed" : 
-                user.kyc?.address ? "pending" : "locked"
-      }
-    ]
+ 
 
-    return NextResponse.json({ steps })
+    return NextResponse.json({ isKycVerified: user.isKycVerified, isEmailVerified: user.isEmailVerified })
   } catch (error) {
     console.error('KYC status error:', error)
     return NextResponse.json({ error: 'Failed to fetch KYC status' }, { status: 500 })

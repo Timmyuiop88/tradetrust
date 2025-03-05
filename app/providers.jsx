@@ -31,12 +31,16 @@ const authConfig = {
       if (session?.user) {
         session.user.id = token.sub
         session.user.role = token.role
+        session.user.isKycVerified = token.isKycVerified
+        session.user.isEmailVerified = token.isEmailVerified
       }
       return session
     },
     jwt: async ({ token, user }) => {
       if (user) {
         token.role = user.role
+        token.isKycVerified = user.isKycVerified
+        token.isEmailVerified = user.isEmailVerified
       }
       return token
     }
@@ -56,7 +60,7 @@ export function Providers({ children }) {
   const [queryClient] = useState(() => new QueryClient(queryConfig))
 
   return (
-    <SessionProvider {...authConfig}>
+    <SessionProvider refetchInterval={5 * 60}>
       <QueryClientProvider client={queryClient}>
         <ThemeProvider attribute="class" defaultTheme="dark">
           {children}

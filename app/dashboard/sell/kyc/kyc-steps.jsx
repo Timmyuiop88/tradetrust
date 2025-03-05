@@ -14,7 +14,7 @@ export function KycSteps({ steps, onStartStep }) {
   const handleStartStep = (stepId) => {
     switch (stepId) {
       case 1:
-        router.push('/dashboard/sell/kyc/identity-verification')
+        router.push('/dashboard/sell/kyc/1')
         break
       case 2:
         router.push('/dashboard/sell/kyc/address-verification')

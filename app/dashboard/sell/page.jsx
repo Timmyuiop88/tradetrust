@@ -8,6 +8,7 @@ import { KycSteps } from "./kyc/kyc-steps"
 import { useRouter } from "next/navigation"
 import { SellingInterface } from "./selling-interface"
 import { KycStepsSkeleton } from "./kyc/kyc-steps-skeleton"
+import { useKycStatus } from "@/app/hooks/useKyc"
 
 const INITIAL_STEPS = [
   {
@@ -36,37 +37,31 @@ const INITIAL_STEPS = [
 export default function SellPage() {
   const { data: session, status: sessionStatus } = useSession()
   const [kycSteps, setKycSteps] = useState(INITIAL_STEPS)
-  const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
-
+  
+  // Use the KYC status hook instead of manual fetching
+  const { data: kycData, isLoading: kycLoading, error: kycError } = useKycStatus()
+  console.log("KYC Data:", kycData)
+  
+  // Update steps based on KYC verification status
   useEffect(() => {
-    if (sessionStatus === "authenticated" && session?.user) {
-      fetchKycStatus()
-    }
-  }, [sessionStatus, session])
-
-  const fetchKycStatus = async () => {
-    setIsLoading(true)
-    try {
-      const response = await fetch('/api/kyc/status')
-      const data = await response.json()
-      
-      if (data.steps) {
-        setKycSteps(data.steps)
+    if (kycData) {
+      // If user is KYC verified, mark all steps as completed
+      if (kycData.isKycVerified) {
+        setKycSteps(INITIAL_STEPS.map(step => ({
+          ...step,
+          status: "completed"
+        })))
       }
-    } catch (error) {
-      console.error('Failed to fetch KYC status:', error)
-    } finally {
-      setIsLoading(false)
     }
-  }
+  }, [kycData])
 
   const handleStartStep = (stepId) => {
     router.push(`/dashboard/sell/kyc/${stepId}`)
   }
 
   // Show loading skeleton while session is loading
-  if (sessionStatus === "loading" || isLoading) {
+  if (sessionStatus === "loading" || kycLoading) {
     return (
       <div className="max-w-2xl mx-auto space-y-6">
         <Card>
@@ -93,28 +88,29 @@ export default function SellPage() {
     return null
   }
 
-  const isKycVerified = kycSteps.every(step => step.status === "completed")
+  // Check if KYC is verified from the API response
+  const isKycVerified = kycData?.isKycVerified || false
 
-  // if (!isKycVerified) {
-  //   return (
-  //     <div className="max-w-2xl mx-auto space-y-6">
-  //       <Card>
-  //         <CardHeader>
-  //           <CardTitle className="flex items-center space-x-2">
-  //             <Shield className="h-5 w-5 text-primary" />
-  //             <span>Verification Required</span>
-  //           </CardTitle>
-  //           <CardDescription>
-  //             Complete verification to start selling accounts
-  //           </CardDescription>
-  //         </CardHeader>
-  //         <CardContent>
-  //           <KycSteps steps={kycSteps} onStartStep={handleStartStep} />
-  //         </CardContent>
-  //       </Card>
-  //     </div>
-  //   )
-  // }
+  if (!isKycVerified) {
+    return (
+      <div className="max-w-2xl mx-auto space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <Shield className="h-5 w-5 text-primary" />
+              <span>Verification Required</span>
+            </CardTitle>
+            <CardDescription>
+              Complete verification to start selling accounts
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <KycSteps steps={kycSteps} onStartStep={handleStartStep} />
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
 
   return <SellingInterface />
 } 
