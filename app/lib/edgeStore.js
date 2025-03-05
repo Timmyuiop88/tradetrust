@@ -1,11 +1,9 @@
-import { EdgeStore } from '@edgestore/sdk';
+'use client';
 
-const edgeStore = new EdgeStore({
-  projectId: process.env.EDGE_STORE_PROJECT_ID,
-  apiKey: process.env.EDGE_STORE_API_KEY,
+import { createEdgeStoreProvider } from '@edgestore/react';
+
+const { EdgeStoreProvider, useEdgeStore } = createEdgeStoreProvider({
+  maxConcurrentUploads: 3,
 });
 
-export const uploadKycDocument = async (file) => {
-  const response = await edgeStore.upload(file);
-  return response.url; // Return the URL of the uploaded document
-}; 
+export { EdgeStoreProvider, useEdgeStore };

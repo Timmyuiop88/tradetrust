@@ -2,10 +2,10 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { useEdgeStore } from "@/lib/edgestore"
+import { useEdgeStore } from "@/app/lib/edgeStore"
 import { useKycSubmit } from "@/app/hooks/useKyc"
 import { Button } from "@/app/components/button"
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/app/components/card"
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "../../../../components/card"
 import { Upload, Check, AlertCircle } from "lucide-react"
 
 export default function IdentityVerificationPage() {
@@ -16,6 +16,7 @@ export default function IdentityVerificationPage() {
   const router = useRouter()
   const { edgestore } = useEdgeStore()
   const { mutate: submitKyc, isLoading: isSubmitting } = useKycSubmit()
+  const [idNumber, setIdNumber] = useState("")
 
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0]
@@ -45,8 +46,9 @@ export default function IdentityVerificationPage() {
 
       // Submit to KYC API
       submitKyc({ 
-        idDocUrl: res.url,
-        idType: "government_id"
+        governmentIdUrl: res.url,
+        idType: "government_id",
+        idNumber: idNumber
       }, {
         onSuccess: () => {
           router.push('/dashboard/sell')

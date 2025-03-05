@@ -5,6 +5,7 @@ import { ThemeProvider } from "next-themes"
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { useState } from 'react'
+import { EdgeStoreProvider } from '@/app/lib/edgeStore'
 
 // Configure React Query defaults
 const queryConfig = {
@@ -63,8 +64,10 @@ export function Providers({ children }) {
     <SessionProvider refetchInterval={5 * 60}>
       <QueryClientProvider client={queryClient}>
         <ThemeProvider attribute="class" defaultTheme="dark">
-          {children}
-          <ReactQueryDevtools initialIsOpen={false} />
+          <EdgeStoreProvider>
+            {children}
+            <ReactQueryDevtools initialIsOpen={false} />
+          </EdgeStoreProvider>
         </ThemeProvider>
       </QueryClientProvider>
     </SessionProvider>

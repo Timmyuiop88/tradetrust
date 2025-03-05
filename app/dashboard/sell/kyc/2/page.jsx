@@ -2,10 +2,10 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { useEdgeStore } from "@/lib/edgestore"
+import { useEdgeStore } from "@/app/lib/edgeStore"
 import { useKycSubmit } from "@/app/hooks/useKyc"
 import { Button } from "@/app/components/button"
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/app/components/card"
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "../../../../components/card"
 import { MapPin, Check, AlertCircle } from "lucide-react"
 
 export default function AddressVerificationPage() {

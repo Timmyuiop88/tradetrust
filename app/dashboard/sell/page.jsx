@@ -23,14 +23,14 @@ const INITIAL_STEPS = [
     type: "address",
     title: "Address Verification",
     description: "Proof of address document",
-    status: "locked",
+    status: "pending",
   },
   {
     id: 3,
     type: "face",
     title: "Face Verification",
     description: "Quick selfie verification",
-    status: "locked",
+    status: "pending",
   },
 ]
 

@@ -17,10 +17,10 @@ export function KycSteps({ steps, onStartStep }) {
         router.push('/dashboard/sell/kyc/1')
         break
       case 2:
-        router.push('/dashboard/sell/kyc/address-verification')
+        router.push('/dashboard/sell/kyc/2')
         break
       case 3:
-        router.push('/dashboard/sell/kyc/face-verification')
+        router.push('/dashboard/sell/kyc/3')
         break
       default:
         break

@@ -26,8 +26,18 @@ export function useKycSubmit() {
   
   return useMutation({
     mutationFn: async (stepData) => {
-      const { data } = await axios.post('/api/users/kyc', stepData)
-      return data
+      try {
+        const { data } = await axios.post('/api/kyc/insert', stepData)
+        return data
+      } catch (error) {
+        console.error('KYC submission error:', {
+          message: error.message,
+          response: error.response?.data,
+          status: error.response?.status,
+          data: stepData
+        })
+        throw error
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries(['kyc-status'])

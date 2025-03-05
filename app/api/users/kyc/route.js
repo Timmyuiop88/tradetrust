@@ -53,49 +53,64 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
     
-    // Try to get the user ID from different possible locations
-    const userId = session.user.id || session.user.userId || session.userId
-    
-    if (!userId) {
-      return NextResponse.json({ error: 'Invalid session structure' }, { status: 400 })
-    }
-
     const data = await request.json()
     
-    // Check if KYC record exists
-    const existingKyc = await prisma.kyc.findUnique({
-      where: { userId: userId }
+    // Find existing KYC record
+    let kyc = await prisma.kyc.findUnique({
+      where: { userId: session.user.id }
     })
-
-    let kyc
     
-    if (existingKyc) {
-      // Update existing KYC record
+    // Handle document URLs as JSON
+    if (data.governmentIdUrl || data.faceImageUrl || data.addressDocUrl) {
+      const currentDocs = kyc?.idDocUrl ? JSON.parse(kyc.idDocUrl) : {}
+      const updatedDocs = {
+        ...currentDocs,
+        ...(data.governmentIdUrl && { governmentId: data.governmentIdUrl }),
+        ...(data.faceImageUrl && { faceScan: data.faceImageUrl }),
+        ...(data.addressDocUrl && { addressProof: data.addressDocUrl })
+      }
+      data.idDocUrl = JSON.stringify(updatedDocs)
+    }
+    
+    // Set default values for required fields if not provided
+    if (!data.fullName && kyc?.fullName) data.fullName = kyc.fullName
+    if (!data.idType && kyc?.idType) data.idType = kyc.idType
+    if (!data.idNumber && kyc?.idNumber) data.idNumber = kyc.idNumber
+    
+    // If this is a new record and we don't have required fields yet
+    if (!kyc && (!data.fullName || !data.idType || !data.idNumber)) {
+      return NextResponse.json({ 
+        error: 'Missing required information for new KYC record' 
+      }, { status: 400 })
+    }
+    
+    // Update or create KYC record
+    if (kyc) {
       kyc = await prisma.kyc.update({
-        where: { userId: userId },
+        where: { userId: session.user.id },
         data: {
           ...data,
           updatedAt: new Date()
         }
       })
     } else {
-      // Create new KYC record
       kyc = await prisma.kyc.create({
         data: {
+          userId: session.user.id,
           ...data,
-          userId: userId,
-          fullName: data.fullName || "User" // Required field
+          verified: false
         }
       })
     }
-
-    // Check if all KYC steps are completed
-    const isFullyVerified = kyc.idDocUrl && kyc.address && data.verified;
     
-    if (isFullyVerified || data.verified) {
-      // Update user's KYC verification status
+    // Check if all required documents are uploaded
+    const docs = JSON.parse(kyc.idDocUrl || '{}')
+    const isComplete = docs.governmentId && docs.faceScan && docs.addressProof
+    
+    // Update user's KYC status if all documents are uploaded
+    if (isComplete) {
       await prisma.user.update({
-        where: { id: userId },
+        where: { id: session.user.id },
         data: { isKycVerified: true }
       });
     }
