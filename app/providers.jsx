@@ -1,0 +1,71 @@
+"use client"
+
+import { SessionProvider } from "next-auth/react"
+import { ThemeProvider } from "next-themes"
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
+import { useState } from 'react'
+
+// Configure React Query defaults
+const queryConfig = {
+  defaultOptions: {
+    queries: {
+      staleTime: 60 * 1000, // 1 minute
+      cacheTime: 5 * 60 * 1000, // 5 minutes
+      retry: 1,
+      refetchOnWindowFocus: false,
+      refetchOnMount: true,
+      refetchOnReconnect: true,
+    },
+    mutations: {
+      retry: 1,
+      networkMode: 'always',
+    },
+  },
+}
+
+// Configure NextAuth session callback
+const authConfig = {
+  callbacks: {
+    session: async ({ session, token }) => {
+      if (session?.user) {
+        session.user.id = token.sub
+        session.user.role = token.role
+      }
+      return session
+    },
+    jwt: async ({ token, user }) => {
+      if (user) {
+        token.role = user.role
+      }
+      return token
+    }
+  },
+  pages: {
+    signIn: '/login',
+    signUp: '/signup',
+    error: '/auth/error',
+  },
+  session: {
+    strategy: 'jwt',
+    maxAge: 30 * 24 * 60 * 60, // 30 days
+  }
+}
+
+export function Providers({ children }) {
+  const [queryClient] = useState(() => new QueryClient(queryConfig))
+
+  return (
+    <SessionProvider {...authConfig}>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider attribute="class" defaultTheme="dark">
+          {children}
+          <ReactQueryDevtools initialIsOpen={false} />
+        </ThemeProvider>
+      </QueryClientProvider>
+    </SessionProvider>
+  )
+}
+
+// Export auth config for backend usage
+export { authConfig } 
