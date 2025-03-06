@@ -5,19 +5,19 @@ export function useListings(filters = {}) {
   return useInfiniteQuery({
     queryKey: ['listings', filters],
     queryFn: async ({ pageParam = 1 }) => {
-      const { data } = await axios.get('/api/listings', {
-        params: {
-          page: pageParam,
-          limit: 10,
-          ...filters
-        }
+      const params = new URLSearchParams({
+        page: pageParam,
+        limit: 10,
+        ...filters
       })
+      
+      const { data } = await axios.get(`/api/listings?${params}`)
       return data
     },
-    getNextPageParam: (lastPage) => 
-      lastPage.hasMore ? lastPage.nextPage : undefined,
-    retry: 1,
-    staleTime: 60 * 1000,
+    getNextPageParam: (lastPage) => {
+      return lastPage.hasNextPage ? lastPage.nextPage : undefined
+    },
+    staleTime: 1000 * 60 * 5, // 5 minutes
   })
 }
 

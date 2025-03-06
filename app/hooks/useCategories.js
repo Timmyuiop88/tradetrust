@@ -7,7 +7,8 @@ export function useCategories() {
     queryFn: async () => {
       const { data } = await axios.get('/api/categories')
       return data
-    }
+    },
+    staleTime: 1000 * 60 * 60, // 1 hour
   })
 }
 

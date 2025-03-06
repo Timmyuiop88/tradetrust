@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useSession } from "next-auth/react"
-import { Shield } from "lucide-react"
+import { Shield, Clock } from "lucide-react"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/app/components/card"
 import { KycSteps } from "./kyc/kyc-steps"
 import { useRouter } from "next/navigation"
@@ -36,50 +36,13 @@ const INITIAL_STEPS = [
 
 export default function SellPage() {
   const { data: session, status: sessionStatus } = useSession()
-  const [kycSteps, setKycSteps] = useState(INITIAL_STEPS)
   const router = useRouter()
   
-  // Use the KYC status hook instead of manual fetching
-  const { data: kycData, isLoading: kycLoading, error: kycError } = useKycStatus()
-  console.log("KYC Data:", kycData)
+  const { data: kycData, isLoading: kycLoading } = useKycStatus()
   
-  // Update steps based on KYC verification status
-  useEffect(() => {
-    if (kycData) {
-      // If user is KYC verified, mark all steps as completed
-      if (kycData.isKycVerified) {
-        setKycSteps(INITIAL_STEPS.map(step => ({
-          ...step,
-          status: "completed"
-        })))
-      }
-    }
-  }, [kycData])
-
-  const handleStartStep = (stepId) => {
-    router.push(`/dashboard/sell/kyc/${stepId}`)
-  }
-
   // Show loading skeleton while session is loading
   if (sessionStatus === "loading" || kycLoading) {
-    return (
-      <div className="max-w-2xl mx-auto space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Shield className="h-5 w-5 text-primary" />
-              <span>Verification Required</span>
-            </CardTitle>
-            <CardDescription>
-              Complete verification to start selling accounts
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <KycStepsSkeleton />
-          </CardContent>
-        </Card>
-      </div>
-    )
+    return <KycStepsSkeleton />
   }
 
   // Redirect to login if not authenticated
@@ -88,29 +51,54 @@ export default function SellPage() {
     return null
   }
 
-  // Check if KYC is verified from the API response
+  // Check if all steps are in pending_review state
+  const allStepsPendingReview = kycData?.steps?.every(step => step.status === "pending_review")
+  
+  // Check if KYC is verified
   const isKycVerified = kycData?.isKycVerified || false
 
-  if (!isKycVerified) {
+  if (isKycVerified) {
+    return <SellingInterface />
+  }
+
+  if (allStepsPendingReview) {
     return (
       <div className="max-w-2xl mx-auto space-y-6">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
-              <Shield className="h-5 w-5 text-primary" />
-              <span>Verification Required</span>
+              <Clock className="h-5 w-5 text-yellow-500" />
+              <span>KYC Verification Under Review</span>
             </CardTitle>
             <CardDescription>
-              Complete verification to start selling accounts
+              We are reviewing your submitted documents. This process typically takes 24-48 hours.
+              We'll notify you once the verification is complete.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <KycSteps steps={kycSteps} onStartStep={handleStartStep} />
+            <KycSteps steps={kycData.steps} />
           </CardContent>
         </Card>
       </div>
     )
   }
 
-  return <SellingInterface />
+  return (
+    <div className="max-w-2xl mx-auto space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <Shield className="h-5 w-5 text-primary" />
+            <span>Verification Required</span>
+          </CardTitle>
+          <CardDescription>
+            Complete verification to start selling accounts
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <KycSteps steps={kycData.steps} />
+        </CardContent>
+      </Card>
+    </div>
+  )
 } 
