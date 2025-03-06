@@ -139,6 +139,7 @@ model Listing {
   verified      Boolean        @default(false)
   mediaProof    String[]      
   negotiable    Boolean        @default(false)
+  transferMethod String        // Add this field
   status        ListingStatus  @default(AVAILABLE)
   reviews       Review[]
   orders        Order[]

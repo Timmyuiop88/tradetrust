@@ -20,9 +20,43 @@ export async function GET() {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
- 
+    // Parse the document URLs if they exist
+    const docs = user.kyc?.idDocUrl ? JSON.parse(user.kyc.idDocUrl) : {}
 
-    return NextResponse.json({ isKycVerified: user.isKycVerified, isEmailVerified: user.isEmailVerified })
+    // Define the steps with their statuses
+    const steps = [
+      {
+        id: 1,
+        type: "identity",
+        title: "Identity Verification",
+        description: "Upload a valid government ID",
+        status: docs.governmentId ? "pending_review" : "pending"
+      },
+      {
+        id: 2,
+        type: "address",
+        title: "Address Verification",
+        description: "Proof of address document",
+        status: docs.addressProof ? "pending_review" : 
+                docs.governmentId ? "pending" : "locked"
+      },
+      {
+        id: 3,
+        type: "face",
+        title: "Face Verification",
+        description: "Quick selfie verification",
+        status: docs.faceScan ? "pending_review" : 
+                docs.addressProof ? "pending" : "locked"
+      }
+    ]
+
+    return NextResponse.json({
+      steps,
+      isKycVerified: user.isKycVerified,
+      isEmailVerified: user.isEmailVerified,
+      kycStatus: user.kyc?.verified ? "approved" : 
+                 docs.faceScan ? "pending_review" : "incomplete"
+    })
   } catch (error) {
     console.error('KYC status error:', error)
     return NextResponse.json({ error: 'Failed to fetch KYC status' }, { status: 500 })

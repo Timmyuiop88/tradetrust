@@ -7,7 +7,8 @@ export function usePlatforms() {
     queryFn: async () => {
       const { data } = await axios.get('/api/platforms')
       return data
-    }
+    },
+    staleTime: 1000 * 60 * 60, // 1 hour
   })
 }
 
