@@ -15,12 +15,22 @@ export function useUpdatePayoutSettings() {
   const queryClient = useQueryClient()
   
   return useMutation({
-    mutationFn: async (settings) => {
-      const { data } = await axios.post('/api/users/payout-settings', settings)
-      return data
+    mutationFn: async (data) => {
+      if (data.delete) {
+        await axios.delete(`/api/users/payout-settings?id=${data.id}`)
+        return { success: true }
+      }
+      
+      if (data.id) {
+        const { data: response } = await axios.put('/api/users/payout-settings', data)
+        return response
+      } else {
+        const { data: response } = await axios.post('/api/users/payout-settings', data)
+        return response
+      }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['payout-settings'])
+      queryClient.invalidateQueries({ queryKey: ['payout-settings'] })
     }
   })
 } 

@@ -2,7 +2,7 @@
 
 import { useSession } from "next-auth/react"
 import { redirect } from "next/navigation"
-import { Home, ShoppingBag, PlusSquare, User2, Bell, ShieldCheck, Wallet } from "lucide-react"
+import { Home, ShoppingBag, PlusSquare, User2, Bell, ShieldCheck, Wallet, LogOut } from "lucide-react"
 import Link from "next/link"
 import { Button } from "../components/button"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "../components/sheet"
