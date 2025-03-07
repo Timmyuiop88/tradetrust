@@ -42,6 +42,11 @@ export function PasswordChangeForm() {
       await axios.post("/api/users/change-password", {
         currentPassword,
         newPassword
+      }, {
+        withCredentials: true,
+        headers: {
+          'Content-Type': 'application/json',
+        }
       })
       
       setSuccess(true)
@@ -49,6 +54,7 @@ export function PasswordChangeForm() {
       setNewPassword("")
       setConfirmPassword("")
     } catch (err) {
+      console.error("Password change error:", err)
       setError(err.response?.data?.error || "Failed to change password")
     } finally {
       setIsLoading(false)

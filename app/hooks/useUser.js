@@ -13,8 +13,13 @@ export function useUser() {
           return null
         }
         
-        // Fetch additional user details
-        const { data } = await axios.get('/api/users/me')
+        // Fetch additional user details from API with credentials
+        const { data } = await axios.get('/api/users/me', {
+          withCredentials: true,
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        })
         
         // Ensure KYC data is properly structured
         const kycData = data.kyc || null
@@ -29,11 +34,16 @@ export function useUser() {
         }
       } catch (error) {
         console.error('Error fetching user profile:', error)
+        console.error('Error details:', {
+          status: error.response?.status,
+          data: error.response?.data,
+          message: error.message
+        })
         // Return session data as fallback
         return session?.user || { error: error.message }
       }
     },
-    enabled: status === 'authenticated',
+    enabled: status === 'authenticated' && !!session?.user?.id,
     staleTime: 1000 * 60 * 5, // 5 minutes
     refetchOnWindowFocus: false
   })
