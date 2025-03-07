@@ -12,6 +12,42 @@ import { Loader2, OctagonAlert } from 'lucide-react';
 import { MessageCircle, Send, AlertCircle, ArrowLeft, RefreshCw, Circle, Clock, MessageCircleWarningIcon, ExclamationTriangle } from 'lucide-react';
 import Link from 'next/link';
 
+const MessageSkeleton = () => {
+    return (
+        <div className="space-y-4">
+            {/* Other user message */}
+            <div className="flex mb-4 justify-start">
+                <div className="h-8 w-8 rounded-full bg-muted animate-pulse mr-2"></div>
+                <div className="max-w-[70%] p-3 rounded-lg bg-card dark:bg-card/80 rounded-tl-none">
+                    <div className="h-4 bg-muted/60 rounded w-24 animate-pulse"></div>
+                    <div className="h-12 bg-muted/60 rounded w-full mt-2 animate-pulse"></div>
+                    <div className="h-3 bg-muted/60 rounded w-16 mt-1 animate-pulse"></div>
+                </div>
+            </div>
+            
+            {/* Current user message */}
+            <div className="flex mb-4 justify-end">
+                <div className="max-w-[70%] p-3 rounded-lg bg-primary/70 text-primary-foreground rounded-tr-none">
+                    <div className="h-4 bg-primary-foreground/20 rounded w-24 animate-pulse"></div>
+                    <div className="h-12 bg-primary-foreground/20 rounded w-full mt-2 animate-pulse"></div>
+                    <div className="h-3 bg-primary-foreground/20 rounded w-16 mt-1 animate-pulse"></div>
+                </div>
+                <div className="h-8 w-8 rounded-full bg-muted animate-pulse ml-2"></div>
+            </div>
+            
+            {/* Other user message */}
+            <div className="flex mb-4 justify-start">
+                <div className="h-8 w-8 rounded-full bg-muted animate-pulse mr-2"></div>
+                <div className="max-w-[70%] p-3 rounded-lg bg-card dark:bg-card/80 rounded-tl-none">
+                    <div className="h-4 bg-muted/60 rounded w-32 animate-pulse"></div>
+                    <div className="h-8 bg-muted/60 rounded w-full mt-2 animate-pulse"></div>
+                    <div className="h-3 bg-muted/60 rounded w-16 mt-1 animate-pulse"></div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 export default function ChatPage() {
     const { orderId } = useParams();
     const router = useRouter();
@@ -87,9 +123,7 @@ export default function ChatPage() {
     // Show loading state while checking authentication
     if (status === 'loading' || status === 'unauthenticated') {
         return (
-            <div className="flex items-center justify-center min-h-screen">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
+            <MessageSkeleton />
         );
     }
 
@@ -142,10 +176,10 @@ export default function ChatPage() {
                         <p className="text-muted-foreground text-black font-bold text-[8px] md:text-[10px] flex items-center"><OctagonAlert className="h-4 w-4 mr-2" />Trusttrade Moderators have a green checkmark. Be careful with scammers!</p>
                     </div>
                     {loading ? (
-                        <div className="flex items-center justify-center h-full">
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        <div className="flex flex-col justify-center h-full">
+                            <MessageSkeleton />
                         </div>
-                    ) : error ? (
+                    ) : error && !error.includes('WebSocket') ? (
                         <div className="flex flex-col items-center justify-center h-full">
                             <AlertCircle className="h-12 w-12 text-red-500 mb-4" />
                             <p className="text-red-600 dark:text-red-400 mb-4">{error}</p>
@@ -159,6 +193,41 @@ export default function ChatPage() {
                             <p className="text-muted-foreground mb-2">No messages yet</p>
                             <p className="text-sm text-muted-foreground">Start the conversation by sending a message below.</p>
                         </div>
+                    ) : error && error.includes('WebSocket') && messages.length > 0 ? (
+                        <>
+                            {messages.map((message, index) => {
+                                // Render messages as normal
+                                const isCurrentUser = message.senderId === session?.user?.id;
+                                
+                                return (
+                                    <div 
+                                        key={message.id || `msg-${index}`}
+                                        className={`flex mb-4 ${isCurrentUser ? 'justify-end' : 'justify-start'}`}
+                                    >
+                                        {!isCurrentUser && (
+                                            <Avatar className="mr-2 h-8 w-8" />
+                                        )}
+                                        <div
+                                            className={`max-w-[70%] p-3 rounded-lg ${isCurrentUser
+                                                    ? 'bg-primary text-primary-foreground rounded-tr-none'
+                                                    : 'bg-card dark:bg-card/80 rounded-tl-none'
+                                                }`}
+                                        >
+                                            <p className="text-sm">{message.content}</p>
+                                            <p className="text-xs text-muted-foreground mt-1">
+                                                {new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                            </p>
+                                        </div>
+                                        {isCurrentUser && (
+                                            <Avatar className="ml-2 h-8 w-8" />
+                                        )}
+                                    </div>
+                                );
+                            })}
+                            <div className="mt-4">
+                                <MessageSkeleton />
+                            </div>
+                        </>
                     ) : (
                         <>
                             {messages.map((message, index) => {
@@ -181,7 +250,7 @@ export default function ChatPage() {
                                                 }`}
                                         >
                                             <p className="text-sm">{message.content}</p>
-                                            <p className="text-xs text-muted-foreground mt-1">
+                                            <p className="text-xs mt-1 text-right">
                                                 {new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                             </p>
                                         </div>

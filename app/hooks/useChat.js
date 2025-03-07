@@ -84,7 +84,8 @@ export const useChat = (orderId) => {
 
     socketInstance.on('error', (err) => {
       console.error('Socket error:', err);
-      setError(err.message);
+      // Don't set error, just log it
+      // setError(err.message);
     });
 
     socketInstance.on('disconnect', () => {
@@ -96,7 +97,8 @@ export const useChat = (orderId) => {
       console.error('WebSocket connection error:', err);
       setIsWebSocketAvailable(false);
       setIsConnected(false);
-      setError(`WebSocket connection error: ${err.message}`);
+      // Don't set error, just log it
+      // setError(`WebSocket connection error: ${err.message}`);
       // We'll fall back to REST API
     });
 
