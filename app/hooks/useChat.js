@@ -1,258 +1,239 @@
-import { useState, useEffect, useCallback } from 'react';
-import { io } from 'socket.io-client';
-import axios from 'axios';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSession } from 'next-auth/react';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '../api/auth/[...nextauth]/route';
 
-const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001';
-
-export const useChat = (orderId) => {
-  const { data: session } = useSession();
-  const [messages, setMessages] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [socket, setSocket] = useState(null);
-  const [isConnected, setIsConnected] = useState(false);
-  const [isWebSocketAvailable, setIsWebSocketAvailable] = useState(false);
-  const [otherUserStatus, setOtherUserStatus] = useState({ online: false, lastSeen: null });
-  const [otherUserId, setOtherUserId] = useState(null);
-
-  // Initialize WebSocket connection
-  useEffect(() => {
-    if (!session?.user?.id || !orderId) return;
-
-    const userId = session.user.id;
+export function useChat(orderId) {
+    const [messages, setMessages] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const { data: session } = useSession();
+    const [otherUserStatus, setOtherUserStatus] = useState({ online: false, lastSeen: null });
+    const [otherUserId, setOtherUserId] = useState(null);
     
-    // Try to establish WebSocket connection
-    const socketInstance = io(SOCKET_URL, {
-      reconnectionAttempts: 3,
-      timeout: 10000,
-      transports: ['websocket', 'polling'],
-    });
+    // WebSocket functionality is temporarily disabled
+    // const socket = useRef(null);
+    const [isConnected, setIsConnected] = useState(false);
+    const [isWebSocketAvailable, setIsWebSocketAvailable] = useState(false);
 
-    socketInstance.on('connect', () => {
-      console.log('WebSocket connected for real-time updates');
-      setIsWebSocketAvailable(true);
-      setIsConnected(true);
-      
-      // Authenticate the socket connection
-      socketInstance.emit('authenticate', { userId });
-      
-      // Join a room for this specific order to receive updates
-      socketInstance.emit('joinRoom', { orderId });
-    });
-
-    socketInstance.on('authenticated', (data) => {
-      console.log('Socket authenticated:', data);
-      
-      // If we know the other user's ID, request their status
-      if (otherUserId) {
-        socketInstance.emit('getUserStatus', { userIds: [otherUserId] });
-      }
-    });
-
-    socketInstance.on('messageReceived', (message) => {
-      console.log('Real-time message update received:', message);
-      
-      setMessages((prevMessages) => {
-        // Check if message already exists to prevent duplicates
-        const exists = prevMessages.some(m => m.id === message.id);
-        if (exists) return prevMessages;
+    // Function to format last seen time
+    const formatLastSeen = (timestamp) => {
+        if (!timestamp) return 'a while ago';
         
-        return [...prevMessages, message];
-      });
-    });
-    
-    // Handle user status updates
-    socketInstance.on('userStatusUpdate', (statusData) => {
-      console.log('User status update received:', statusData);
-      
-      if (otherUserId && statusData[otherUserId]) {
-        setOtherUserStatus(statusData[otherUserId]);
-      }
-    });
-    
-    // Handle individual user status changes
-    socketInstance.on('userStatusChange', (data) => {
-      console.log('User status change:', data);
-      
-      if (data.userId === otherUserId) {
-        setOtherUserStatus(data.status);
-      }
-    });
-
-    socketInstance.on('error', (err) => {
-      console.error('Socket error:', err);
-      // Don't set error, just log it
-      // setError(err.message);
-    });
-
-    socketInstance.on('disconnect', () => {
-      console.log('WebSocket disconnected');
-      setIsConnected(false);
-    });
-
-    socketInstance.on('connect_error', (err) => {
-      console.error('WebSocket connection error:', err);
-      setIsWebSocketAvailable(false);
-      setIsConnected(false);
-      // Don't set error, just log it
-      // setError(`WebSocket connection error: ${err.message}`);
-      // We'll fall back to REST API
-    });
-
-    setSocket(socketInstance);
-
-    // Cleanup on unmount
-    return () => {
-      socketInstance.disconnect();
+        const lastSeen = new Date(timestamp);
+        const now = new Date();
+        const diffInMinutes = Math.floor((now - lastSeen) / (1000 * 60));
+        
+        if (diffInMinutes < 1) return 'just now';
+        if (diffInMinutes < 60) return `${diffInMinutes} minute${diffInMinutes === 1 ? '' : 's'} ago`;
+        
+        const diffInHours = Math.floor(diffInMinutes / 60);
+        if (diffInHours < 24) return `${diffInHours} hour${diffInHours === 1 ? '' : 's'} ago`;
+        
+        const diffInDays = Math.floor(diffInHours / 24);
+        if (diffInDays < 7) return `${diffInDays} day${diffInDays === 1 ? '' : 's'} ago`;
+        
+        return lastSeen.toLocaleDateString();
     };
-  }, [session, orderId, otherUserId]);
 
-  // Fetch messages via REST API (initial load or fallback)
-  const fetchMessages = useCallback(async () => {
-    if (!session?.user?.id || !orderId) {
-      console.log('Missing session or orderId:', { 
-        sessionExists: !!session, 
-        userExists: !!session?.user, 
-        userId: session?.user?.id, 
-        orderId 
-      });
-      return;
-    }
-
-    try {
-      setLoading(true);
-      console.log('Fetching messages for order:', orderId);
-      
-      const response = await axios.get(`/api/chat?orderId=${orderId}`);
-      
-      // Log the entire response
-      console.log('Chat API Response:', {
-        status: response.status,
-        statusText: response.statusText,
-        headers: response.headers,
-        data: response.data
-      });
-      
-      // Extract the other user's ID from the order data
-      if (response.data.order) {
-        const currentUserId = session.user.id;
-        const { buyerId, sellerId } = response.data.order;
+    // Function to fetch messages
+    const fetchMessages = useCallback(async () => {
+        if (!session || !orderId) return;
         
-        // Set the other user's ID based on whether the current user is the buyer or seller
-        const otherId = currentUserId === buyerId ? sellerId : buyerId;
-        setOtherUserId(otherId);
-        
-        // Request the other user's status if socket is connected
-        if (socket && isConnected && otherId) {
-          socket.emit('getUserStatus', { userIds: [otherId] });
+        try {
+            setLoading(true);
+            console.log(`Fetching messages for order: ${orderId}`);
+            
+            // Check if the API endpoint exists
+            const apiUrl = `/api/chat/${orderId}`;
+            console.log(`API URL: ${apiUrl}`);
+            
+            // Add a cache-busting parameter to prevent browser caching
+            const timestamp = new Date().getTime();
+            const response = await fetch(`${apiUrl}?t=${timestamp}`);
+            
+            if (!response.ok) {
+                console.error(`API error: ${response.status} ${response.statusText}`);
+                throw new Error(`Failed to fetch messages: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            console.log('Messages fetched successfully:', data);
+            
+            // Update messages - handle chatMessages instead of messages if needed
+            const messageData = data.messages || [];
+            setMessages(messageData);
+            
+            // Update other user status
+            if (data.otherUser) {
+                setOtherUserId(data.otherUser.id);
+                
+                // Simple approach for online status without WebSockets
+                // Consider a user online if they've been active in the last 5 minutes
+                // Use lastSeen from API (which is actually updatedAt)
+                const lastActive = new Date(data.otherUser.lastSeen || 0);
+                const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+                
+                setOtherUserStatus({
+                    online: lastActive > fiveMinutesAgo,
+                    lastSeen: data.otherUser.lastSeen
+                });
+            }
+            
+            setError(null);
+        } catch (err) {
+            console.error('Error fetching messages:', err);
+            setError(err.message);
+            
+            // Set empty messages to avoid showing old messages
+            // setMessages([]);  // Commented out to prevent clearing messages on error
+        } finally {
+            setLoading(false);
         }
-      }
-      
-      // Log each message with detailed information
-      console.log('Messages array length:', response.data.messages?.length || 0);
-      
-      if (response.data.messages && response.data.messages.length > 0) {
-        console.log('First message sample:', response.data.messages[0]);
+    }, [session, orderId]);
+
+    // Function to refresh messages (exposed to component)
+    const refreshMessages = useCallback(() => {
+        fetchMessages();
+    }, [fetchMessages]);
+
+    // Initialize and fetch messages
+    useEffect(() => {
+        if (session && orderId) {
+            fetchMessages();
+            
+            // Update user's last seen status when they view the chat
+            updateLastSeen();
+        }
         
-        // Log all messages with their structure
-        console.log('All messages detailed structure:');
-        response.data.messages.forEach((msg, index) => {
-          console.log(`Message ${index + 1}:`, {
-            id: msg.id,
-            content: msg.content,
-            createdAt: msg.createdAt,
-            sender: msg.sender,
-            senderId: msg.senderId,
-            hasValidSender: !!msg.sender,
-            senderIdFromObject: msg.sender?.id,
-            senderEmail: msg.sender?.email
-          });
-        });
-      } else {
-        console.log('No messages received in response');
-      }
-      
-      setMessages(response.data.messages || []);
-      setError(null);
-    } catch (err) {
-      console.error('Error fetching messages:', err);
-      console.error('Error details:', {
-        message: err.message,
-        response: err.response?.data,
-        status: err.response?.status
-      });
-      setError(err.response?.data?.error || 'Failed to fetch messages');
-    } finally {
-      setLoading(false);
-    }
-  }, [session, orderId, socket, isConnected]);
+        // WebSocket connection is temporarily disabled
+        /*
+        // Initialize WebSocket connection
+        if (session && orderId && typeof window !== 'undefined') {
+            try {
+                // Close any existing connection
+                if (socket.current && socket.current.readyState !== WebSocket.CLOSED) {
+                    socket.current.close();
+                }
+                
+                // Create new WebSocket connection
+                const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                const wsUrl = `${protocol}//${window.location.host}/api/ws?orderId=${orderId}&userId=${session.user.id}`;
+                
+                socket.current = new WebSocket(wsUrl);
+                
+                socket.current.onopen = () => {
+                    console.log('WebSocket connected');
+                    setIsConnected(true);
+                    setIsWebSocketAvailable(true);
+                };
+                
+                socket.current.onmessage = (event) => {
+                    const data = JSON.parse(event.data);
+                    
+                    if (data.type === 'message') {
+                        // Add new message to state
+                        setMessages(prev => [...prev, data.message]);
+                    } else if (data.type === 'status') {
+                        // Update user status
+                        setOtherUserStatus(data.status);
+                    }
+                };
+                
+                socket.current.onerror = (error) => {
+                    console.error('WebSocket error:', error);
+                    setIsConnected(false);
+                    setError('WebSocket connection error. Using manual refresh instead.');
+                };
+                
+                socket.current.onclose = () => {
+                    console.log('WebSocket disconnected');
+                    setIsConnected(false);
+                };
+                
+                // Ping to keep connection alive
+                const pingInterval = setInterval(() => {
+                    if (socket.current && socket.current.readyState === WebSocket.OPEN) {
+                        socket.current.send(JSON.stringify({ type: 'ping' }));
+                    }
+                }, 30000);
+                
+                return () => {
+                    clearInterval(pingInterval);
+                    if (socket.current) {
+                        socket.current.close();
+                    }
+                };
+            } catch (err) {
+                console.error('Error setting up WebSocket:', err);
+                setIsWebSocketAvailable(false);
+                setError('WebSocket not available. Using manual refresh instead.');
+            }
+        }
+        */
+    }, [session, orderId, fetchMessages]);
 
-  // Initial fetch of messages
-  useEffect(() => {
-    fetchMessages();
-  }, [fetchMessages]);
+    // Function to update user's last seen status
+    const updateLastSeen = async () => {
+        if (!session || !orderId) return;
+        
+        try {
+            await fetch('/api/users/status', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    lastSeen: new Date().toISOString(),
+                }),
+            });
+        } catch (err) {
+            console.error('Error updating last seen status:', err);
+        }
+    };
 
-  // Send a message function
-  const sendMessage = useCallback(async (content, receiverId) => {
-    if (!session?.user?.id || !orderId || !content) {
-      setError('Missing required information to send message');
-      return false;
-    }
+    // Function to send a message
+    const sendMessage = async (content) => {
+        if (!session || !orderId || !content) return false;
+        
+        try {
+            const response = await fetch('/api/chat/send', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    orderId,
+                    content,
+                }),
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Failed to send message: ${response.status}`);
+            }
+            
+            // Update last seen status when sending a message
+            updateLastSeen();
+            
+            // Refresh messages to get the new message
+            await fetchMessages();
+            
+            return true;
+        } catch (err) {
+            console.error('Error sending message:', err);
+            setError(err.message);
+            return false;
+        }
+    };
 
-    try {
-      // Always use REST API for sending messages
-      const response = await axios.post('/api/chat', {
-        orderId,
-        content,
-        receiverId: receiverId || otherUserId, // Use the stored otherUserId if receiverId is not provided
-      });
-      
-      // Add the new message to the state
-      setMessages((prevMessages) => [...prevMessages, response.data.message]);
-      
-      setError(null);
-      return true;
-    } catch (err) {
-      console.error('Error sending message:', err);
-      setError(err.response?.data?.error || 'Failed to send message');
-      return false;
-    }
-  }, [session, orderId, otherUserId]);
-
-  // Format the last seen time in a human-readable format
-  const formatLastSeen = useCallback((lastSeenDate) => {
-    if (!lastSeenDate) return 'Never';
-    
-    const date = new Date(lastSeenDate);
-    const now = new Date();
-    const diffInSeconds = Math.floor((now - date) / 1000);
-    
-    if (diffInSeconds < 60) {
-      return 'Just now';
-    } else if (diffInSeconds < 3600) {
-      const minutes = Math.floor(diffInSeconds / 60);
-      return `${minutes} ${minutes === 1 ? 'minute' : 'minutes'} ago`;
-    } else if (diffInSeconds < 86400) {
-      const hours = Math.floor(diffInSeconds / 3600);
-      return `${hours} ${hours === 1 ? 'hour' : 'hours'} ago`;
-    } else {
-      return date.toLocaleString();
-    }
-  }, []);
-
-  return {
-    messages,
-    loading,
-    error,
-    sendMessage,
-    isConnected,
-    isWebSocketAvailable,
-    refreshMessages: fetchMessages,
-    otherUserStatus,
-    otherUserId,
-    formatLastSeen,
-  };
-}; 
+    return {
+        messages,
+        loading,
+        error,
+        sendMessage,
+        isConnected: false, // Always false since WebSocket is disabled
+        isWebSocketAvailable: false, // Always false since WebSocket is disabled
+        refreshMessages,
+        otherUserStatus,
+        otherUserId,
+        formatLastSeen,
+    };
+} 
