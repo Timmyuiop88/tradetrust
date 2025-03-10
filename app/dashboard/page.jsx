@@ -229,51 +229,12 @@ export default function DashboardPage() {
                   </Badge>
                 </div>
                 
-                <Button 
-                  className="w-full mt-2" 
-                  size="sm"
-                  onClick={async (e) => {
-                    e.preventDefault();
-                    try {
-                      console.log('Creating order for listing:', listing.id);
-                      
-                      // Create an order for this listing
-                      const response = await fetch('/api/orders/create', {
-                        method: 'POST',
-                        headers: {
-                          'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                          listingId: listing.id,
-                        }),
-                      });
-                      
-                      const responseText = await response.text();
-                      console.log('API Response:', response.status, responseText);
-                      
-                      let data;
-                      try {
-                        data = JSON.parse(responseText);
-                      } catch (e) {
-                        console.error('Failed to parse response as JSON:', e);
-                      }
-                      
-                      if (!response.ok) {
-                        throw new Error(`Failed to create order: ${response.status} ${data?.error || responseText}`);
-                      }
-                      
-                      // Redirect to the chat page for this order
-                      console.log('Order created successfully, redirecting to chat:', data.orderId);
-                      window.location.href = `/chat/${data.orderId}`;
-                    } catch (error) {
-                      console.error('Error creating order:', error);
-                      alert(`Failed to create order: ${error.message}`);
-                    }
-                  }}
-                >
-                  <ShoppingCart className="h-4 w-4 mr-2" />
-                  View Details
-                </Button>
+                <Link href={`/dashboard/listings/${listing.id}`}>
+                  <Button className="w-full mt-2" size="sm">
+                    <ShoppingCart className="h-4 w-4 mr-2" />
+                    View Details
+                  </Button>
+                </Link>
               </div>
             </div>
           </div>
