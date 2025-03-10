@@ -110,29 +110,49 @@ export default function ChatPage({ params }) {
   const sendMessage = async (e) => {
     e.preventDefault();
     
-    if ((!newMessage.trim() && !selectedImage) || isSending) return;
-    
-    let success = false;
-    setIsSending(true);
-    
+    // Check if there's a message or image to send
+    if (!newMessage.trim() && !selectedImage) return;
+
     try {
+      let success = false;
+      setIsSending(true); // Set sending state to true
+      setError(null); // Clear any previous errors
+
+      // If there's an image to upload
       if (selectedImage) {
-        // Handle image upload
         setIsUploading(true);
-        
-        const formData = new FormData();
-        formData.append('file', selectedImage);
-        formData.append('recipientId', userId);
-        formData.append('content', newMessage);
-        
-        const response = await fetch('/api/chat/upload', {
+
+        // Upload to EdgeStore
+        const res = await edgestore.publicFiles.upload({
+          file: selectedImage,
+          onProgressChange: (progress) => {
+            console.log(`Upload progress: ${progress}%`);
+          },
+        });
+
+        console.log('Upload complete:', res);
+
+        // Send the image URL as a message, along with any text
+        // Place the image marker first, then the text (if any)
+        const imageUrl = res.url;
+        const messageContent = newMessage.trim()
+          ? `[IMAGE]${imageUrl}\n${newMessage}`
+          : `[IMAGE]${imageUrl}`;
+
+        const response = await fetch('/api/chat/send', {
           method: 'POST',
-          body: formData,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            recipientId: userId,
+            content: messageContent,
+          }),
         });
         
         if (!response.ok) {
           const errorData = await response.json();
-          throw new Error(errorData.error || 'Failed to upload image');
+          throw new Error(errorData.error || 'Failed to send message');
         }
         
         // Add the new message to the list
@@ -175,7 +195,13 @@ export default function ChatPage({ params }) {
       }
     } catch (err) {
       console.error('Error sending message:', err);
-      setError(err.message);
+      
+      // Display a more user-friendly error message for listing availability issues
+      if (err.message.includes('not available') || err.message.includes('No available listings')) {
+        setError(err.message);
+      } else {
+        setError('Failed to send message. Please try again later.');
+      }
     } finally {
       setIsUploading(false);
       setIsSending(false); // Reset sending state

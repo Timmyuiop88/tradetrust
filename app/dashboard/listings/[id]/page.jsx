@@ -195,7 +195,7 @@ export default function ListingDetailsPage() {
       router.push(`/login?redirect=/dashboard/listings/${id}`);
       return;
     }
-    router.push(`/dashboard/messages?seller=${listing.sellerId}`);
+    router.push(`/chat/${listing.sellerId}`);
   }
 
   const toggleFavorite = async () => {

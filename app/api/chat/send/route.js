@@ -54,6 +54,14 @@ export async function POST(req) {
                         ]
                     }
                 ]
+            },
+            include: {
+                listing: {
+                    select: {
+                        id: true,
+                        status: true
+                    }
+                }
             }
         });
 
@@ -70,12 +78,21 @@ export async function POST(req) {
             const recipientListing = await prisma.listing.findFirst({
                 where: {
                     sellerId: recipientId
-                    // Removed status filter to find any listing
                 }
             });
 
             if (recipientListing) {
-                console.log("Found recipient listing:", recipientListing.id);
+                console.log("Found recipient listing:", recipientListing.id, "with status:", recipientListing.status);
+                
+                // Check if the listing is available
+                if (recipientListing.status !== 'AVAILABLE') {
+                    return new NextResponse(
+                        JSON.stringify({ 
+                            error: 'This listing is not available for messaging. The listing status is: ' + recipientListing.status 
+                        }),
+                        { status: 400, headers: { 'Content-Type': 'application/json' } }
+                    );
+                }
                 
                 // Create a new order with the sender as buyer
                 const newOrder = await prisma.order.create({
@@ -100,12 +117,21 @@ export async function POST(req) {
                 const senderListing = await prisma.listing.findFirst({
                     where: {
                         sellerId: session.user.id
-                        // Removed status filter to find any listing
                     }
                 });
 
                 if (senderListing) {
-                    console.log("Found sender listing:", senderListing.id);
+                    console.log("Found sender listing:", senderListing.id, "with status:", senderListing.status);
+                    
+                    // Check if the listing is available
+                    if (senderListing.status !== 'AVAILABLE') {
+                        return new NextResponse(
+                            JSON.stringify({ 
+                                error: 'Your listing is not available for messaging. The listing status is: ' + senderListing.status 
+                            }),
+                            { status: 400, headers: { 'Content-Type': 'application/json' } }
+                        );
+                    }
                     
                     // Create a new order with the recipient as buyer
                     const newOrder = await prisma.order.create({
@@ -128,6 +154,25 @@ export async function POST(req) {
                 } else {
                     // If still no listing found, create a dummy listing for chat purposes
                     console.log("No listings found, creating a dummy listing");
+                    
+                    // Check if there are any available listings between these users
+                    const anyAvailableListing = await prisma.listing.findFirst({
+                        where: {
+                            OR: [
+                                { sellerId: recipientId, status: 'AVAILABLE' },
+                                { sellerId: session.user.id, status: 'AVAILABLE' }
+                            ]
+                        }
+                    });
+                    
+                    if (!anyAvailableListing) {
+                        return new NextResponse(
+                            JSON.stringify({ 
+                                error: 'No available listings found. You can only message users with available listings.'
+                            }),
+                            { status: 400, headers: { 'Content-Type': 'application/json' } }
+                        );
+                    }
                     
                     const dummyListing = await prisma.listing.create({
                         data: {
