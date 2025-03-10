@@ -106,7 +106,7 @@ export async function POST(req) {
                         sellerId: recipientId,
                         price: recipientListing.price,
                         escrowAmount: recipientListing.price,
-                        status: 'PENDING'
+                        status: 'AVAILABLE'
                     }
                 });
 

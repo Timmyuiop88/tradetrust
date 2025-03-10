@@ -116,7 +116,6 @@ export default function ChatPage({ params }) {
     try {
       let success = false;
       setIsSending(true); // Set sending state to true
-      setError(null); // Clear any previous errors
 
       // If there's an image to upload
       if (selectedImage) {
@@ -195,13 +194,7 @@ export default function ChatPage({ params }) {
       }
     } catch (err) {
       console.error('Error sending message:', err);
-      
-      // Display a more user-friendly error message for listing availability issues
-      if (err.message.includes('not available') || err.message.includes('No available listings')) {
-        setError(err.message);
-      } else {
-        setError('Failed to send message. Please try again later.');
-      }
+      setError(err.message);
     } finally {
       setIsUploading(false);
       setIsSending(false); // Reset sending state

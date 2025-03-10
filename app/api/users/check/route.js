@@ -52,53 +52,6 @@ export async function GET(request) {
       );
     }
 
-    // Check if there's an existing order between the users
-    const existingOrder = await prisma.order.findFirst({
-      where: {
-        OR: [
-          {
-            AND: [
-              { buyerId: session.user.id },
-              { listing: { sellerId: userId } }
-            ]
-          },
-          {
-            AND: [
-              { buyerId: userId },
-              { sellerId: session.user.id }
-            ]
-          }
-        ]
-      }
-    });
-
-    // If there's an existing order, allow the chat
-    if (existingOrder) {
-      return new NextResponse(
-        JSON.stringify({ user }),
-        { status: 200, headers: { 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Check if either user has an available listing
-    const availableListing = await prisma.listing.findFirst({
-      where: {
-        OR: [
-          { sellerId: userId, status: 'AVAILABLE' },
-          { sellerId: session.user.id, status: 'AVAILABLE' }
-        ]
-      }
-    });
-
-    if (!availableListing) {
-      return new NextResponse(
-        JSON.stringify({ 
-          error: 'No available listings found. You can only message users with available listings or if you have an available listing yourself.' 
-        }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
-      );
-    }
-
     return new NextResponse(
       JSON.stringify({ user }),
       { status: 200, headers: { 'Content-Type': 'application/json' } }

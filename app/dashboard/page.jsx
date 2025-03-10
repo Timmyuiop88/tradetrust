@@ -254,46 +254,6 @@ export default function DashboardPage() {
                       View Details
                     </Button>
                   </Link>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex-none"
-                    disabled={userLoading || status === 'loading'}
-                    onClick={async (e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-
-                      if (!user) {
-                        router.push('/login');
-                        return;
-                      }
-
-                      if (listing.sellerId === user.id) {
-                        alert("This is your own listing!");
-                        return;
-                      }
-
-                      try {
-                        console.log('Starting chat with seller:', listing.sellerId);
-                        const success = await sendMessage({
-                          recipientId: listing.sellerId,
-                          content: `Hi, I'm interested in your ${listing.platform?.name || ''} account listing.`,
-                        });
-
-                        if (success) {
-                          console.log('Message sent successfully, navigating to chat...');
-                          router.push(`/chat/${listing.sellerId}`);
-                        } else {
-                          throw new Error('Failed to send message');
-                        }
-                      } catch (error) {
-                        console.error('Error starting chat:', error);
-                        alert('Failed to start chat. Please try again.');
-                      }
-                    }}
-                  >
-                    <MessageCircle className="h-4 w-4" />
-                  </Button>
                 </div>
               </div>
             </div>

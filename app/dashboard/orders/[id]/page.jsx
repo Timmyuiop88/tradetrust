@@ -141,7 +141,7 @@ export default function OrderDetailPage() {
   }
   
   const handleOpenChat = () => {
-    // This would navigate to the chat page when implemented
+    router.push(`/chat/${order.sellerId}`)
     toast.info('Chat feature coming soon')
   }
   
