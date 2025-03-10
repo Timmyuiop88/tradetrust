@@ -47,6 +47,22 @@ enum PaymentMethod {
   BANK_TRANSFER
 }
 
+enum TransactionType {
+  DEPOSIT
+  WITHDRAWAL
+  SALE
+  PURCHASE
+  REFUND
+  SYSTEM
+}
+
+enum TransactionStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
 // =====================
 // MODELS
 // =====================
@@ -83,6 +99,11 @@ model User {
   PayoutSettings PayoutSettings[]
 
   Review Review[]
+
+  sellerFavorites Favorite[] @relation("SellerFavorites")
+  userFavorites Favorite[] @relation("UserFavorites")
+
+  Balance Balance[]
 }
 
 model Kyc {
@@ -155,6 +176,7 @@ model Order {
   // Buyer relationship
   buyer            User         @relation("BuyerOrders", fields: [buyerId], references: [id])
   buyerId          String
+  credentials      Json?
 
   // Seller ID can be derived from Listing, but you may store it for quick reference
   sellerId         String
@@ -178,6 +200,7 @@ model Order {
 
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
+  completedAt      DateTime?
 }
 
 model ChatMessage {
@@ -270,4 +293,49 @@ model PayoutSettings {
   updatedAt   DateTime      @updatedAt
 
   @@unique([userId, method])
+}
+
+model Favorite {
+  id        String   @id @default(cuid())
+  userId    String
+  sellerId  String
+  createdAt DateTime @default(now())
+  
+  user      User     @relation("UserFavorites", fields: [userId], references: [id], onDelete: Cascade)
+  seller    User     @relation("SellerFavorites", fields: [sellerId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, sellerId])
+  @@index([userId])
+  @@index([sellerId])
+}
+
+model Balance {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  buyingBalance Float    @default(0)
+  sellingBalance Float   @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  // Transactions related to this balance
+  transactions  Transaction[]
+  
+  @@index([userId])
+}
+
+model Transaction {
+  id            String          @id @default(cuid())
+  balanceId     String
+  balance       Balance         @relation(fields: [balanceId], references: [id], onDelete: Cascade)
+  amount        Float
+  type          TransactionType
+  status        TransactionStatus @default(COMPLETED)
+  description   String
+  reference     String?         // For external references like order IDs
+  createdAt     DateTime        @default(now())
+  
+  @@index([balanceId])
+  @@index([type])
+  @@index([status])
 }

@@ -13,15 +13,22 @@ import { Badge } from "@/app/components/badge"
 import { 
   User, Mail, Calendar, Shield, CheckCircle, XCircle, 
   AlertCircle, MapPin, FileText, CreditCard, Package, 
-  Settings, Edit, ExternalLink
+  Settings, Edit, ExternalLink, Wallet, DollarSign, ArrowUpRight, ArrowDownRight, Clock
 } from "lucide-react"
 import { format } from "date-fns"
+import { AddBalanceSheet } from "@/app/components/add-balance-sheet"
 
 export default function ProfilePage() {
   const router = useRouter()
   const { data: userData, isLoading: userLoading, error: userError } = useUser()
   const { data: kycData, isLoading: kycLoading } = useKycStatus()
   const [activeTab, setActiveTab] = useState("overview")
+  const [balanceData, setBalanceData] = useState(null)
+  const [balanceLoading, setBalanceLoading] = useState(true)
+  const [salesData, setSalesData] = useState(null)
+  const [salesLoading, setSalesLoading] = useState(true)
+  const [activityData, setActivityData] = useState(null)
+  const [activityLoading, setActivityLoading] = useState(true)
   
   // Define formatDate function at the top level
   const formatDate = (dateString) => {
@@ -34,8 +41,78 @@ export default function ProfilePage() {
     }
   }
   
+  // Format currency helper
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(amount || 0);
+  }
+  
+  // Fetch user balance data
+  useEffect(() => {
+    const fetchBalance = async () => {
+      try {
+        setBalanceLoading(true)
+        const response = await fetch('/api/user/balance')
+        if (response.ok) {
+          const data = await response.json()
+          setBalanceData(data)
+        }
+      } catch (error) {
+        console.error('Error fetching balance:', error)
+      } finally {
+        setBalanceLoading(false)
+      }
+    }
+    
+    fetchBalance()
+  }, [])
+  
+  // Fetch user sales data if they're a seller
+  useEffect(() => {
+    const fetchSalesData = async () => {
+      try {
+        setSalesLoading(true)
+        const response = await fetch('/api/user/listings/stats')
+        if (response.ok) {
+          const data = await response.json()
+          setSalesData(data)
+        }
+      } catch (error) {
+        console.error('Error fetching sales data:', error)
+      } finally {
+        setSalesLoading(false)
+      }
+    }
+    
+    fetchSalesData()
+  }, [])
+  
+  // Add this effect to fetch user activity
+  useEffect(() => {
+    const fetchActivity = async () => {
+      try {
+        setActivityLoading(true)
+        const response = await fetch('/api/user/activity')
+        if (response.ok) {
+          const data = await response.json()
+          setActivityData(data)
+        }
+      } catch (error) {
+        console.error('Error fetching activity:', error)
+      } finally {
+        setActivityLoading(false)
+      }
+    }
+    
+    fetchActivity()
+  }, [])
+  
   // Add detailed debugging
-  {useEffect(() => {
+  useEffect(() => {
     console.log('Profile page loaded with userData:', userData)
     if (userData) {
       console.log('User data details:', {
@@ -55,7 +132,7 @@ export default function ProfilePage() {
         })
       }
     }
-  }, [userData])}
+  }, [userData])
 
   if (userLoading || kycLoading) {
     return (
@@ -109,7 +186,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto py-8 px-4">
+    <div className="max-w-4xl mx-auto py-8 px-0">
       {/* Profile Header */}
       <Card className="mb-6">
         <CardContent className="pt-6">
@@ -140,296 +217,576 @@ export default function ProfilePage() {
               onClick={() => router.push('/dashboard/settings')}
             >
               <Settings className="h-4 w-4" />
-              Settings
+              Edit Profile
             </Button>
           </div>
         </CardContent>
       </Card>
 
-      {/* Profile Content */}
+      {/* Balance Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <Card className="bg-gradient-to-br from-primary/10 to-primary/5">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg flex items-center">
+              <Wallet className="h-5 w-5 mr-2 text-primary" />
+              Buying Balance
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <div className="text-3xl font-bold">
+                {balanceLoading ? (
+                  <div className="h-8 w-32 bg-muted animate-pulse rounded" />
+                ) : (
+                  formatCurrency(balanceData?.balance?.buyingBalance || 0)
+                )}
+              </div>
+              <AddBalanceSheet>
+                <Button size="sm" className="gap-2">
+                  <ArrowUpRight className="h-4 w-4" />
+                  Add Funds
+                </Button>
+              </AddBalanceSheet>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-green-500/10 to-green-500/5">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg flex items-center">
+              <DollarSign className="h-5 w-5 mr-2 text-green-500" />
+              Selling Balance
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <div className="text-3xl font-bold">
+                {balanceLoading ? (
+                  <div className="h-8 w-32 bg-muted animate-pulse rounded" />
+                ) : (
+                  formatCurrency(balanceData?.balance?.sellingBalance || 0)
+                )}
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm"
+                className="gap-2"
+                onClick={() => router.push('/dashboard/balance')}
+              >
+                <ExternalLink className="h-4 w-4" />
+                Manage
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Main Content Tabs */}
       <Tabs defaultValue="overview" value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="mb-6 w-full grid grid-cols-4 gap-2 px-1 h-[60px]">
-          <TabsTrigger value="overview" className="px-1 py-2 text-[10px] sm:text-xs md:text-sm whitespace-nowrap">Overview</TabsTrigger>
-          <TabsTrigger value="verification" className="px-1 py-2 text-[10px] sm:text-xs md:text-sm whitespace-nowrap">Verification</TabsTrigger>
-          <TabsTrigger value="listings" className="px-1 py-2 text-[10px] sm:text-xs md:text-sm whitespace-nowrap">Listings</TabsTrigger>
-          <TabsTrigger value="transactions" className="px-1 py-2 text-[10px] sm:text-xs md:text-sm whitespace-nowrap">Transactions</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="kyc">KYC Verification</TabsTrigger>
+          <TabsTrigger value="activity">Activity</TabsTrigger>
         </TabsList>
-
-        {/* Overview Tab */}
-        <TabsContent value="overview">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card className="md:col-span-1">
-              <CardHeader>
-                <CardTitle>Account Info</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {/*<div className="flex items-center gap-3">
-                  <User className="h-5 w-5 text-muted-foreground" />
-                  <div>
-                    <p className="text-sm text-muted-foreground">Name</p>
-                    <p>{user.name || user.kyc?.fullName || "Not provided"}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <Mail className="h-5 w-5 text-muted-foreground" />
-                  <div>
-                    <p className="text-sm text-muted-foreground">Email</p>
-                    <p>{user.email}</p>
-                  </div>
-                </div>*/}
-                <div className="flex items-center gap-3">
-                  <Calendar className="h-5 w-5 text-muted-foreground" />
-                  <div>
-                    <p className="text-sm text-muted-foreground">Member Since</p>
-                    <p>{formatDate(user.createdAt)}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <MapPin className="h-5 w-5 text-muted-foreground" />
-                  <div>
-                    <p className="text-sm text-muted-foreground">Country</p>
-                    <p>{user.kyc?.country || "Not provided"}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="md:col-span-2">
-              <CardHeader>
-                <CardTitle>Account Statistics</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div className="bg-muted rounded-lg p-4">
-                    <p className="text-sm text-muted-foreground">Total Listings</p>
-                    <p className="text-2xl font-bold">{user._count?.listings || 0}</p>
-                  </div>
-                  <div className="bg-muted rounded-lg p-4">
-                    <p className="text-sm text-muted-foreground">Total Transactions</p>
-                    <p className="text-2xl font-bold">{user._count?.orders || 0}</p>
-                  </div>
-                  <div className="bg-muted rounded-lg p-4">
-                    <p className="text-sm text-muted-foreground">Verification Status</p>
-                    <div className="flex items-center gap-2 mt-1">
-                      {isKycVerified ? (
-                        <>
-                          <CheckCircle className="h-5 w-5 text-green-500" />
-                          <p className="font-medium">Verified</p>
-                        </>
-                      ) : (
-                        <>
-                          <AlertCircle className="h-5 w-5 text-amber-500" />
-                          <p className="font-medium">Incomplete</p>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-
-        {/* Verification Tab */}
-        <TabsContent value="verification">
+        
+        <TabsContent value="overview" className="space-y-6">
+          {/* Personal Information */}
           <Card>
             <CardHeader>
-              <CardTitle>KYC Verification Status</CardTitle>
-              <CardDescription>
-                Your identity verification status and documents
-              </CardDescription>
+              <CardTitle className="flex items-center gap-2">
+                <User className="h-5 w-5 text-primary" />
+                Personal Information
+              </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="border rounded-lg p-4">
-                  <div className="flex justify-between items-start mb-2">
-                    <div className="flex items-center gap-2">
-                      <FileText className="h-5 w-5 text-muted-foreground" />
-                      <p className="font-medium">ID Verification</p>
-                    </div>
-                    {hasIdDocument ? (
-                      <CheckCircle className="h-5 w-5 text-green-500" />
-                    ) : (
-                      <XCircle className="h-5 w-5 text-red-500" />
-                    )}
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    {hasIdDocument ? "Document uploaded" : "Document required"}
-                  </p>
-                  {!hasIdDocument && (
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="mt-2 w-full"
-                      onClick={() => router.push('/dashboard/sell/kyc/1')}
-                    >
-                      Complete
-                    </Button>
-                  )}
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-muted-foreground">Full Name</p>
+                  <p className="font-medium">{user.name || user.kyc?.fullName || "Not provided"}</p>
                 </div>
-
-                <div className="border rounded-lg p-4">
-                  <div className="flex justify-between items-start mb-2">
-                    <div className="flex items-center gap-2">
-                      <MapPin className="h-5 w-5 text-muted-foreground" />
-                      <p className="font-medium">Address Verification</p>
-                    </div>
-                    {hasAddressProof ? (
-                      <CheckCircle className="h-5 w-5 text-green-500" />
-                    ) : (
-                      <XCircle className="h-5 w-5 text-red-500" />
-                    )}
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    {hasAddressProof ? "Document uploaded" : "Document required"}
-                  </p>
-                  {!hasAddressProof && (
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="mt-2 w-full"
-                      onClick={() => router.push('/dashboard/sell/kyc/2')}
-                    >
-                      Complete
-                    </Button>
-                  )}
+                <div>
+                  <p className="text-sm text-muted-foreground">Email</p>
+                  <p className="font-medium">{user.email}</p>
                 </div>
-
-                <div className="border rounded-lg p-4">
-                  <div className="flex justify-between items-start mb-2">
-                    <div className="flex items-center gap-2">
-                      <User className="h-5 w-5 text-muted-foreground" />
-                      <p className="font-medium">Face Verification</p>
-                    </div>
-                    {hasFaceVerification ? (
-                      <CheckCircle className="h-5 w-5 text-green-500" />
-                    ) : (
-                      <XCircle className="h-5 w-5 text-red-500" />
-                    )}
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    {hasFaceVerification ? "Verification complete" : "Verification required"}
-                  </p>
-                  {!hasFaceVerification && (
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="mt-2 w-full"
-                      onClick={() => router.push('/dashboard/sell/kyc/3')}
-                    >
-                      Complete
-                    </Button>
-                  )}
+                <div>
+                  <p className="text-sm text-muted-foreground">Country</p>
+                  <p className="font-medium">{user.kyc?.country || "Not provided"}</p>
                 </div>
-              </div>
-
-              <div className="bg-muted p-4 rounded-lg">
-                <div className="flex items-center gap-2 mb-2">
-                  <Shield className="h-5 w-5 text-primary" />
-                  <p className="text-[10px] sm:text-xs md:text-sm font-medium">Overall Verification Status</p>
-                </div>
-                <div className="flex items-center gap-2 text-[10px] sm:text-xs md:text-sm">
-                  {isKycVerified ? (
-                    <>
-                      <CheckCircle className="h-5 w-5 text-green-500" />
-                      <p>Your account is fully verified. You can now sell on our platform.</p>
-                    </>
-                  ) : (
-                    <>
-                      <AlertCircle className="h-5 w-5 text-amber-500" />
-                      <p>Please complete all verification steps to start selling.</p>
-                    </>
-                  )}
+                <div>
+                  <p className="text-sm text-muted-foreground">Member Since</p>
+                  <p className="font-medium">{formatDate(user.createdAt)}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
-
-        {/* Listings Tab */}
-        <TabsContent value="listings">
+          
+          {/* Seller Stats (if user has listings) */}
+          {!salesLoading && salesData?.totalListings > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Package className="h-5 w-5 text-primary" />
+                  Seller Statistics
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="bg-muted/50 p-4 rounded-lg text-center">
+                    <p className="text-sm text-muted-foreground">Active Listings</p>
+                    <p className="text-2xl font-bold">{salesData?.activeListings || 0}</p>
+                  </div>
+                  <div className="bg-muted/50 p-4 rounded-lg text-center">
+                    <p className="text-sm text-muted-foreground">Total Sales</p>
+                    <p className="text-2xl font-bold">{salesData?.totalSales || 0}</p>
+                  </div>
+                  <div className="bg-muted/50 p-4 rounded-lg text-center">
+                    <p className="text-sm text-muted-foreground">Revenue</p>
+                    <p className="text-2xl font-bold">{formatCurrency(salesData?.totalRevenue || 0)}</p>
+                  </div>
+                  <div className="bg-muted/50 p-4 rounded-lg text-center">
+                    <p className="text-sm text-muted-foreground">Avg. Rating</p>
+                    <p className="text-2xl font-bold">{salesData?.averageRating?.toFixed(1) || "N/A"}</p>
+                  </div>
+                </div>
+                <div className="mt-4 flex justify-end">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    className="gap-2"
+                    onClick={() => router.push('/dashboard/listings')}
+                  >
+                    <Package className="h-4 w-4" />
+                    Manage Listings
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+          
+          {/* Quick Actions */}
           <Card>
             <CardHeader>
-              <CardTitle>Your Listings</CardTitle>
+              <CardTitle>Quick Actions</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <Button 
+                  variant="outline" 
+                  className="h-auto flex-col items-center justify-center py-4 gap-2"
+                  onClick={() => router.push('/dashboard/balance')}
+                >
+                  <Wallet className="h-6 w-6 text-primary" />
+                  <span>Manage Balance</span>
+                </Button>
+                
+                <Button 
+                  variant="outline" 
+                  className="h-auto flex-col items-center justify-center py-4 gap-2"
+                  onClick={() => router.push('/dashboard/listings/new')}
+                >
+                  <Package className="h-6 w-6 text-primary" />
+                  <span>Create Listing</span>
+                </Button>
+                
+                <Button 
+                  variant="outline" 
+                  className="h-auto flex-col items-center justify-center py-4 gap-2"
+                  onClick={() => router.push('/dashboard/purchases')}
+                >
+                  <CreditCard className="h-6 w-6 text-primary" />
+                  <span>My Purchases</span>
+                </Button>
+                
+                <Button 
+                  variant="outline" 
+                  className="h-auto flex-col items-center justify-center py-4 gap-2"
+                  onClick={() => setActiveTab("kyc")}
+                >
+                  <Shield className="h-6 w-6 text-primary" />
+                  <span>KYC Verification</span>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="kyc">
+          <Card>
+            <CardHeader>
+              <CardTitle>KYC Verification</CardTitle>
               <CardDescription>
-                Manage your account listings
+                Complete your identity verification to unlock all platform features
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Verification Status */}
+              <div className="rounded-lg border p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className={`h-10 w-10 rounded-full flex items-center justify-center ${isKycVerified ? 'bg-green-100' : 'bg-amber-100'}`}>
+                      {isKycVerified ? (
+                        <CheckCircle className="h-5 w-5 text-green-600" />
+                      ) : (
+                        <AlertCircle className="h-5 w-5 text-amber-600" />
+                      )}
+                    </div>
+                    <div>
+                      <p className="font-medium">Verification Status</p>
+                      <p className="text-sm text-muted-foreground">
+                        {isKycVerified ? 'Your identity has been verified' : 'Verification required'}
+                      </p>
+                    </div>
+                  </div>
+                  <Badge variant={isKycVerified ? "success" : "warning"}>
+                    {isKycVerified ? 'Verified' : 'Pending'}
+                  </Badge>
+                </div>
+              </div>
+              
+              {/* Verification Steps */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium">Verification Steps</h3>
+                
+                {/* Personal Information */}
+                <div className="rounded-lg border p-4">
+                  <div className="flex items-start gap-4">
+                    <div className={`h-8 w-8 rounded-full flex items-center justify-center mt-0.5 ${user.kyc ? 'bg-green-100' : 'bg-muted'}`}>
+                      {user.kyc ? (
+                        <CheckCircle className="h-4 w-4 text-green-600" />
+                      ) : (
+                        <span className="text-sm font-medium">1</span>
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-medium">Personal Information</h4>
+                        {user.kyc ? (
+                          <Badge variant="outline" className="text-green-600">Completed</Badge>
+                        ) : (
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => router.push('/dashboard/kyc')}
+                          >
+                            Complete
+                          </Button>
+                        )}
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Provide your full name, address, and date of birth
+                      </p>
+                      
+                      {user.kyc && (
+                        <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                          <div className="space-y-1">
+                            <p className="text-muted-foreground">Full Name</p>
+                            <p className="font-medium">{user.kyc.fullName || 'Not provided'}</p>
+                          </div>
+                          <div className="space-y-1">
+                            <p className="text-muted-foreground">Country</p>
+                            <p className="font-medium">{user.kyc.country || 'Not provided'}</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                
+                {/* ID Verification */}
+                <div className="rounded-lg border p-4">
+                  <div className="flex items-start gap-4">
+                    <div className={`h-8 w-8 rounded-full flex items-center justify-center mt-0.5 ${hasIdDocument ? 'bg-green-100' : 'bg-muted'}`}>
+                      {hasIdDocument ? (
+                        <CheckCircle className="h-4 w-4 text-green-600" />
+                      ) : (
+                        <span className="text-sm font-medium">2</span>
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-medium">ID Verification</h4>
+                        {hasIdDocument ? (
+                          <Badge variant="outline" className="text-green-600">Completed</Badge>
+                        ) : (
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => router.push('/dashboard/kyc/documents')}
+                            disabled={!user.kyc}
+                          >
+                            {!user.kyc ? 'Complete Step 1 First' : 'Upload ID'}
+                          </Button>
+                        )}
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Upload a government-issued ID (passport, driver's license, etc.)
+                      </p>
+                      
+                      {hasIdDocument && (
+                        <div className="mt-3">
+                          <Badge variant="outline" className="text-green-600">
+                            <CheckCircle className="h-3 w-3 mr-1" />
+                            ID Document Uploaded
+                          </Badge>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Address Verification */}
+                <div className="rounded-lg border p-4">
+                  <div className="flex items-start gap-4">
+                    <div className={`h-8 w-8 rounded-full flex items-center justify-center mt-0.5 ${hasAddressProof ? 'bg-green-100' : 'bg-muted'}`}>
+                      {hasAddressProof ? (
+                        <CheckCircle className="h-4 w-4 text-green-600" />
+                      ) : (
+                        <span className="text-sm font-medium">3</span>
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-medium">Address Verification</h4>
+                        {hasAddressProof ? (
+                          <Badge variant="outline" className="text-green-600">Completed</Badge>
+                        ) : (
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => router.push('/dashboard/kyc/documents')}
+                            disabled={!hasIdDocument}
+                          >
+                            {!hasIdDocument ? 'Complete Step 2 First' : 'Upload Proof'}
+                          </Button>
+                        )}
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Upload a proof of address (utility bill, bank statement, etc.)
+                      </p>
+                      
+                      {hasAddressProof && (
+                        <div className="mt-3">
+                          <Badge variant="outline" className="text-green-600">
+                            <CheckCircle className="h-3 w-3 mr-1" />
+                            Address Proof Uploaded
+                          </Badge>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Face Verification */}
+                <div className="rounded-lg border p-4">
+                  <div className="flex items-start gap-4">
+                    <div className={`h-8 w-8 rounded-full flex items-center justify-center mt-0.5 ${hasFaceVerification ? 'bg-green-100' : 'bg-muted'}`}>
+                      {hasFaceVerification ? (
+                        <CheckCircle className="h-4 w-4 text-green-600" />
+                      ) : (
+                        <span className="text-sm font-medium">4</span>
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-medium">Face Verification</h4>
+                        {hasFaceVerification ? (
+                          <Badge variant="outline" className="text-green-600">Completed</Badge>
+                        ) : (
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => router.push('/dashboard/kyc/face-verification')}
+                            disabled={!hasAddressProof}
+                          >
+                            {!hasAddressProof ? 'Complete Step 3 First' : 'Verify Face'}
+                          </Button>
+                        )}
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Complete a quick face scan to verify your identity
+                      </p>
+                      
+                      {hasFaceVerification && (
+                        <div className="mt-3">
+                          <Badge variant="outline" className="text-green-600">
+                            <CheckCircle className="h-3 w-3 mr-1" />
+                            Face Verification Complete
+                          </Badge>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Verification Benefits */}
+              <div className="rounded-lg bg-muted/50 p-4">
+                <h3 className="text-sm font-medium mb-2">Benefits of Verification</h3>
+                <ul className="space-y-2 text-sm">
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="h-4 w-4 text-green-600 mt-0.5" />
+                    <span>Higher purchase limits</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="h-4 w-4 text-green-600 mt-0.5" />
+                    <span>Ability to sell accounts</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="h-4 w-4 text-green-600 mt-0.5" />
+                    <span>Withdraw funds to your bank account</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="h-4 w-4 text-green-600 mt-0.5" />
+                    <span>Enhanced account security</span>
+                  </li>
+                </ul>
+              </div>
+            </CardContent>
+            <CardFooter>
+              <Button 
+                className="w-full" 
+                onClick={() => router.push('/dashboard/kyc')}
+                disabled={isKycVerified}
+              >
+                {isKycVerified ? 'Verification Complete' : 'Start Verification Process'}
+              </Button>
+            </CardFooter>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="activity">
+          <Card>
+            <CardHeader>
+              <CardTitle>Recent Activity</CardTitle>
+              <CardDescription>
+                Track your recent purchases, sales, and account activity
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {user.listings && user.listings.length > 0 ? (
+              {activityLoading ? (
                 <div className="space-y-4">
-                  {user.listings.map((listing) => (
-                    <div key={listing.id} className="flex items-center justify-between border-b pb-4 last:border-0">
-                      <div>
-                        <p className="font-medium">{listing.title}</p>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <p>${listing.price}</p>
-                          <span>•</span>
-                          <p>{formatDate(listing.createdAt)}</p>
+                  {[...Array(5)].map((_, i) => (
+                    <div key={i} className="flex items-center gap-4">
+                      <div className="h-10 w-10 rounded-full bg-muted animate-pulse" />
+                      <div className="space-y-2 flex-1">
+                        <div className="h-4 w-1/3 bg-muted animate-pulse rounded" />
+                        <div className="h-3 w-1/2 bg-muted animate-pulse rounded" />
+                      </div>
+                      <div className="h-6 w-20 bg-muted animate-pulse rounded" />
+                    </div>
+                  ))}
+                </div>
+              ) : activityData?.items?.length > 0 ? (
+                <div className="space-y-4">
+                  {activityData.items.map((item) => (
+                    <div key={item.id} className="flex items-start gap-4 py-3 border-b last:border-0">
+                      <div className={`h-10 w-10 rounded-full flex items-center justify-center ${getActivityIconBackground(item.type)}`}>
+                        {getActivityIcon(item.type)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium">{item.title}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {item.description}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {formatDate(item.timestamp)}
+                        </p>
+                      </div>
+                      {item.amount && (
+                        <div className={`font-medium ${item.amount > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {item.amount > 0 ? '+' : ''}{formatCurrency(item.amount)}
                         </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant={
-                          listing.status === "AVAILABLE" ? "success" : 
-                          listing.status === "SOLD" ? "destructive" : "outline"
-                        }>
-                          {listing.status}
+                      )}
+                      {item.status && (
+                        <Badge variant={getStatusVariant(item.status)}>
+                          {item.status}
                         </Badge>
-                        <Button 
-                          variant="ghost" 
-                          size="icon"
-                          onClick={() => router.push(`/dashboard/listings/${listing.id}`)}
-                        >
-                          <ExternalLink className="h-4 w-4" />
-                        </Button>
-                      </div>
+                      )}
                     </div>
                   ))}
                 </div>
               ) : (
                 <div className="text-center py-8">
-                  <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-medium">No listings yet</h3>
-                  <p className="text-muted-foreground mb-4">You haven't created any listings yet.</p>
-                  <Button onClick={() => router.push('/dashboard/sell/create')}>
-                    Create Listing
-                  </Button>
+                  <div className="mx-auto h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-3">
+                    <AlertCircle className="h-6 w-6 text-muted-foreground" />
+                  </div>
+                  <h3 className="font-medium mb-1">No activity yet</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Your recent activity will appear here
+                  </p>
+                  <div className="flex gap-3 justify-center">
+                    <Button variant="outline" onClick={() => router.push('/marketplace')}>
+                      Browse Marketplace
+                    </Button>
+                    <Button onClick={() => router.push('/dashboard/listings/new')}>
+                      Create Listing
+                    </Button>
+                  </div>
                 </div>
               )}
             </CardContent>
-            {user.listings && user.listings.length > 0 && (
-              <CardFooter>
-                <Button 
-                  variant="outline" 
-                  className="w-full"
-                  onClick={() => router.push('/dashboard/listings')}
-                >
-                  View All Listings
+            {activityData?.items?.length > 0 && (
+              <CardFooter className="flex justify-center border-t pt-6">
+                <Button variant="outline" onClick={() => router.push('/dashboard/activity')}>
+                  View All Activity
                 </Button>
               </CardFooter>
             )}
           </Card>
         </TabsContent>
-
-        {/* Transactions Tab */}
-        <TabsContent value="transactions">
-          <Card>
-            <CardHeader>
-              <CardTitle>Transaction History</CardTitle>
-              <CardDescription>
-                Your recent transactions and payment history
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-8">
-                <CreditCard className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-medium">No transactions yet</h3>
-                <p className="text-muted-foreground">Your transaction history will appear here.</p>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
       </Tabs>
     </div>
   )
+}
+
+// Helper functions for the activity tab
+function getActivityIcon(type) {
+  switch (type) {
+    case 'PURCHASE':
+      return <CreditCard className="h-5 w-5 text-blue-600" />
+    case 'SALE':
+      return <DollarSign className="h-5 w-5 text-green-600" />
+    case 'DEPOSIT':
+      return <ArrowUpRight className="h-5 w-5 text-green-600" />
+    case 'WITHDRAWAL':
+      return <ArrowDownRight className="h-5 w-5 text-red-600" />
+    case 'LISTING_CREATED':
+      return <Package className="h-5 w-5 text-purple-600" />
+    case 'KYC_UPDATE':
+      return <Shield className="h-5 w-5 text-amber-600" />
+    default:
+      return <Clock className="h-5 w-5 text-gray-600" />
+  }
+}
+
+function getActivityIconBackground(type) {
+  switch (type) {
+    case 'PURCHASE':
+      return 'bg-blue-100'
+    case 'SALE':
+      return 'bg-green-100'
+    case 'DEPOSIT':
+      return 'bg-green-100'
+    case 'WITHDRAWAL':
+      return 'bg-red-100'
+    case 'LISTING_CREATED':
+      return 'bg-purple-100'
+    case 'KYC_UPDATE':
+      return 'bg-amber-100'
+    default:
+      return 'bg-gray-100'
+  }
+}
+
+function getStatusVariant(status) {
+  switch (status.toUpperCase()) {
+    case 'COMPLETED':
+      return 'success'
+    case 'PENDING':
+      return 'warning'
+    case 'FAILED':
+      return 'destructive'
+    default:
+      return 'outline'
+  }
 } 
