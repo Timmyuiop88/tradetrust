@@ -1,6 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
     // ... other config options ...
+    images: {
+        domains: ['files.edgestore.dev'],
+    },
     headers: async () => {
       return [
         {

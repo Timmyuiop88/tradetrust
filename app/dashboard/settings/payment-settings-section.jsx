@@ -76,6 +76,11 @@ export function PaymentSettingsSection() {
                 method: selectedMethod,
                 address: address.trim(),
                 isDefault
+            }, {
+                withCredentials: true,
+                headers: {
+                    'Content-Type': 'application/json',
+                }
             })
 
             setSuccess(true)
@@ -96,6 +101,11 @@ export function PaymentSettingsSection() {
                 await axios.post("/api/users/payout-settings", {
                     id: id,
                     delete: true
+                }, {
+                    withCredentials: true,
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
                 })
                 refetch()
             } catch (err) {
@@ -130,7 +140,7 @@ export function PaymentSettingsSection() {
                 <div className="flex items-center justify-center py-8">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
-            ) : payoutSettings?.length === 0 ? (
+            ) : !payoutSettings || payoutSettings.length === 0 ? (
                 <div className="text-center py-12 border-2 border-dashed rounded-lg">
                     <Wallet className="mx-auto h-12 w-12 text-muted-foreground" />
                     <h3 className="mt-4 text-lg font-medium">No payout methods</h3>

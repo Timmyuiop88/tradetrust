@@ -66,7 +66,7 @@ export function Providers({ children }) {
         <ThemeProvider attribute="class" defaultTheme="dark">
           <EdgeStoreProvider>
             {children}
-            <ReactQueryDevtools initialIsOpen={false} />
+ 
           </EdgeStoreProvider>
         </ThemeProvider>
       </QueryClientProvider>

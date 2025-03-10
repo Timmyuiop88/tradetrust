@@ -37,26 +37,52 @@ export async function GET(request) {
       ]
     }
     
+    // Build order by
+    let orderBy = {}
+    if (sortBy && order) {
+      orderBy[sortBy] = order.toLowerCase()
+    } else {
+      orderBy = { createdAt: 'desc' }
+    }
+    
     // Get listings
     const [listings, totalCount] = await Promise.all([
       prisma.listing.findMany({
         where,
+        orderBy,
         skip,
         take: limit,
-        orderBy: { [sortBy]: order },
         include: {
-          platform: true,
-          category: true,
+          platform: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          category: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
           seller: {
             select: {
               id: true,
-              email: true
-            }
-          }
+              email: true,
+            },
+          },
         }
       }),
       prisma.listing.count({ where })
     ])
+    
+    // Transform the data to include userId
+    const transformedListings = listings.map(listing => ({
+      ...listing,
+      userId: listing.sellerId,
+      userEmail: listing.seller.email,
+      seller: undefined,
+    }))
     
     // Calculate pagination info
     const totalPages = Math.ceil(totalCount / limit)
@@ -64,7 +90,7 @@ export async function GET(request) {
     const nextPage = hasNextPage ? page + 1 : null
     
     return NextResponse.json({
-      listings,
+      listings: transformedListings,
       pagination: {
         page,
         limit,

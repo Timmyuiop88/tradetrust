@@ -16,7 +16,8 @@ import {
   ArrowUpDown,
   ShoppingCart,
   Heart,
-  Share2
+  Share2,
+  MessageCircle
 } from "lucide-react"
 import { cn } from "../lib/utils"
 import { ListingCardSkeleton } from "../components/listing-card-skeleton"
@@ -30,6 +31,9 @@ import {
 } from "../components/ui/dropdown-menu"
 import Link from "next/link"
 import { formatDistanceToNow } from "date-fns"
+import { useRouter } from "next/navigation"
+import { useUser } from "@/app/hooks/useUser"
+import { useChat } from "@/app/hooks/useChat"
 
 const SORT_OPTIONS = [
   { label: "Newest First", value: "createdAt:desc" },
@@ -56,12 +60,15 @@ const formatFollowers = (value) => {
 };
 
 export default function DashboardPage() {
-  const { data: session } = useSession()
+  const { data: session, status } = useSession()
+  const { user, isLoading: userLoading } = useUser()
+  const { sendMessage } = useChat()
   const [searchQuery, setSearchQuery] = useState("")
   const [debouncedSearch, setDebouncedSearch] = useState("")
   const [selectedPlatform, setSelectedPlatform] = useState("All")
   const [sortBy, setSortBy] = useState("createdAt:desc")
   const { ref, inView } = useInView()
+  const router = useRouter()
 
   // Debounce search input
   useEffect(() => {
@@ -71,6 +78,17 @@ export default function DashboardPage() {
     
     return () => clearTimeout(timer);
   }, [searchQuery]);
+
+  // Add this effect to log session state changes
+  useEffect(() => {
+    console.log('Session state changed:', { 
+      status, 
+      session: session ? { 
+        user: session.user,
+        expires: session.expires 
+      } : null 
+    });
+  }, [session, status]);
 
   const filters = {
     platform: selectedPlatform,
@@ -229,12 +247,54 @@ export default function DashboardPage() {
                   </Badge>
                 </div>
                 
-                <Link href={`/dashboard/listings/${listing.id}`}>
-                  <Button className="w-full mt-2" size="sm">
-                    <ShoppingCart className="h-4 w-4 mr-2" />
-                    View Details
+                <div className="flex gap-2 mt-2">
+                  <Link href={`/dashboard/listings/${listing.id}`} className="flex-1">
+                    <Button className="w-full" size="sm">
+                      <ShoppingCart className="h-4 w-4 mr-2" />
+                      View Details
+                    </Button>
+                  </Link>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-none"
+                    disabled={userLoading || status === 'loading'}
+                    onClick={async (e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+
+                      if (!user) {
+                        router.push('/login');
+                        return;
+                      }
+
+                      if (listing.sellerId === user.id) {
+                        alert("This is your own listing!");
+                        return;
+                      }
+
+                      try {
+                        console.log('Starting chat with seller:', listing.sellerId);
+                        const success = await sendMessage({
+                          recipientId: listing.sellerId,
+                          content: `Hi, I'm interested in your ${listing.platform?.name || ''} account listing.`,
+                        });
+
+                        if (success) {
+                          console.log('Message sent successfully, navigating to chat...');
+                          router.push(`/chat/${listing.sellerId}`);
+                        } else {
+                          throw new Error('Failed to send message');
+                        }
+                      } catch (error) {
+                        console.error('Error starting chat:', error);
+                        alert('Failed to start chat. Please try again.');
+                      }
+                    }}
+                  >
+                    <MessageCircle className="h-4 w-4" />
                   </Button>
-                </Link>
+                </div>
               </div>
             </div>
           </div>

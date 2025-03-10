@@ -34,3 +34,23 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## Testing Chat Functionality
+
+To create test data specifically for the chat functionality:
+
+1. Make sure your database is set up and migrations have been applied
+2. Run the chat seed script:
+
+```bash
+npm run seed:chat
+```
+
+This will:
+- Create a new order for the listing with ID `2b57c4f7-64b2-42f2-92f4-d565c8a3f076`
+- Set the buyer as the user with ID `67e755e6-3199-4912-a8f0-dd21f056cb14`
+- Generate a conversation with 9 messages between the buyer and seller
+- The messages will span across two days to test the date separator feature
+- The script will output the order ID that you can use to access the chat
+
+You can then test the chat functionality, including read receipts, by navigating to `/chat/[orderId]` where `[orderId]` is the ID displayed in the console after running the seed.
