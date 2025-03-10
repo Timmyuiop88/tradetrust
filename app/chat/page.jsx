@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { MessageCircle, Plus, X, Loader2, AlertCircle, Search, Users } from 'lucide-react';
+import { MessageCircle, Plus, X, Loader2, AlertCircle, Search, Users, ArrowLeft } from 'lucide-react';
 
 export default function ChatOverview() {
   const { data: session, status } = useSession();
@@ -28,12 +28,12 @@ export default function ChatOverview() {
     try {
       setLoading(true);
       const response = await fetch('/api/chat/conversations');
-      
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Failed to fetch conversations');
       }
-      
+
       const data = await response.json();
       setConversations(data.conversations);
     } catch (err) {
@@ -46,21 +46,21 @@ export default function ChatOverview() {
 
   const startNewChat = async (e) => {
     e.preventDefault();
-    
+
     if (!newUserId.trim()) {
       setError('Please enter a valid user ID');
       return;
     }
-    
+
     try {
       // Validate if user exists
       const response = await fetch(`/api/users/check?userId=${newUserId}`);
-      
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || 'User not found');
       }
-      
+
       // Redirect to chat with this user
       router.push(`/chat/${newUserId}`);
       setIsModalOpen(false);
@@ -72,10 +72,10 @@ export default function ChatOverview() {
 
   // Filter conversations based on search query
   const filteredConversations = searchQuery
-    ? conversations.filter(conv => 
-        conv.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        conv.lastMessage.toLowerCase().includes(searchQuery.toLowerCase())
-      )
+    ? conversations.filter(conv =>
+      conv.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      conv.lastMessage.toLowerCase().includes(searchQuery.toLowerCase())
+    )
     : conversations;
 
   if (status === 'loading') {
@@ -88,23 +88,26 @@ export default function ChatOverview() {
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex gap-4 items-center mb-6">
+        <div onClick={() => router.push('/dashboard')} className="text-muted-foreground hover:text-foreground cursor-pointer flex items-center ">
+          <ArrowLeft className="h-4 w-4 mr-2" />
+        </div>
         <h1 className="text-2xl font-bold">Messages</h1>
       </div>
-      
+
       {error && (
         <div className="bg-destructive/10 border border-destructive text-destructive px-4 py-3 rounded-md mb-4 flex items-start">
           <AlertCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0" />
           <span>{error}</span>
-          <button 
-            onClick={() => setError(null)} 
+          <button
+            onClick={() => setError(null)}
             className="ml-auto text-destructive hover:text-destructive/80"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
       )}
-      
+
       {loading ? (
         <div className="flex justify-center items-center h-40">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -162,7 +165,7 @@ export default function ChatOverview() {
           </button>
         </div>
       )}
-      
+
       {/* Floating action button */}
       <button
         onClick={() => setIsModalOpen(true)}
@@ -181,9 +184,9 @@ export default function ChatOverview() {
             >
               <X className="h-5 w-5" />
             </button>
-            
+
             <h2 className="text-xl font-semibold mb-4">Start a new conversation</h2>
-            
+
             <form onSubmit={startNewChat}>
               <div className="mb-4">
                 <label htmlFor="userId" className="block text-sm font-medium mb-1">
@@ -201,7 +204,7 @@ export default function ChatOverview() {
                   Enter the ID of the user you want to chat with
                 </p>
               </div>
-              
+
               <div className="flex justify-end space-x-2">
                 <button
                   type="button"
