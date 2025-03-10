@@ -2,17 +2,17 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 
 export function useChat(orderId) {
-    const [messages, setMessages] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+  const [messages, setMessages] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
     const { data: session } = useSession();
     const [otherUserStatus, setOtherUserStatus] = useState({ online: false, lastSeen: null });
     const [otherUserId, setOtherUserId] = useState(null);
     
     // WebSocket functionality is temporarily disabled
     // const socket = useRef(null);
-    const [isConnected, setIsConnected] = useState(false);
-    const [isWebSocketAvailable, setIsWebSocketAvailable] = useState(false);
+  const [isConnected, setIsConnected] = useState(false);
+  const [isWebSocketAvailable, setIsWebSocketAvailable] = useState(false);
 
     // Function to format last seen time
     const formatLastSeen = (timestamp) => {
@@ -34,12 +34,62 @@ export function useChat(orderId) {
         return lastSeen.toLocaleDateString();
     };
 
-    // Function to fetch messages
-    const fetchMessages = useCallback(async () => {
-        if (!session || !orderId) return;
+    // Function to mark messages as read
+    const markMessagesAsRead = useCallback(async () => {
+        if (!session || !orderId || !messages.length) return;
         
         try {
-            setLoading(true);
+            // Find unread messages from the other user
+            // Since we don't have an isRead field, we'll check if the message content contains [READ]
+            const unreadMessages = messages.filter(msg => 
+                msg.senderId !== session.user.id && !msg.content.includes("[READ]")
+            );
+            
+            if (unreadMessages.length === 0) return;
+            
+            console.log("Marking messages as read:", unreadMessages.map(m => m.id));
+            
+            // Call API to mark messages as read
+            const response = await fetch('/api/chat/read', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    orderId,
+                    messageIds: unreadMessages.map(msg => msg.id),
+                }),
+            });
+            
+            if (!response.ok) {
+                console.error('Failed to mark messages as read:', response.status);
+                return;
+            }
+            
+            const result = await response.json();
+            console.log("Mark as read response:", result);
+            
+            if (result.messages && result.messages.length > 0) {
+                // Update local message state with the updated messages from the server
+                setMessages(prevMessages => 
+                    prevMessages.map(msg => {
+                        const updatedMsg = result.messages.find(m => m.id === msg.id);
+                        return updatedMsg || msg;
+                    })
+                );
+            }
+            
+        } catch (err) {
+            console.error('Error marking messages as read:', err);
+        }
+    }, [session, orderId, messages]);
+
+    // Function to fetch messages
+  const fetchMessages = useCallback(async () => {
+        if (!session || !orderId) return;
+
+    try {
+      setLoading(true);
             console.log(`Fetching messages for order: ${orderId}`);
             
             // Check if the API endpoint exists
@@ -78,22 +128,22 @@ export function useChat(orderId) {
                 });
             }
             
-            setError(null);
-        } catch (err) {
-            console.error('Error fetching messages:', err);
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching messages:', err);
             setError(err.message);
             
             // Set empty messages to avoid showing old messages
             // setMessages([]);  // Commented out to prevent clearing messages on error
-        } finally {
-            setLoading(false);
-        }
-    }, [session, orderId]);
+    } finally {
+      setLoading(false);
+    }
+  }, [session, orderId]);
 
     // Function to refresh messages (exposed to component)
     const refreshMessages = useCallback(() => {
-        fetchMessages();
-    }, [fetchMessages]);
+    fetchMessages();
+  }, [fetchMessages]);
 
     // Initialize and fetch messages
     useEffect(() => {
@@ -170,6 +220,13 @@ export function useChat(orderId) {
         }
         */
     }, [session, orderId, fetchMessages]);
+    
+    // Mark messages as read when viewing the chat
+    useEffect(() => {
+        if (messages.length > 0) {
+            markMessagesAsRead();
+        }
+    }, [messages, markMessagesAsRead]);
 
     // Function to update user's last seen status
     const updateLastSeen = async () => {
@@ -201,8 +258,8 @@ export function useChat(orderId) {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    orderId,
-                    content,
+          orderId,
+          content,
                 }),
             });
             
@@ -216,24 +273,25 @@ export function useChat(orderId) {
             // Refresh messages to get the new message
             await fetchMessages();
             
-            return true;
-        } catch (err) {
-            console.error('Error sending message:', err);
+      return true;
+    } catch (err) {
+      console.error('Error sending message:', err);
             setError(err.message);
-            return false;
-        }
+      return false;
+    }
     };
 
-    return {
-        messages,
-        loading,
-        error,
-        sendMessage,
+  return {
+    messages,
+    loading,
+    error,
+    sendMessage,
         isConnected: false, // Always false since WebSocket is disabled
         isWebSocketAvailable: false, // Always false since WebSocket is disabled
         refreshMessages,
         otherUserStatus,
         otherUserId,
         formatLastSeen,
+        markMessagesAsRead,
     };
 } 

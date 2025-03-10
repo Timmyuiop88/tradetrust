@@ -7,6 +7,7 @@ import { useChat } from '@/app/hooks/useChat';
 import { Button } from '@/app/components/button';
 import { Textarea } from '@/app/components/textarea';
 import { Card } from '@/app/components/card';
+import { Avatar } from '@/app/components/avatar';
 import { Loader2, OctagonAlert } from 'lucide-react';
 import { MessageCircle, Send, AlertCircle, ArrowLeft, RefreshCw, Circle, Clock, MessageCircleWarningIcon, ExclamationTriangle, Camera, ImageIcon } from 'lucide-react';
 import Link from 'next/link';
@@ -50,37 +51,38 @@ const MessageSkeleton = () => {
 };
 
 export default function ChatPage() {
-    const { orderId } = useParams();
+  const { orderId } = useParams();
     const router = useRouter();
     const { data: session, status } = useSession();
-    const [newMessage, setNewMessage] = useState('');
-    const messagesEndRef = useRef(null);
+  const [newMessage, setNewMessage] = useState('');
+  const messagesEndRef = useRef(null);
     const fileInputRef = useRef(null);
     const [isUploading, setIsUploading] = useState(false);
     const [selectedImage, setSelectedImage] = useState(null);
     const [imagePreview, setImagePreview] = useState('');
     const { edgestore } = useEdgeStore();
     const [isSending, setIsSending] = useState(false);
-
-    const {
-        messages,
-        loading,
-        error,
-        sendMessage,
-        isConnected,
-        isWebSocketAvailable,
-        refreshMessages,
+  
+  const {
+    messages,
+    loading,
+    error,
+    sendMessage,
+    isConnected,
+    isWebSocketAvailable,
+    refreshMessages,
         otherUserStatus,
         otherUserId,
         formatLastSeen,
-    } = useChat(orderId);
+        markMessagesAsRead,
+  } = useChat(orderId);
 
-    // Auto-scroll to bottom when new messages arrive
-    useEffect(() => {
-        if (messagesEndRef.current) {
-            messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
-        }
-    }, [messages]);
+  // Auto-scroll to bottom when new messages arrive
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages]);
 
     // Polling mechanism to refresh messages every few seconds
     useEffect(() => {
@@ -122,9 +124,16 @@ export default function ChatPage() {
         }
     }, [messages, session, otherUserStatus]);
 
-    const handleSendMessage = async (e) => {
-        e.preventDefault();
+    // Mark messages as read when the component is visible
+    useEffect(() => {
+        if (messages.length > 0 && !loading && !error) {
+            markMessagesAsRead();
+        }
+    }, [messages, loading, error, markMessagesAsRead]);
 
+  const handleSendMessage = async (e) => {
+    e.preventDefault();
+    
         // Check if there's a message or image to send
         if (!newMessage.trim() && !selectedImage) return;
 
@@ -165,9 +174,9 @@ export default function ChatPage() {
                 // Just send the text message
                 success = await sendMessage(newMessage);
             }
-
-            if (success) {
-                setNewMessage('');
+    
+    if (success) {
+      setNewMessage('');
             }
         } catch (error) {
             console.error('Error sending message:', error);
@@ -267,11 +276,11 @@ export default function ChatPage() {
 
             <Card className="flex-1 flex flex-col overflow-hidden border-0 rounded-none">
                 <div className="p-4 border-b flex items-center justify-between bg-background">
-                    <div className="flex items-center">
+          <div className="flex items-center">
 
                         <div onClick={() => router.back()} className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground cursor-pointer pr-2">
                             <ArrowLeft className="mr-2 h-4 w-4" />
-                        </div>
+          </div>
 
                         <div>
                             <h2 className="font-medium">{getOtherUserEmail()}</h2>
@@ -280,26 +289,26 @@ export default function ChatPage() {
                                     <>
                                         <Circle className="h-2 w-2 fill-green-500 text-green-500 mr-1" />
                                         <span>Online</span>
-                                    </>
-                                ) : (
-                                    <>
+                </>
+              ) : (
+                <>
                                         <Clock className="h-3 w-3 mr-1" />
                                         <span>Last seen {formatLastSeen(otherUserStatus.lastSeen)}</span>
-                                    </>
-                                )}
+                </>
+              )}
                             </div>
                         </div>
                     </div>
 
                     <div className="flex items-center">
-                        <Button
+            <Button 
                             variant="ghost"
-                            size="sm"
+              size="sm"
                             onClick={() => {
                                 // Manual refresh with visual feedback
                                 refreshMessages();
                             }}
-                            className="flex items-center"
+              className="flex items-center"
                             disabled={loading}
                         >
                             {loading ? (
@@ -309,46 +318,46 @@ export default function ChatPage() {
                                 </>
                             ) : (
                                 <>
-                                    <RefreshCw className="h-4 w-4 mr-2" />
-                                    Refresh
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Refresh
                                 </>
                             )}
-                        </Button>
-                    </div>
-                </div>
-
+            </Button>
+          </div>
+        </div>
+        
                 <div className="flex-1 overflow-y-auto p-4 bg-muted/30">
                     <div className="flex justify-center bg-grey p-4 mb-4">
                         <p className="text-muted-foreground text-black font-bold text-[8px] md:text-[10px] flex items-center"><OctagonAlert className="h-4 w-4 mr-2" />Trusttrade Moderators have a green checkmark. Be careful with scammers!</p>
                     </div>
-                    {loading ? (
+          {loading ? (
                         <div className="flex flex-col justify-center h-full">
                             <MessageSkeleton />
-                        </div>
-                    ) : error ? (
-                        <div className="flex flex-col items-center justify-center h-full">
-                            <AlertCircle className="h-12 w-12 text-red-500 mb-4" />
+            </div>
+          ) : error ? (
+            <div className="flex flex-col items-center justify-center h-full">
+              <AlertCircle className="h-12 w-12 text-red-500 mb-4" />
                             <p className="text-red-600 dark:text-red-400 mb-2">{error}</p>
                             <p className="text-muted-foreground text-sm mb-4 text-center max-w-md">
                                 There was a problem connecting to the chat service. This might be due to a missing API route or server issue.
                             </p>
                             <div className="flex gap-2">
-                                <Button variant="outline" onClick={refreshMessages}>
+              <Button variant="outline" onClick={refreshMessages}>
                                     <RefreshCw className="h-4 w-4 mr-2" />
-                                    Try Again
-                                </Button>
+                Try Again
+              </Button>
                                 <Button variant="outline" onClick={() => router.back()}>
                                     <ArrowLeft className="h-4 w-4 mr-2" />
                                     Go Back
                                 </Button>
                             </div>
-                        </div>
-                    ) : messages.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center h-full">
-                            <MessageCircle className="h-16 w-16 text-muted-foreground opacity-50 mb-4" />
-                            <p className="text-muted-foreground mb-2">No messages yet</p>
-                            <p className="text-sm text-muted-foreground">Start the conversation by sending a message below.</p>
-                        </div>
+            </div>
+          ) : messages.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full">
+              <MessageCircle className="h-16 w-16 text-muted-foreground opacity-50 mb-4" />
+              <p className="text-muted-foreground mb-2">No messages yet</p>
+              <p className="text-sm text-muted-foreground">Start the conversation by sending a message below.</p>
+            </div>
                     ) : error && error.includes('WebSocket') && messages.length > 0 ? (
                         <>
                             {messages.map((message, index) => {
@@ -397,14 +406,23 @@ export default function ChatPage() {
 
                                                         {/* Extract and display text part if it exists, but not the image URL */}
                                                         {message.content.includes('\n') && message.content.split('\n').slice(1).join('\n').trim() && (
-                                                            <p className="text-sm mt-2">{message.content.split('\n').slice(1).join('\n')}</p>
+                                                            <p className="text-sm mt-2">
+                                                                {message.content.split('\n').slice(1).join('\n').replace('[READ]', '')}
+                                                            </p>
                                                         )}
                                                     </>
                                                 ) : (
-                                                    <p className="text-sm">{message.content}</p>
+                                                    <p className="text-sm">{message.content.replace('[READ]', '')}</p>
                                                 )}
-                                                <p className="text-xs text-muted-foreground mt-1">
-                                                    {new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                <p className="text-xs text-muted-foreground mt-1 flex justify-between items-center">
+                                                    <span>
+                                                        {new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                    </span>
+                                                    {isCurrentUser && (
+                                                        <span className="text-[10px] ml-2">
+                                                            {message.content.includes("[READ]") ? 'Read' : 'Sent'}
+                                                        </span>
+                                                    )}
                                                 </p>
                                             </div>
                                             
@@ -416,8 +434,8 @@ export default function ChatPage() {
                                 <MessageSkeleton />
                             </div>
                         </>
-                    ) : (
-                        <>
+          ) : (
+            <>
                             {messages.map((message, index) => {
                                 // Determine if this message is from the current user
                                 // Use senderId directly from the message object instead of relying on message.sender.id
@@ -426,8 +444,8 @@ export default function ChatPage() {
                                 // Check if we need to show a date separator
                                 const showDateSeparator = index === 0 || 
                                     isDifferentDay(message.createdAt, messages[index - 1]?.createdAt);
-                                
-                                return (
+                
+                return (
                                     <React.Fragment key={message.id || `msg-${index}`}>
                                         {/* Date separator */}
                                         {showDateSeparator && (
@@ -440,15 +458,15 @@ export default function ChatPage() {
                                         
                                         {/* Message */}
                                         <div
-                                            className={`flex mb-4 ${isCurrentUser ? 'justify-end' : 'justify-start'}`}
-                                        >
+                    className={`flex mb-4 ${isCurrentUser ? 'justify-end' : 'justify-start'}`}
+                  >
                                             
-                                            <div
+                    <div 
                                                 className={`max-w-[70%] p-3 rounded-lg ${isCurrentUser
-                                                    ? 'bg-primary text-primary-foreground rounded-tr-none'
-                                                    : 'bg-card dark:bg-card/80 rounded-tl-none'
-                                                    }`}
-                                            >
+                          ? 'bg-primary text-primary-foreground rounded-tr-none' 
+                          : 'bg-card dark:bg-card/80 rounded-tl-none'
+                      }`}
+                    >
                                                 {message.content.includes('[IMAGE]') ? (
                                                     <>
                                                         {/* Display the image */}
@@ -465,26 +483,35 @@ export default function ChatPage() {
 
                                                         {/* Extract and display text part if it exists, but not the image URL */}
                                                         {message.content.includes('\n') && message.content.split('\n').slice(1).join('\n').trim() && (
-                                                            <p className="text-sm mt-2">{message.content.split('\n').slice(1).join('\n')}</p>
+                                                            <p className="text-sm mt-2">
+                                                                {message.content.split('\n').slice(1).join('\n').replace('[READ]', '')}
+                                                            </p>
                                                         )}
                                                     </>
                                                 ) : (
-                                                    <p className="text-sm">{message.content}</p>
+                                                    <p className="text-sm">{message.content.replace('[READ]', '')}</p>
                                                 )}
-                                                <p className="text-xs text-muted-foreground mt-1">
-                                                    {new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                                </p>
-                                            </div>
+                                                <p className="text-xs text-muted-foreground mt-1 flex justify-between items-center">
+                                                    <span>
+                        {new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                    </span>
+                                                    {isCurrentUser && (
+                                                        <span className="text-[10px] ml-2">
+                                                            {message.content.includes("[READ]") ? 'Read' : 'Sent'}
+                                                        </span>
+                                                    )}
+                      </p>
+                    </div>
                                             
-                                        </div>
+                  </div>
                                     </React.Fragment>
-                                );
-                            })}
-                            <div ref={messagesEndRef} />
-                        </>
-                    )}
-                </div>
-
+                );
+              })}
+              <div ref={messagesEndRef} />
+            </>
+          )}
+        </div>
+        
                 <div className="p-4 border-t bg-background">
                     <form onSubmit={handleSendMessage} className="flex flex-col gap-2">
                         {imagePreview && (
@@ -508,9 +535,9 @@ export default function ChatPage() {
                             </div>
                         )}
                         <div className="flex gap-2">
-                            <Textarea
-                                value={newMessage}
-                                onChange={(e) => setNewMessage(e.target.value)}
+            <Textarea
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
                                 placeholder={selectedImage ? "Add a message with your image..." : "Type your message..."}
                                 className="min-h-[60px] max-h-[120px] flex-1 h-[10px] w-[calc(100%-120px)]"
                                 disabled={isSending}
@@ -528,8 +555,8 @@ export default function ChatPage() {
                                     onChange={handleImageSelect}
                                     accept="image/*"
                                     className="hidden"
-                                />
-                                <Button
+            />
+            <Button 
                                     type="button"
                                     variant="outline"
                                     size="icon"
@@ -549,10 +576,10 @@ export default function ChatPage() {
                                     ) : (
                                         <Send className="h-4 w-4" />
                                     )}
-                                </Button>
+            </Button>
                             </div>
                         </div>
-                    </form>
+          </form>
 
                     <div className="mt-2 text-xs text-muted-foreground flex items-center justify-end">
                         <span className="flex items-center">
@@ -579,8 +606,8 @@ export default function ChatPage() {
                             )}
                         </span>
                     </div>
-                </div>
-            </Card>
         </div>
-    );
+      </Card>
+    </div>
+  );
 } 
