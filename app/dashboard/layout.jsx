@@ -8,6 +8,7 @@ import { Button } from "../components/button"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "../components/sheet"
 import { AddBalanceSheet } from "../components/add-balance-sheet"
 import { NotificationsSheet } from "../components/notifications-sheet"
+import { BalanceDisplay } from "@/app/components/balance-display"
 
 const navigation = [
   { name: 'Home', href: '/dashboard', icon: Home },
@@ -45,8 +46,7 @@ export default function DashboardLayout({ children }) {
           </Link>
           <div className="flex items-center space-x-4">
             <div className="hidden sm:flex items-center space-x-1 text-sm">
-              <Wallet className="h-4 w-4 text-primary" />
-              <span className="font-medium">$2,458.00</span>
+              <BalanceDisplay />
             </div>
             <AddBalanceSheet />
             <NotificationsSheet />

@@ -1,66 +1,42 @@
-import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { prisma } from '@/lib/prisma';
+import { NextResponse } from 'next/server'
+import { prisma } from '@/lib/prisma'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 
-export async function GET(req) {
+export async function GET() {
   try {
-    const session = await getServerSession();
+    const session = await getServerSession(authOptions)
     
-    if (!session || !session.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
     
-    const userId = session.user.id;
-    
-    // Fetch orders where the user is either the buyer or the seller
+    // Get all orders where user is either buyer or seller
     const orders = await prisma.order.findMany({
       where: {
         OR: [
-          { buyerId: userId },
-          { listing: { sellerId: userId } }
+          { buyerId: session.user.id },
+          { sellerId: session.user.id }
         ]
       },
       include: {
-        buyer: {
-          select: {
-            id: true,
-            email: true
-          }
-        },
         listing: {
-          select: {
-            id: true,
-            username: true,
-            price: true,
-            seller: {
-              select: {
-                id: true,
-                email: true
-              }
-            }
-          }
-        },
-        // Include the latest message for each order
-        chatMessages: {
-          orderBy: {
-            createdAt: 'desc'
-          },
-          take: 1,
-          select: {
-            content: true,
-            createdAt: true,
-            senderId: true
+          include: {
+            platform: true
           }
         }
       },
       orderBy: {
-        updatedAt: 'desc'
+        createdAt: 'desc'
       }
-    });
+    })
     
-    return NextResponse.json({ orders });
+    return NextResponse.json(orders)
   } catch (error) {
-    console.error('Error fetching orders:', error);
-    return NextResponse.json({ error: 'Failed to fetch orders' }, { status: 500 });
+    console.error('Error fetching orders:', error)
+    return NextResponse.json(
+      { error: 'Failed to fetch orders' },
+      { status: 500 }
+    )
   }
 } 

@@ -1,88 +1,69 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import Link from 'next/link';
 import Image from 'next/image';
-import { Loader2, OctagonAlert, MessageCircle, Send, AlertCircle, ArrowLeft, RefreshCw, Circle, Clock, Camera } from 'lucide-react';
-import { useEdgeStore } from '@/app/lib/edgeStore';
+import { 
+  ArrowLeft, Camera, Circle, Clock, Loader2, MessageCircle, 
+  RefreshCw, Send, AlertCircle, OctagonAlert 
+} from 'lucide-react';
+import MessageSkeleton from '@/app/components/message-skeleton';
 
-const MessageSkeleton = () => {
-    return (
-        <div className="space-y-4">
-            {/* Other user message */}
-            <div className="flex mb-4 justify-start">
-                <div className="h-8 w-8 rounded-full bg-muted animate-pulse mr-2"></div>
-                <div className="max-w-[70%] p-3 rounded-lg bg-card dark:bg-card/80 rounded-tl-none">
-                    <div className="h-4 bg-muted/60 rounded w-24 animate-pulse"></div>
-                    <div className="h-12 bg-muted/60 rounded w-full mt-2 animate-pulse"></div>
-                    <div className="h-3 bg-muted/60 rounded w-16 mt-1 animate-pulse"></div>
-                </div>
-            </div>
-
-            {/* Current user message */}
-            <div className="flex mb-4 justify-end">
-                <div className="max-w-[70%] p-3 rounded-lg bg-primary/70 text-primary-foreground rounded-tr-none">
-                    <div className="h-4 bg-primary-foreground/20 rounded w-24 animate-pulse"></div>
-                    <div className="h-12 bg-primary-foreground/20 rounded w-full mt-2 animate-pulse"></div>
-                    <div className="h-3 bg-primary-foreground/20 rounded w-16 mt-1 animate-pulse"></div>
-                </div>
-                <div className="h-8 w-8 rounded-full bg-muted animate-pulse ml-2"></div>
-            </div>
-
-            {/* Other user message */}
-            <div className="flex mb-4 justify-start">
-                <div className="h-8 w-8 rounded-full bg-muted animate-pulse mr-2"></div>
-                <div className="max-w-[70%] p-3 rounded-lg bg-card dark:bg-card/80 rounded-tl-none">
-                    <div className="h-4 bg-muted/60 rounded w-32 animate-pulse"></div>
-                    <div className="h-8 bg-muted/60 rounded w-full mt-2 animate-pulse"></div>
-                    <div className="h-3 bg-muted/60 rounded w-16 mt-1 animate-pulse"></div>
-                </div>
-            </div>
-        </div>
-    );
-};
-
-export default function ChatDetail({ params }) {
-  // Access userId directly from params
-  const { userId } = useParams();
+export default function ChatPage({ params }) {
+  // Unwrap params using React.use()
+  const unwrappedParams = React.use(params);
+  const userId = unwrappedParams.userId;
   
-  const { data: session, status } = useSession();
   const router = useRouter();
+  const { data: session, status } = useSession();
   const [messages, setMessages] = useState([]);
-  const [otherUser, setOtherUser] = useState(null);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const messagesEndRef = useRef(null);
-  const fileInputRef = useRef(null);
-  const [isUploading, setIsUploading] = useState(false);
+  const [isSending, setIsSending] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
   const [imagePreview, setImagePreview] = useState('');
-  const { edgestore } = useEdgeStore();
-  const [isSending, setIsSending] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [otherUser, setOtherUser] = useState(null);
+  const [manualRefresh, setManualRefresh] = useState(false);
+  const messagesEndRef = useRef(null);
+  const fileInputRef = useRef(null);
 
+  // Add meta tag to prevent zooming
   useEffect(() => {
-    if (status === 'authenticated') {
-      fetchMessages();
-      const interval = setInterval(fetchMessages, 15000); // Poll for new messages every 15 seconds
-      return () => clearInterval(interval);
-    } else if (status === 'unauthenticated') {
-      router.push('/login');
-    }
-  }, [status, userId, router]);
+    // Add viewport meta tag to prevent zooming
+    const meta = document.createElement('meta');
+    meta.name = 'viewport';
+    meta.content = 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no';
+    document.getElementsByTagName('head')[0].appendChild(meta);
+    
+    return () => {
+      // Remove the meta tag when component unmounts
+      document.getElementsByTagName('head')[0].removeChild(meta);
+    };
+  }, []);
 
-  useEffect(() => {
-    // Scroll to bottom when messages change
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [messages]);
+  // Scroll to bottom of messages
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
 
-  const fetchMessages = async () => {
+  // Fetch messages
+  const fetchMessages = useCallback(async (isManualRefresh = false) => {
+    if (!userId || !session?.user?.id) return;
+    
     try {
-      setLoading(true);
+      if (isManualRefresh) {
+        setManualRefresh(true);
+      }
+      
+      if (messages.length === 0) {
+        setLoading(true);
+      }
+      
+      setError(null);
+      
       const response = await fetch(`/api/chat/${userId}`);
       
       if (!response.ok) {
@@ -91,61 +72,67 @@ export default function ChatDetail({ params }) {
       }
       
       const data = await response.json();
-      setMessages(data.messages);
-      setOtherUser(data.otherUser);
+      setMessages(data.messages || []);
+      setOtherUser(data.otherUser || null);
     } catch (err) {
       console.error('Error fetching messages:', err);
       setError(err.message);
     } finally {
       setLoading(false);
+      if (isManualRefresh) {
+        setManualRefresh(false);
+      }
     }
+  }, [userId, session?.user?.id, messages.length]);
+
+  // Initial fetch and polling
+  useEffect(() => {
+    if (status === 'authenticated') {
+      fetchMessages(false);
+      
+      // Poll for new messages every 10 seconds
+      const interval = setInterval(() => fetchMessages(false), 10000);
+      return () => clearInterval(interval);
+    }
+  }, [fetchMessages, status]);
+
+  // Handle manual refresh
+  const handleManualRefresh = () => {
+    fetchMessages(true);
   };
 
+  // Scroll to bottom when messages change
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  // Send message function
   const sendMessage = async (e) => {
     e.preventDefault();
     
-    // Check if there's a message or image to send
-    if (!newMessage.trim() && !selectedImage) return;
-
+    if ((!newMessage.trim() && !selectedImage) || isSending) return;
+    
+    let success = false;
+    setIsSending(true);
+    
     try {
-      let success = false;
-      setIsSending(true); // Set sending state to true
-
-      // If there's an image to upload
       if (selectedImage) {
+        // Handle image upload
         setIsUploading(true);
-
-        // Upload to EdgeStore
-        const res = await edgestore.publicFiles.upload({
-          file: selectedImage,
-          onProgressChange: (progress) => {
-            console.log(`Upload progress: ${progress}%`);
-          },
-        });
-
-        console.log('Upload complete:', res);
-
-        // Send the image URL as a message, along with any text
-        // Place the image marker first, then the text (if any)
-        const imageUrl = res.url;
-        const messageContent = newMessage.trim()
-          ? `[IMAGE]${imageUrl}\n${newMessage}`
-          : `[IMAGE]${imageUrl}`;
-
-        const response = await fetch('/api/chat/send', {
+        
+        const formData = new FormData();
+        formData.append('file', selectedImage);
+        formData.append('recipientId', userId);
+        formData.append('content', newMessage);
+        
+        const response = await fetch('/api/chat/upload', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            recipientId: userId,
-            content: messageContent,
-          }),
+          body: formData,
         });
         
         if (!response.ok) {
           const errorData = await response.json();
-          throw new Error(errorData.error || 'Failed to send message');
+          throw new Error(errorData.error || 'Failed to upload image');
         }
         
         // Add the new message to the list
@@ -206,13 +193,6 @@ export default function ChatDetail({ params }) {
     // Create a preview URL
     const previewUrl = URL.createObjectURL(file);
     setImagePreview(previewUrl);
-
-    // Focus on the textarea for adding a message with the image
-    setTimeout(() => {
-      if (document.activeElement !== document.body) {
-        document.activeElement.blur();
-      }
-    }, 100);
   };
 
   // Function to remove the selected image
@@ -285,9 +265,9 @@ export default function ChatDetail({ params }) {
 
   if (status === 'loading' || status === 'unauthenticated') {
     return (
-      <div className="flex flex-col h-[85vh] md:h-screen">
-        <div className="flex-1 flex flex-col overflow-hidden border-0 rounded-none">
-          <div className="p-4 border-b flex items-center justify-between bg-background">
+      <div className="flex flex-col h-screen">
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <div className="p-4 border-b flex items-center justify-between bg-background sticky top-0 z-10">
             <div className="flex items-center">
               <div className="h-8 w-8 rounded-full bg-muted animate-pulse mr-2"></div>
               <div>
@@ -296,7 +276,7 @@ export default function ChatDetail({ params }) {
               </div>
             </div>
           </div>
-          <div className="flex-1 overflow-y-auto p-4 bg-muted/30">
+          <div className="flex-1 overflow-y-auto p-4">
             <MessageSkeleton />
           </div>
         </div>
@@ -305,241 +285,228 @@ export default function ChatDetail({ params }) {
   }
 
   return (
-    <div className="flex flex-col h-[85vh] md:h-screen">
-      <div className="flex-1 flex flex-col overflow-hidden border-0 rounded-none">
-        <div className="p-4 border-b flex items-center justify-between bg-background">
-          <div className="flex items-center">
-            <div onClick={() => router.back()} className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground cursor-pointer pr-2">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-            </div>
-
-            <div>
-              <h2 className="font-medium">{getOtherUserEmail()}</h2>
-              <div className="flex items-center text-xs text-muted-foreground">
-                {otherUser?.isOnline ? (
-                  <>
-                    <Circle className="h-2 w-2 fill-green-500 text-green-500 mr-1" />
-                    <span>Online</span>
-                  </>
-                ) : (
-                  <>
-                    <Clock className="h-3 w-3 mr-1" />
-                    <span>Last seen {formatLastSeen(otherUser?.lastSeen)}</span>
-                  </>
-                )}
-              </div>
-            </div>
+    <div className="flex flex-col h-screen bg-background">
+      {/* Header - Fixed */}
+      <div className="p-4 border-b flex items-center justify-between bg-background shadow-sm sticky top-0 z-10">
+        <div className="flex items-center">
+          <div onClick={() => router.back()} className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground cursor-pointer pr-2">
+            <ArrowLeft className="mr-2 h-4 w-4" />
           </div>
 
-          <div className="flex items-center">
-            <button 
-              className="flex items-center px-2 py-1 text-sm rounded-md hover:bg-muted"
-              onClick={fetchMessages}
-              disabled={loading}
-            >
-              {loading ? (
+          <div>
+            <h2 className="font-medium">{getOtherUserEmail()}</h2>
+            <div className="flex items-center text-xs text-muted-foreground">
+              {otherUser?.isOnline ? (
                 <>
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  Refreshing...
+                  <Circle className="h-2 w-2 fill-green-500 text-green-500 mr-1" />
+                  <span>Online</span>
                 </>
               ) : (
                 <>
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  Refresh
+                  <Clock className="h-3 w-3 mr-1" />
+                  <span>Last seen {formatLastSeen(otherUser?.lastSeen)}</span>
                 </>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center">
+          <button 
+            className="flex items-center px-2 py-1 text-sm rounded-md hover:bg-muted"
+            onClick={handleManualRefresh}
+          >
+            <RefreshCw className={`h-4 w-4 ${manualRefresh ? 'animate-spin' : ''}`} />
+          </button>
+        </div>
+      </div>
+      
+      {/* Messages - Scrollable */}
+      <div className="flex-1 overflow-y-auto">
+        {/* Warning banner */}
+        <div className="bg-amber-500/10 border-y border-amber-200 dark:border-amber-900/50 p-2">
+          <p className="text-xs text-amber-800 dark:text-amber-300 flex items-center justify-center">
+            <OctagonAlert className="h-3.5 w-3.5 mr-1.5" />
+            Trusttrade Moderators have a green checkmark. Be careful with scammers!
+          </p>
+        </div>
+        
+        {loading && messages.length === 0 ? (
+          <div className="flex flex-col justify-center h-full p-4">
+            <MessageSkeleton />
+          </div>
+        ) : error ? (
+          <div className="flex flex-col items-center justify-center h-full p-4">
+            <AlertCircle className="h-12 w-12 text-red-500 mb-4" />
+            <p className="text-red-600 dark:text-red-400 mb-2">{error}</p>
+            <p className="text-muted-foreground text-sm mb-4 text-center max-w-md">
+              There was a problem connecting to the chat service. This might be due to a missing API route or server issue.
+            </p>
+            <div className="flex gap-2">
+              <button 
+                className="flex items-center px-3 py-2 border rounded-md hover:bg-muted"
+                onClick={handleManualRefresh}
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Try Again
+              </button>
+              <button 
+                className="flex items-center px-3 py-2 border rounded-md hover:bg-muted"
+                onClick={() => router.back()}
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Go Back
+              </button>
+            </div>
+          </div>
+        ) : messages.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full p-4">
+            <MessageCircle className="h-16 w-16 text-muted-foreground opacity-50 mb-4" />
+            <p className="text-muted-foreground mb-2">No messages yet</p>
+            <p className="text-sm text-muted-foreground">Start the conversation by sending a message below.</p>
+          </div>
+        ) : (
+          <div className="p-4 pb-6">
+            {messages.map((message, index) => {
+              // Determine if this message is from the current user
+              const isCurrentUser = message.senderId === session?.user?.id;
+              
+              // Check if we need to show a date separator
+              const showDateSeparator = index === 0 || 
+                isDifferentDay(message.createdAt, messages[index - 1]?.createdAt);
+              
+              return (
+                <React.Fragment key={message.id || `msg-${index}`}>
+                  {/* Date separator */}
+                  {showDateSeparator && (
+                    <div className="flex justify-center my-4">
+                      <div className="px-3 py-1 bg-muted rounded-full text-xs text-muted-foreground">
+                        {formatMessageDate(message.createdAt)}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Message */}
+                  <div className={`flex mb-4 ${isCurrentUser ? 'justify-end' : 'justify-start'}`}>
+                    <div  
+                      className={`max-w-[80%] p-3 rounded-lg ${isCurrentUser
+                        ? 'bg-primary text-primary-foreground rounded-tr-none' 
+                        : 'bg-card dark:bg-card/80 rounded-tl-none border border-secondary'
+                      }`}
+                    >
+                      {message.content.includes('[IMAGE]') ? (
+                        <>
+                          {/* Display the image */}
+                          <div className="mb-2">
+                            <Image
+                              src={message.content.split('[IMAGE]')[1].split('\n')[0]}
+                              alt="Shared image"
+                              width={250}
+                              height={250}
+                              className="rounded-md max-w-full object-cover"
+                              style={{ maxHeight: '250px' }}
+                            />
+                          </div>
+
+                          {/* Extract and display text part if it exists, but not the image URL */}
+                          {message.content.includes('\n') && message.content.split('\n').slice(1).join('\n').trim() && (
+                            <p className="text-sm mt-2">
+                              {message.content.split('\n').slice(1).join('\n').replace('[READ]', '')}
+                            </p>
+                          )}
+                        </>
+                      ) : (
+                        <p className="text-sm">{message.content.replace('[READ]', '')}</p>
+                      )}
+                      <p className="text-xs text-muted-foreground mt-1 flex justify-between items-center">
+                        <span>
+                          {new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                        {isCurrentUser && (
+                          <span className="text-[10px] ml-2">
+                            {message.content.includes("[READ]") ? 'Read' : 'Sent'}
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                </React.Fragment>
+              );
+            })}
+            <div ref={messagesEndRef} />
+          </div>
+        )}
+      </div>
+      
+      {/* Message input - Fixed at bottom */}
+      <div className="border-t p-3 bg-background sticky bottom-0 z-10">
+        <form onSubmit={sendMessage} className="flex flex-col gap-2">
+          {imagePreview && (
+            <div className="relative mb-2 inline-block">
+              <img
+                src={imagePreview}
+                alt="Selected image"
+                className="h-32 rounded-md object-cover border border-muted"
+              />
+              <button
+                type="button"
+                onClick={removeSelectedImage}
+                className="absolute -top-2 -right-2 bg-white dark:bg-gray-800 text-red-500 rounded-full p-1 shadow-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors border border-gray-200 dark:border-gray-700"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                </svg>
+              </button>
+            </div>
+          )}
+          <div className="flex gap-2 items-end">
+            <textarea
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              placeholder={selectedImage ? "Add a message with your image..." : "Type your message..."}
+              className="min-h-[40px] max-h-[120px] flex-1 rounded-2xl border border-input bg-background px-4 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-none"
+              disabled={isSending}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey && !isSending) {
+                  e.preventDefault();
+                  sendMessage(e);
+                }
+              }}
+            />
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleImageSelect}
+              accept="image/*"
+              className="hidden"
+            />
+            <button 
+              type="button"
+              className="h-10 w-10 flex items-center justify-center rounded-full border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isUploading || !!selectedImage || isSending}
+            >
+              {isUploading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Camera className="h-4 w-4" />
+              )}
+            </button>
+            <button 
+              type="submit" 
+              className="h-10 w-10 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 flex items-center justify-center transition-colors"
+              disabled={isUploading || isSending || (!newMessage.trim() && !selectedImage)}
+            >
+              {isUploading || isSending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4" />
               )}
             </button>
           </div>
-        </div>
-        
-        <div className="flex-1 overflow-y-auto p-4 bg-muted/30">
-          <div className="flex justify-center bg-grey p-4 mb-4">
-            <p className="text-muted-foreground text-black font-bold text-[8px] md:text-[10px] flex items-center">
-              <OctagonAlert className="h-4 w-4 mr-2" />
-              Trusttrade Moderators have a green checkmark. Be careful with scammers!
-            </p>
-          </div>
-          
-          {loading && messages.length === 0 ? (
-            <div className="flex flex-col justify-center h-full">
-              <MessageSkeleton />
-            </div>
-          ) : error ? (
-            <div className="flex flex-col items-center justify-center h-full">
-              <AlertCircle className="h-12 w-12 text-red-500 mb-4" />
-              <p className="text-red-600 dark:text-red-400 mb-2">{error}</p>
-              <p className="text-muted-foreground text-sm mb-4 text-center max-w-md">
-                There was a problem connecting to the chat service. This might be due to a missing API route or server issue.
-              </p>
-              <div className="flex gap-2">
-                <button 
-                  className="flex items-center px-3 py-2 border rounded-md hover:bg-muted"
-                  onClick={fetchMessages}
-                >
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  Try Again
-                </button>
-                <button 
-                  className="flex items-center px-3 py-2 border rounded-md hover:bg-muted"
-                  onClick={() => router.back()}
-                >
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  Go Back
-                </button>
-              </div>
-            </div>
-          ) : messages.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full">
-              <MessageCircle className="h-16 w-16 text-muted-foreground opacity-50 mb-4" />
-              <p className="text-muted-foreground mb-2">No messages yet</p>
-              <p className="text-sm text-muted-foreground">Start the conversation by sending a message below.</p>
-            </div>
-          ) : (
-            <>
-              {messages.map((message, index) => {
-                // Determine if this message is from the current user
-                const isCurrentUser = message.senderId === session?.user?.id;
-                
-                // Check if we need to show a date separator
-                const showDateSeparator = index === 0 || 
-                  isDifferentDay(message.createdAt, messages[index - 1]?.createdAt);
-                
-                return (
-                  <React.Fragment key={message.id || `msg-${index}`}>
-                    {/* Date separator */}
-                    {showDateSeparator && (
-                      <div className="flex justify-center my-4">
-                        <div className="px-3 py-1 bg-muted rounded-full text-xs text-muted-foreground">
-                          {formatMessageDate(message.createdAt)}
-                        </div>
-                      </div>
-                    )}
-                    
-                    {/* Message */}
-                    <div
-                      className={`flex mb-4 ${isCurrentUser ? 'justify-end' : 'justify-start'}`}
-                    >
-                      <div 
-                        className={`max-w-[70%] p-3 rounded-lg ${isCurrentUser
-                          ? 'bg-primary text-primary-foreground rounded-tr-none' 
-                          : 'bg-card dark:bg-card/80 rounded-tl-none'
-                        }`}
-                      >
-                        {message.content.includes('[IMAGE]') ? (
-                          <>
-                            {/* Display the image */}
-                            <div className="mb-2">
-                              <Image
-                                src={message.content.split('[IMAGE]')[1].split('\n')[0]}
-                                alt="Shared image"
-                                width={250}
-                                height={250}
-                                className="rounded-md max-w-full object-cover"
-                                style={{ maxHeight: '250px' }}
-                              />
-                            </div>
+        </form>
 
-                            {/* Extract and display text part if it exists, but not the image URL */}
-                            {message.content.includes('\n') && message.content.split('\n').slice(1).join('\n').trim() && (
-                              <p className="text-sm mt-2">
-                                {message.content.split('\n').slice(1).join('\n').replace('[READ]', '')}
-                              </p>
-                            )}
-                          </>
-                        ) : (
-                          <p className="text-sm">{message.content.replace('[READ]', '')}</p>
-                        )}
-                        <p className="text-xs text-muted-foreground mt-1 flex justify-between items-center">
-                          <span>
-                            {new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          </span>
-                          {isCurrentUser && (
-                            <span className="text-[10px] ml-2">
-                              {message.content.includes("[READ]") ? 'Read' : 'Sent'}
-                            </span>
-                          )}
-                        </p>
-                      </div>
-                    </div>
-                  </React.Fragment>
-                );
-              })}
-              <div ref={messagesEndRef} />
-            </>
-          )}
-        </div>
-        
-        <div className="p-4 border-t bg-background">
-          <form onSubmit={sendMessage} className="flex flex-col gap-2">
-            {imagePreview && (
-              <div className="relative mb-2 inline-block">
-                <div className="relative group">
-                  <img
-                    src={imagePreview}
-                    alt="Selected image"
-                    className="h-32 rounded-md object-cover border border-muted"
-                  />
-                  <button
-                    type="button"
-                    onClick={removeSelectedImage}
-                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-md hover:bg-red-600 transition-colors"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                    </svg>
-                  </button>
-                </div>
-              </div>
-            )}
-            <div className="flex gap-2">
-              <textarea
-                value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-                placeholder={selectedImage ? "Add a message with your image..." : "Type your message..."}
-                className="min-h-[60px] max-h-[120px] flex-1 h-[10px] w-[calc(100%-120px)] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                disabled={isSending}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey && !isSending) {
-                    e.preventDefault();
-                    sendMessage(e);
-                  }
-                }}
-              />
-              <div className="flex flex-row gap-2 self-end">
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={handleImageSelect}
-                  accept="image/*"
-                  className="hidden"
-                />
-                <button 
-                  type="button"
-                  className="h-10 w-10 flex items-center justify-center rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={isUploading || !!selectedImage || isSending}
-                >
-                  {isUploading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Camera className="h-4 w-4" />
-                  )}
-                </button>
-                <button 
-                  type="submit" 
-                  className="h-10 w-10 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 flex items-center justify-center"
-                  disabled={isUploading || isSending}
-                >
-                  {isUploading || isSending ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Send className="h-4 w-4" />
-                  )}
-                </button>
-              </div>
-            </div>
-          </form>
-
+        {(error || isSending) && (
           <div className="mt-2 text-xs text-muted-foreground flex items-center justify-end">
             <span className="flex items-center">
               {error ? (
@@ -552,20 +519,10 @@ export default function ChatDetail({ params }) {
                   <Loader2 className="h-2 w-2 animate-spin mr-1" />
                   Sending message...
                 </>
-              ) : loading ? (
-                <>
-                  <Loader2 className="h-2 w-2 animate-spin mr-1" />
-                  Refreshing messages...
-                </>
-              ) : (
-                <>
-                  <Circle className="h-2 w-2 fill-amber-500 text-amber-500 mr-1" />
-                  Click refresh to update messages
-                </>
-              )}
+              ) : null}
             </span>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
