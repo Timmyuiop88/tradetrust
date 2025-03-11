@@ -143,11 +143,11 @@ export async function POST(request) {
         buyer: true,
         listing: {
           include: {
-            seller: true,
-          },
+            seller: true
+          }
         },
-        dispute: true,
-      },
+        dispute: true
+      }
     });
 
     if (!order) {

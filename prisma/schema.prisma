@@ -226,7 +226,7 @@ model Order {
   completedAt      DateTime?
 
   // Add this new relation
-  dispute Dispute?
+  dispute          Dispute?
 }
 
 model ChatMessage {
