@@ -11,7 +11,7 @@ import { Badge } from "@/app/components/badge"
 import { Separator } from "@/app/components/separator"
 import { 
   Clock, Copy, MessageSquare, AlertTriangle, CheckCircle, 
-  ShieldCheck, Info, ArrowLeft, Lock
+  ShieldCheck, Info, ArrowLeft, Lock, X, Loader2
 } from "lucide-react"
 import { toast } from "sonner"
 import { formatDistance, isPast } from "date-fns"
@@ -35,6 +35,10 @@ export default function OrderDetailPage() {
   })
   const [showCredentials, setShowCredentials] = useState(false)
   const initialLoadComplete = useRef(false)
+  const [showDisputeModal, setShowDisputeModal] = useState(false)
+  const [disputeReason, setDisputeReason] = useState('')
+  const [disputeDescription, setDisputeDescription] = useState('')
+  const [isSubmittingDispute, setIsSubmittingDispute] = useState(false)
   
   // Get the countdown timer for seller deadline
   const { minutes, seconds, isExpired: isSellerDeadlineExpired } = 
@@ -194,6 +198,59 @@ export default function OrderDetailPage() {
   const toggleCredentialVisibility = () => {
     setShowCredentials(prev => !prev)
   }
+  
+  const handleOpenDispute = async (e) => {
+    e.preventDefault();
+    
+    if (!disputeReason || !disputeDescription.trim()) {
+      return;
+    }
+    
+    try {
+      setIsSubmittingDispute(true);
+      
+      const response = await fetch('/api/disputes', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          orderId: order.id,
+          reason: disputeReason,
+          description: disputeDescription,
+        }),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to open dispute');
+      }
+      
+      // Close modal and refresh order data
+      setShowDisputeModal(false);
+      fetchOrder(true);
+      
+      // Show success message
+      toast({
+        title: "Dispute opened",
+        description: "Your dispute has been successfully opened. A moderator will review it shortly.",
+      });
+      
+      // Redirect to the dispute page
+      const data = await response.json();
+      router.push(`/disputes/${data.dispute.id}`);
+    } catch (err) {
+      console.error('Error opening dispute:', err);
+      
+      toast({
+        variant: "destructive",
+        title: "Failed to open dispute",
+        description: err.message,
+      });
+    } finally {
+      setIsSubmittingDispute(false);
+    }
+  };
   
   if (loading) {
     return (
@@ -630,13 +687,94 @@ export default function OrderDetailPage() {
           )}
           
           {/* Dispute Button */}
-          {(order.status === 'WAITING_FOR_SELLER' || order.status === 'WAITING_FOR_BUYER') && (
-            <Button variant="outline" onClick={handleContactSupport}>
-              Encountered an Issue?
-            </Button>
+          {order.status !== 'DISPUTED' && order.status !== 'COMPLETED' && order.status !== 'CANCELLED' && (
+            <div className="mt-4">
+              <button
+                onClick={() => setShowDisputeModal(true)}
+                className="flex items-center px-4 py-2 w-full justify-center bg-amber-100 text-amber-800 rounded-md hover:bg-amber-200"
+              >
+                <AlertTriangle className="h-4 w-4 mr-2" />
+                Open Dispute
+              </button>
+            </div>
           )}
         </CardFooter>
       </Card>
+      
+      {/* Dispute Modal */}
+      {showDisputeModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-background rounded-lg shadow-lg max-w-md w-full p-6 relative">
+            <button
+              onClick={() => setShowDisputeModal(false)}
+              className="absolute top-4 right-4 text-muted-foreground hover:text-foreground"
+            >
+              <X className="h-5 w-5" />
+            </button>
+            
+            <h2 className="text-xl font-semibold mb-4">Open a Dispute</h2>
+            
+            <form onSubmit={handleOpenDispute}>
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-1">
+                  Reason for Dispute
+                </label>
+                <select
+                  value={disputeReason}
+                  onChange={(e) => setDisputeReason(e.target.value)}
+                  className="w-full px-3 py-2 border border-input rounded-md bg-background text-sm"
+                  required
+                >
+                  <option value="">Select a reason...</option>
+                  <option value="ITEM_NOT_RECEIVED">Item Not Received</option>
+                  <option value="ITEM_NOT_AS_DESCRIBED">Item Not As Described</option>
+                  <option value="PAYMENT_ISSUE">Payment Issue</option>
+                  <option value="COMMUNICATION_ISSUE">Communication Issue</option>
+                  <option value="ACCOUNT_ACCESS_ISSUE">Account Access Issue</option>
+                  <option value="OTHER">Other</option>
+                </select>
+              </div>
+              
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-1">
+                  Description
+                </label>
+                <textarea
+                  value={disputeDescription}
+                  onChange={(e) => setDisputeDescription(e.target.value)}
+                  placeholder="Please provide details about your issue..."
+                  className="w-full px-3 py-2 border border-input rounded-md bg-background text-sm min-h-[120px]"
+                  required
+                />
+              </div>
+              
+              <div className="flex justify-end space-x-2">
+                <button
+                  type="button"
+                  onClick={() => setShowDisputeModal(false)}
+                  className="px-4 py-2 border border-input rounded-md text-sm font-medium bg-background hover:bg-muted"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 rounded-md text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90"
+                  disabled={isSubmittingDispute}
+                >
+                  {isSubmittingDispute ? (
+                    <span className="flex items-center">
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      Submitting...
+                    </span>
+                  ) : (
+                    'Open Dispute'
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
