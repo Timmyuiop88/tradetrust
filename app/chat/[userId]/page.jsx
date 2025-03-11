@@ -390,13 +390,13 @@ export default function ChatPage({ params }) {
               // Determine if this message is from the current user
               const isCurrentUser = message.senderId === session?.user?.id;
               
-              // Check if we need to show a date separator
+              // Check if we need to show a date separator (comparing with previous message)
               const showDateSeparator = index === 0 || 
                 isDifferentDay(message.createdAt, messages[index - 1]?.createdAt);
               
               return (
                 <React.Fragment key={message.id || `msg-${index}`}>
-                  {/* Date separator */}
+                  {/* Date separator - shown before the message */}
                   {showDateSeparator && (
                     <div className="flex justify-center my-4">
                       <div className="px-3 py-1 bg-muted rounded-full text-xs text-muted-foreground">

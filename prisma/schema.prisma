@@ -63,6 +63,24 @@ enum TransactionStatus {
   CANCELLED
 }
 
+enum DisputeStatus {
+  OPEN
+  UNDER_REVIEW
+  RESOLVED_BUYER_FAVOR
+  RESOLVED_SELLER_FAVOR
+  RESOLVED_COMPROMISE
+  CANCELLED
+}
+
+enum DisputeReason {
+  ITEM_NOT_RECEIVED
+  ITEM_NOT_AS_DESCRIBED
+  PAYMENT_ISSUE
+  COMMUNICATION_ISSUE
+  ACCOUNT_ACCESS_ISSUE
+  OTHER
+}
+
 // =====================
 // MODELS
 // =====================
@@ -104,6 +122,11 @@ model User {
   userFavorites Favorite[] @relation("UserFavorites")
 
   Balance Balance[]
+
+  // Add these new relations
+  initiatedDisputes Dispute[]        @relation("DisputeInitiator")
+  assignedDisputes  Dispute[]        @relation("AssignedModerator")
+  disputeMessages   DisputeMessage[]
 }
 
 model Kyc {
@@ -201,6 +224,9 @@ model Order {
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
   completedAt      DateTime?
+
+  // Add this new relation
+  dispute Dispute?
 }
 
 model ChatMessage {
@@ -338,4 +364,42 @@ model Transaction {
   @@index([balanceId])
   @@index([type])
   @@index([status])
+}
+
+model Dispute {
+  id            String        @id @default(uuid())
+  order         Order         @relation(fields: [orderId], references: [id])
+  orderId       String        @unique
+  initiator     User          @relation("DisputeInitiator", fields: [initiatorId], references: [id])
+  initiatorId   String
+  reason        DisputeReason
+  description   String
+  status        DisputeStatus @default(OPEN)
+  resolution    String?
+  evidence      String[]      // URLs to evidence files
+  assignedMod   User?         @relation("AssignedModerator", fields: [assignedModId], references: [id])
+  assignedModId String?
+  messages      DisputeMessage[]
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@index([orderId])
+  @@index([initiatorId])
+  @@index([assignedModId])
+}
+
+model DisputeMessage {
+  id          String   @id @default(uuid())
+  dispute     Dispute  @relation(fields: [disputeId], references: [id])
+  disputeId   String
+  sender      User     @relation(fields: [senderId], references: [id])
+  senderId    String
+  content     String
+  isModOnly   Boolean  @default(false) // Messages only visible to moderators
+  attachments String[] // URLs to attached files
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([disputeId])
+  @@index([senderId])
 }
