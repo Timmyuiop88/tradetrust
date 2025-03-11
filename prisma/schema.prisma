@@ -210,6 +210,7 @@ model ChatMessage {
   sender    User     @relation(fields: [senderId], references: [id])
   senderId  String
   content   String
+  isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
 }
 

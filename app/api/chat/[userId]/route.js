@@ -1,36 +1,47 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
-import prisma from '@/app/lib/prisma';
+import { prisma } from '@/lib/prisma';
 
 export async function GET(request, context) {
   try {
-    // Get the current user from the session
     const session = await getServerSession(authOptions);
-    
-    if (!session || !session.user) {
+    if (!session?.user) {
       return new NextResponse(
         JSON.stringify({ error: 'Unauthorized' }),
         { status: 401, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
-    // Get and await the params
-    const { userId: otherUserId } = await Promise.resolve(context.params);
-    const currentUserId = session.user.id;
-    
-    if (!otherUserId) {
-      return new NextResponse(
-        JSON.stringify({ error: 'User ID is required' }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
-      );
-    }
+    const userId = session.user.id;
+    const params = await context.params;
+    const otherUserId = params.userId;
+
+    // Find all orders where the current user is either buyer or seller
+    // and the other user is the counterparty
+    const orders = await prisma.order.findMany({
+      where: {
+        OR: [
+          {
+            buyerId: userId,
+            sellerId: otherUserId,
+          },
+          {
+            buyerId: otherUserId,
+            sellerId: userId,
+          },
+        ],
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    const orderIds = orders.map(order => order.id);
 
     // Get the other user's details
     const otherUser = await prisma.user.findUnique({
-      where: {
-        id: otherUserId,
-      },
+      where: { id: otherUserId },
       select: {
         id: true,
         email: true,
@@ -45,37 +56,19 @@ export async function GET(request, context) {
       );
     }
 
-    // Find all orders between these users
-    const orders = await prisma.order.findMany({
-      where: {
-        OR: [
-          {
-            AND: [
-              { buyerId: currentUserId },
-              { listing: { sellerId: otherUserId } }
-            ]
-          },
-          {
-            AND: [
-              { buyerId: otherUserId },
-              { sellerId: currentUserId }
-            ]
-          }
-        ]
-      },
-      select: {
-        id: true
-      }
-    });
-
-    const orderIds = orders.map(order => order.id);
-
     // Get all messages from these orders
     const messages = await prisma.chatMessage.findMany({
       where: {
-        orderId: {
-          in: orderIds
-        }
+        OR: [
+          {
+            senderId: userId,
+            orderId: { in: orderIds }
+          },
+          {
+            senderId: otherUserId,
+            orderId: { in: orderIds }
+          }
+        ]
       },
       include: {
         sender: {
@@ -90,7 +83,7 @@ export async function GET(request, context) {
       },
     });
 
-    // Mark messages as read
+    // Mark messages as read - using content field since isRead doesn't exist
     const unreadMessages = messages.filter(
       msg => msg.senderId === otherUserId && !msg.content.includes('[READ]')
     );
