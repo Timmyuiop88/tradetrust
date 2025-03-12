@@ -14,6 +14,8 @@ generator client {
 enum Role {
   USER
   ADMIN
+  MODERATOR
+  SUPER_ADMIN
 }
 
 enum ListingStatus {
@@ -226,7 +228,7 @@ model Order {
   completedAt      DateTime?
 
   // Add this new relation
-  dispute Dispute?
+  dispute          Dispute?
 }
 
 model ChatMessage {
@@ -236,6 +238,7 @@ model ChatMessage {
   sender    User     @relation(fields: [senderId], references: [id])
   senderId  String
   content   String
+  isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
 }
 

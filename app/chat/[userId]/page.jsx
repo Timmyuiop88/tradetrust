@@ -110,94 +110,54 @@ export default function ChatPage({ params }) {
   const sendMessage = async (e) => {
     e.preventDefault();
     
-    // Check if there's a message or image to send
-    if (!newMessage.trim() && !selectedImage) return;
-
-    try {
-      let success = false;
-      setIsSending(true); // Set sending state to true
-
-      // If there's an image to upload
-      if (selectedImage) {
-        setIsUploading(true);
-
-        // Upload to EdgeStore
-        const res = await edgestore.publicFiles.upload({
-          file: selectedImage,
-          onProgressChange: (progress) => {
-            console.log(`Upload progress: ${progress}%`);
-          },
-        });
-
-        console.log('Upload complete:', res);
-
-        // Send the image URL as a message, along with any text
-        // Place the image marker first, then the text (if any)
-        const imageUrl = res.url;
-        const messageContent = newMessage.trim()
-          ? `[IMAGE]${imageUrl}\n${newMessage}`
-          : `[IMAGE]${imageUrl}`;
-
-        const response = await fetch('/api/chat/send', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            recipientId: userId,
-            content: messageContent,
-          }),
-        });
-        
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Failed to send message');
-        }
-        
-        // Add the new message to the list
-        const data = await response.json();
-        setMessages([...messages, data.message]);
-        success = true;
-
-        // Clean up
-        setSelectedImage(null);
-        if (imagePreview) {
-          URL.revokeObjectURL(imagePreview);
-          setImagePreview('');
-        }
-      } else {
-        // Just send the text message
-        const response = await fetch('/api/chat/send', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            recipientId: userId,
-            content: newMessage,
-          }),
-        });
-        
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Failed to send message');
-        }
-        
-        // Add the new message to the list
-        const data = await response.json();
-        setMessages([...messages, data.message]);
-        success = true;
-      }
+    if ((!newMessage.trim() && !selectedImage) || isSending) {
+      return;
+    }
     
-      if (success) {
-        setNewMessage('');
+    try {
+      setIsSending(true);
+      
+      // Upload image if selected
+      let imageUrl = null;
+      if (selectedImage) {
+        imageUrl = await uploadImage(selectedImage);
       }
+      
+      // Prepare message content
+      const messageContent = imageUrl 
+        ? `${newMessage.trim()}\n\n[IMAGE]${imageUrl}[/IMAGE]` 
+        : newMessage.trim();
+      
+      // Send message
+      const response = await fetch('/api/chat/send', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          recipientId: userId,
+          content: messageContent,
+        }),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to send message');
+      }
+      
+      // Clear form
+      setNewMessage('');
+      setSelectedImage(null);
+      setImagePreview('');
+      
+      // Fetch updated messages
+      await fetchMessages(false);
+      
     } catch (err) {
       console.error('Error sending message:', err);
       setError(err.message);
     } finally {
-      setIsUploading(false);
-      setIsSending(false); // Reset sending state
+      setIsSending(false);
     }
   };
 

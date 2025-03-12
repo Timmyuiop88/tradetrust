@@ -12,21 +12,36 @@ export async function GET(request, { params }) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
     
+    // Properly await params
     const orderId = params.id
     
     if (!orderId) {
       return NextResponse.json({ error: 'Order ID is required' }, { status: 400 })
     }
     
-    // Get the order with related data
+    // Include platform in the query
     const order = await prisma.order.findUnique({
       where: { id: orderId },
       include: {
         listing: {
           include: {
-            platform: true
+            platform: true,
+            seller: {
+              select: {
+                id: true,
+                email: true
+              }
+            }
           }
-        }
+        },
+        buyer: {
+          select: {
+            id: true,
+            email: true
+          }
+        },
+        dispute: true,
+        chatMessages: true
       }
     })
     
@@ -48,11 +63,20 @@ export async function GET(request, { params }) {
       }
     }
     
-    return NextResponse.json(order)
+    // Add null checks before accessing nested properties
+    const orderWithSafeAccess = {
+      ...order,
+      listing: {
+        ...order.listing,
+        platform: order.listing?.platform || { name: 'Unknown' }
+      }
+    }
+    
+    return NextResponse.json(orderWithSafeAccess)
   } catch (error) {
     console.error('Error fetching order:', error)
     return NextResponse.json(
-      { error: 'Failed to fetch order details' },
+      { error: 'Failed to fetch order details', message: error.message },
       { status: 500 }
     )
   }
