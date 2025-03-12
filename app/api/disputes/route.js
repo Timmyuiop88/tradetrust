@@ -127,7 +127,7 @@ export async function POST(request) {
     }
 
     const body = await request.json();
-    const { orderId, reason, description, evidence = [] } = body;
+    const { orderId, reason, description } = body;
 
     if (!orderId || !reason || !description) {
       return new NextResponse(
@@ -187,7 +187,7 @@ export async function POST(request) {
         },
         reason,
         description,
-        evidence,
+       
         status: 'OPEN',
       },
       include: {

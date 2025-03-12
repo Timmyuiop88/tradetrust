@@ -12,7 +12,7 @@ export async function POST(request) {
         }
 
         const body = await request.json();
-        const { recipientId, content, isDisputeMessage = false, disputeId = null, orderId } = body;
+        const { recipientId, content, isDisputeMessage = false, disputeId = null, orderId, isModOnly = false } = body;
 
         if (!recipientId || !content) {
             return NextResponse.json({ error: 'Recipient ID and content are required' }, { status: 400 });
@@ -46,10 +46,19 @@ export async function POST(request) {
                 sender: {
                     connect: { id: session.user.id }
                 },
+                recipient: {
+                    connect: { id: recipientId }
+                },
                 content,
+                isModOnly,
                 order: {
                     connect: { id: orderId }
                 },
+                ...(disputeId && {
+                    dispute: {
+                        connect: { id: disputeId }
+                    }
+                })
             },
             include: {
                 sender: {
@@ -64,9 +73,6 @@ export async function POST(request) {
         return NextResponse.json({ message });
     } catch (error) {
         console.error('Error sending message:', error);
-        return NextResponse.json({ 
-            error: 'Failed to send message', 
-            details: error.message 
-        }, { status: 500 });
+        return NextResponse.json({ error: error.message || 'Failed to send message' }, { status: 500 });
     }
 } 

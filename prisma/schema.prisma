@@ -83,6 +83,15 @@ enum DisputeReason {
   OTHER
 }
 
+enum WithdrawalStatus {
+  PROCESSING
+  PENDING_APPROVAL
+  APPROVED
+  COMPLETED
+  REJECTED
+  CANCELLED
+}
+
 // =====================
 // MODELS
 // =====================
@@ -129,6 +138,14 @@ model User {
   initiatedDisputes Dispute[]        @relation("DisputeInitiator")
   assignedDisputes  Dispute[]        @relation("AssignedModerator")
   disputeMessages   DisputeMessage[]
+
+  // Add this new relation
+  withdrawalRequests    WithdrawalRequest[]
+  processedWithdrawals  WithdrawalRequest[] @relation("ProcessedWithdrawals")
+
+  Transaction Transaction[]
+
+  ChatMessage ChatMessage[] @relation("RecipientMessages")
 }
 
 model Kyc {
@@ -189,6 +206,7 @@ model Listing {
   status        ListingStatus  @default(AVAILABLE)
   reviews       Review[]
   orders        Order[]
+  transactions  Transaction[]
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
 }
@@ -223,6 +241,8 @@ model Order {
   // Chat relationship
   chatMessages     ChatMessage[]
 
+  transactions     Transaction[]
+
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
   completedAt      DateTime?
@@ -239,11 +259,12 @@ model ChatMessage {
   recipientId   String
   content       String
   isRead        Boolean   @default(false)
+  isModOnly     Boolean   @default(false)  // For moderator-only messages
+  disputeId     String?   // Optional reference to a dispute
+  dispute       Dispute?  @relation(fields: [disputeId], references: [id])
+  orderId       String?   // Optional reference to an order
+  order         Order?    @relation(fields: [orderId], references: [id])
   createdAt     DateTime  @default(now())
-  
-  // New fields for dispute integration
-  isDisputeMessage Boolean @default(false)
-  disputeId        String?
 }
 
 model Device {
@@ -316,14 +337,19 @@ model Review {
 }
 
 model PayoutSettings {
-  id          String        @id @default(uuid())
-  user        User          @relation(fields: [userId], references: [id])
-  userId      String
-  method      PaymentMethod
-  address     String        // Crypto address or bank details
-  isDefault   Boolean       @default(false)
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  id              String        @id @default(uuid())
+  user            User          @relation(fields: [userId], references: [id])
+  userId          String
+  method          PaymentMethod
+  details         Json          // Store payment method details (wallet address, bank info, etc.)
+  isDefault       Boolean       @default(false)
+  isVerified      Boolean       @default(false)
+  lastUsed        DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  // Add relation to withdrawal requests
+  withdrawalRequests WithdrawalRequest[]
 
   @@unique([userId, method])
 }
@@ -358,41 +384,43 @@ model Balance {
 }
 
 model Transaction {
-  id            String          @id @default(cuid())
-  balanceId     String
-  balance       Balance         @relation(fields: [balanceId], references: [id], onDelete: Cascade)
-  amount        Float
-  type          TransactionType
-  status        TransactionStatus @default(COMPLETED)
-  description   String
-  reference     String?         // For external references like order IDs
-  createdAt     DateTime        @default(now())
-  
-  @@index([balanceId])
-  @@index([type])
-  @@index([status])
+  id                String            @id @default(uuid())
+  user              User              @relation(fields: [userId], references: [id])
+  userId            String            // Now required
+  type              TransactionType
+  amount            Float
+  fee               Float             @default(0)
+  status            TransactionStatus @default(PENDING)
+  description       String?
+  withdrawalRequest WithdrawalRequest? @relation(fields: [withdrawalRequestId], references: [id])
+  withdrawalRequestId String?
+  balance           Balance?          @relation(fields: [balanceId], references: [id])
+  balanceId         String?
+  listing           Listing?          @relation(fields: [listingId], references: [id])
+  listingId         String?
+  order             Order?            @relation(fields: [orderId], references: [id])
+  orderId           String?
+  createdAt         DateTime          @default(now())
+  completedAt       DateTime?
 }
 
 model Dispute {
-  id            String        @id @default(uuid())
-  order         Order         @relation(fields: [orderId], references: [id])
-  orderId       String        @unique
-  initiator     User          @relation("DisputeInitiator", fields: [initiatorId], references: [id])
+  id            String    @id @default(uuid())
+  order         Order     @relation(fields: [orderId], references: [id])
+  orderId       String    @unique
+  initiator     User      @relation("DisputeInitiator", fields: [initiatorId], references: [id])
   initiatorId   String
-  reason        DisputeReason
+  reason        String
   description   String
   status        DisputeStatus @default(OPEN)
-  resolution    String?
-  evidence      String[]      // URLs to evidence files
-  assignedMod   User?         @relation("AssignedModerator", fields: [assignedModId], references: [id])
+  assignedMod   User?     @relation("AssignedModerator", fields: [assignedModId], references: [id])
   assignedModId String?
-  messages      DisputeMessage[]
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  resolution    String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  messages      ChatMessage[] // Changed from DisputeMessage to ChatMessage
 
-  @@index([orderId])
-  @@index([initiatorId])
-  @@index([assignedModId])
+  DisputeMessage DisputeMessage[]
 }
 
 model DisputeMessage {
@@ -410,3 +438,24 @@ model DisputeMessage {
   @@index([disputeId])
   @@index([senderId])
 }
+
+model WithdrawalRequest {
+  id                String           @id @default(uuid())
+  user              User             @relation(fields: [userId], references: [id])
+  userId            String
+  amount            Float
+  fee               Float            @default(0)
+  netAmount         Float            // Amount after fees
+  payoutSetting     PayoutSettings   @relation(fields: [payoutSettingId], references: [id])
+  payoutSettingId   String
+  status            WithdrawalStatus @default(PROCESSING)
+  notes             String?          // Admin notes
+  transactions      Transaction[]    // Related transactions
+  processedBy       User?            @relation("ProcessedWithdrawals", fields: [processedById], references: [id])
+  processedById     String?
+  trackingInfo      String?          // For tracking the payment (transaction hash, reference number)
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  completedAt       DateTime?
+}
+

@@ -11,9 +11,9 @@ export async function GET(request, context) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
-    // Properly handle the params object
+    // Properly handle the params object - await it
     const { params } = context;
-    const otherUserId = params.userId;
+    const otherUserId = await Promise.resolve(params.userId);
     
     if (!otherUserId) {
       return NextResponse.json({ error: 'User ID is required' }, { status: 400 });

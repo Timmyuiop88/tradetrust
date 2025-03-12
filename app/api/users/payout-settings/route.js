@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
-import { authOptions } from '../../auth/[...nextauth]/route';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 
 export async function GET() {
   try {
@@ -46,7 +46,7 @@ export async function POST(request) {
     }
     
     // Validate required fields
-    if (!data.method || !data.address) {
+    if (!data.method || !data.details) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
     
@@ -71,8 +71,10 @@ export async function POST(request) {
         },
         data: {
           method: data.method,
-          address: data.address,
-          isDefault: data.isDefault || false
+          details: data.details,
+          isDefault: data.isDefault || false,
+          isVerified: data.isVerified || false,
+          updatedAt: new Date()
         }
       })
       
@@ -83,8 +85,9 @@ export async function POST(request) {
         data: {
           userId: session.user.id,
           method: data.method,
-          address: data.address,
-          isDefault: data.isDefault || false
+          details: data.details,
+          isDefault: data.isDefault || false,
+          isVerified: false // New settings start unverified
         }
       })
       
