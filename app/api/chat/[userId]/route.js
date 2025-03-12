@@ -17,36 +17,20 @@ export async function GET(request, context) {
     const params = await context.params;
     const otherUserId = params.userId;
 
-    // Find all orders where the current user is either buyer or seller
-    // and the other user is the counterparty
-    const orders = await prisma.order.findMany({
-      where: {
-        OR: [
-          {
-            buyerId: userId,
-            sellerId: otherUserId,
-          },
-          {
-            buyerId: otherUserId,
-            sellerId: userId,
-          },
-        ],
-      },
-      select: {
-        id: true,
-      },
-    });
+    if (!otherUserId) {
+      return new NextResponse(
+        JSON.stringify({ error: 'User ID is required' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
 
-    const orderIds = orders.map(order => order.id);
-
-    // Get the other user's details
+    // Get the other user
     const otherUser = await prisma.user.findUnique({
       where: { id: otherUserId },
       select: {
         id: true,
         email: true,
-        updatedAt: true,
-      },
+      }
     });
 
     if (!otherUser) {
@@ -56,17 +40,47 @@ export async function GET(request, context) {
       );
     }
 
-    // Get all messages from these orders
+    // Find orders between the two users (most recent first)
+    const orders = await prisma.order.findMany({
+      where: {
+        OR: [
+          {
+            buyerId: session.user.id,
+            listing: {
+              sellerId: otherUserId
+            }
+          },
+          {
+            buyerId: otherUserId,
+            listing: {
+              sellerId: session.user.id
+            }
+          }
+        ]
+      },
+      include: {
+        listing: {
+          select: {
+            id: true,
+            price: true,
+            sellerId: true
+          }
+        }
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    });
+
+    // Get messages between the two users
     const messages = await prisma.chatMessage.findMany({
       where: {
         OR: [
           {
-            senderId: userId,
-            orderId: { in: orderIds }
+            senderId: session.user.id,
           },
           {
             senderId: otherUserId,
-            orderId: { in: orderIds }
           }
         ]
       },
@@ -75,12 +89,12 @@ export async function GET(request, context) {
           select: {
             id: true,
             email: true,
-          },
-        },
+          }
+        }
       },
       orderBy: {
-        createdAt: 'asc',
-      },
+        createdAt: 'asc'
+      }
     });
 
     // Mark messages as read - using content field since isRead doesn't exist
@@ -105,7 +119,9 @@ export async function GET(request, context) {
 
     return new NextResponse(
       JSON.stringify({
+        otherUser,
         messages,
+        orders,
         otherUser: {
           id: otherUser.id,
           email: otherUser.email,
@@ -115,11 +131,10 @@ export async function GET(request, context) {
       }),
       { status: 200, headers: { 'Content-Type': 'application/json' } }
     );
-    
   } catch (error) {
-    console.error('Error fetching chat messages:', error);
+    console.error('Error fetching messages:', error);
     return new NextResponse(
-      JSON.stringify({ error: 'Failed to fetch chat messages: ' + error.message }),
+      JSON.stringify({ error: 'Failed to fetch messages: ' + error.message }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
   }

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import Image from 'next/image';
 import { 
@@ -9,6 +9,7 @@ import {
   RefreshCw, Send, AlertCircle, OctagonAlert 
 } from 'lucide-react';
 import MessageSkeleton from '@/app/components/message-skeleton';
+import { toast } from 'sonner';
 
 export default function ChatPage({ params }) {
   // Unwrap params using React.use()
@@ -29,6 +30,8 @@ export default function ChatPage({ params }) {
   const [manualRefresh, setManualRefresh] = useState(false);
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
+  const [disputes, setDisputes] = useState([]);
+  const [currentOrder, setCurrentOrder] = useState(null);
 
   // Add meta tag to prevent zooming
   useEffect(() => {
@@ -72,8 +75,47 @@ export default function ChatPage({ params }) {
       }
       
       const data = await response.json();
-      setMessages(data.messages || []);
       setOtherUser(data.otherUser || null);
+      
+      // Set the most recent order between users
+      if (data.orders && data.orders.length > 0) {
+        setCurrentOrder(data.orders[0]); // Assuming orders are sorted by most recent first
+      } else {
+        // If no orders found, we need to handle this case
+        setCurrentOrder(null);
+      }
+      
+      // Get regular chat messages
+      const chatMessages = (data.messages || []).map(msg => ({
+        ...msg,
+        isDisputeMessage: msg.isDisputeMessage || false,
+        timestamp: new Date(msg.createdAt).getTime()
+      }));
+      
+      // Fetch any disputes between these users
+      const disputesResponse = await fetch(`/api/chat/${userId}/disputes`);
+      
+      if (disputesResponse.ok) {
+        const disputesData = await disputesResponse.json();
+        
+        // Get all dispute messages
+        const disputeMessages = (disputesData.messages || []).map(msg => ({
+          ...msg,
+          isDisputeMessage: true,
+          disputeId: msg.disputeId,
+          timestamp: new Date(msg.createdAt).getTime()
+        }));
+        
+        // Combine and sort all messages
+        const allMessages = [...chatMessages, ...disputeMessages];
+        allMessages.sort((a, b) => a.timestamp - b.timestamp);
+        
+        setMessages(allMessages);
+        setDisputes(disputesData.disputes || []);
+      } else {
+        // If dispute messages can't be fetched, just use chat messages
+        setMessages(chatMessages);
+      }
     } catch (err) {
       console.error('Error fetching messages:', err);
       setError(err.message);
@@ -114,6 +156,14 @@ export default function ChatPage({ params }) {
       return;
     }
     
+    // Check if we have an order to associate with this message
+    if (!currentOrder) {
+      toast.error("Cannot send message", {
+        description: "No active order found between you and this user."
+      });
+      return;
+    }
+    
     try {
       setIsSending(true);
       
@@ -137,6 +187,8 @@ export default function ChatPage({ params }) {
         body: JSON.stringify({
           recipientId: userId,
           content: messageContent,
+          isDisputeMessage: false, // Explicitly mark as not a dispute message
+          orderId: currentOrder.id // Include the order ID for the required connection
         }),
       });
       
@@ -151,11 +203,13 @@ export default function ChatPage({ params }) {
       setImagePreview('');
       
       // Fetch updated messages
-      await fetchMessages(false);
+      await fetchMessages(true);
       
     } catch (err) {
       console.error('Error sending message:', err);
-      setError(err.message);
+      toast.error("Failed to send message", {
+        description: err.message
+      });
     } finally {
       setIsSending(false);
     }
@@ -347,69 +401,43 @@ export default function ChatPage({ params }) {
         ) : (
           <div className="p-4 pb-6">
             {messages.map((message, index) => {
-              // Determine if this message is from the current user
-              const isCurrentUser = message.senderId === session?.user?.id;
-              
-              // Check if we need to show a date separator (comparing with previous message)
-              const showDateSeparator = index === 0 || 
-                isDifferentDay(message.createdAt, messages[index - 1]?.createdAt);
+              const isCurrentUser = message.senderId === session.user.id;
               
               return (
-                <React.Fragment key={message.id || `msg-${index}`}>
-                  {/* Date separator - shown before the message */}
-                  {showDateSeparator && (
-                    <div className="flex justify-center my-4">
-                      <div className="px-3 py-1 bg-muted rounded-full text-xs text-muted-foreground">
-                        {formatMessageDate(message.createdAt)}
-                      </div>
-                    </div>
-                  )}
-                  
-                  {/* Message */}
-                  <div className={`flex mb-4 ${isCurrentUser ? 'justify-end' : 'justify-start'}`}>
-                    <div  
-                      className={`max-w-[80%] p-3 rounded-lg ${isCurrentUser
-                        ? 'bg-primary text-primary-foreground rounded-tr-none' 
-                        : 'bg-card dark:bg-card/80 rounded-tl-none border border-secondary'
-                      }`}
-                    >
-                      {message.content.includes('[IMAGE]') ? (
-                        <>
-                          {/* Display the image */}
-                          <div className="mb-2">
-                            <Image
-                              src={message.content.split('[IMAGE]')[1].split('\n')[0]}
-                              alt="Shared image"
-                              width={250}
-                              height={250}
-                              className="rounded-md max-w-full object-cover"
-                              style={{ maxHeight: '250px' }}
-                            />
-                          </div>
-
-                          {/* Extract and display text part if it exists, but not the image URL */}
-                          {message.content.includes('\n') && message.content.split('\n').slice(1).join('\n').trim() && (
-                            <p className="text-sm mt-2">
-                              {message.content.split('\n').slice(1).join('\n').replace('[READ]', '')}
-                            </p>
-                          )}
-                        </>
-                      ) : (
-                        <p className="text-sm">{message.content.replace('[READ]', '')}</p>
-                      )}
-                      <p className="text-xs text-muted-foreground mt-1 flex justify-between items-center">
-                        <span>
-                          {new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                <div key={message.id} className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'} mb-4`}>
+                  <div className={`max-w-[75%] ${isCurrentUser ? 'bg-primary text-primary-foreground' : message.isDisputeMessage ? 'bg-amber-100 text-amber-800' : 'bg-muted'} rounded-lg px-4 py-2 shadow-sm`}>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-xs font-medium">
+                        {isCurrentUser ? 'You' : otherUser?.email || 'Unknown User'}
+                      </span>
+                      {message.isDisputeMessage && (
+                        <span className="text-xs px-1.5 py-0.5 rounded-full bg-amber-200 text-amber-800">
+                          Dispute
                         </span>
-                        {isCurrentUser && (
-                          <span className="text-[10px] ml-2">
-                            {message.content.includes("[READ]") ? 'Read' : 'Sent'}
-                          </span>
-                        )}
-                      </p>
+                      )}
+                    </div>
+                    <p className="whitespace-pre-wrap break-words">{message.content}</p>
+                    <div className="flex items-center justify-end gap-2 mt-1">
+                      <span className="text-xs opacity-70">
+                        {new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                      {message.isPending && (
+                        <span className="text-xs opacity-70">Sending...</span>
+                      )}
+                      {message.isFailed && (
+                        <span className="text-xs text-red-500">Failed to send</span>
+                      )}
+                      {message.isDisputeMessage && message.disputeId && (
+                        <button 
+                          onClick={() => router.push(`/disputes/${message.disputeId}`)}
+                          className="text-xs px-1.5 py-0.5 rounded-full bg-amber-200 text-amber-800 hover:bg-amber-300"
+                        >
+                          View Dispute
+                        </button>
+                      )}
                     </div>
                   </div>
-                </React.Fragment>
+                </div>
               );
             })}
             <div ref={messagesEndRef} />
