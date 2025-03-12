@@ -11,7 +11,7 @@ import { Badge } from "@/app/components/badge"
 import { Separator } from "@/app/components/separator"
 import { 
   Clock, Copy, MessageSquare, AlertTriangle, CheckCircle, 
-  ShieldCheck, Info, ArrowLeft, Lock, X, Loader2
+  ShieldCheck, Info, ArrowLeft, Lock, X, Loader2, Shield
 } from "lucide-react"
 import { toast } from "sonner"
 import { formatDistance, isPast } from "date-fns"
@@ -39,6 +39,7 @@ export default function OrderDetailPage() {
   const [disputeReason, setDisputeReason] = useState('')
   const [disputeDescription, setDisputeDescription] = useState('')
   const [isSubmittingDispute, setIsSubmittingDispute] = useState(false)
+  const [disputeDetails, setDisputeDetails] = useState(null)
   
   // Get the countdown timer for seller deadline
   const { minutes, seconds, isExpired: isSellerDeadlineExpired } = 
@@ -58,6 +59,23 @@ export default function OrderDetailPage() {
       if (response.ok) {
         const data = await response.json()
         setOrder(data)
+        
+        // If the order has a dispute, fetch the dispute details
+        if (data.status === 'DISPUTED') {
+          try {
+            const disputeResponse = await fetch(`/api/orders/${params.id}/dispute`)
+            if (disputeResponse.ok) {
+              const disputeData = await disputeResponse.json()
+              setDisputeDetails(disputeData.dispute)
+            } else {
+              // Handle error but don't show to user - just log it
+              console.error('Error fetching dispute details:', await disputeResponse.json())
+            }
+          } catch (err) {
+            console.error('Error fetching dispute details:', err)
+            // Don't show this error to the user, just log it
+          }
+        }
       } else {
         const error = await response.json()
         toast.error(error.error || 'Failed to load order')
@@ -686,7 +704,59 @@ export default function OrderDetailPage() {
             </div>
           )}
           
-          {/* Dispute Button */}
+          {/* Disputed State - View Dispute Button */}
+          {order.status === 'DISPUTED' && (
+            <div className="space-y-4">
+              <div className="w-full bg-red-50 border border-red-200 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <AlertTriangle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <h3 className="font-medium text-red-800">Dispute In Progress</h3>
+                    <p className="text-sm text-red-700 mt-1">
+                      This order is currently under dispute. Please check the dispute details for more information.
+                    </p>
+                    {disputeDetails && (
+                      <p className="text-xs text-red-700 mt-2">
+                        Reason: {formatDisputeReason(disputeDetails.reason)} • 
+                        Opened: {new Date(disputeDetails.createdAt).toLocaleDateString()}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+              
+              <Button 
+                className="w-full flex items-center justify-center" 
+                onClick={() => {
+                  if (disputeDetails) {
+                    router.push(`/disputes/${disputeDetails.id}`);
+                  } else {
+                    // If dispute details aren't loaded yet, try to fetch them again
+                    toast.info("Loading dispute details...");
+                    fetch(`/api/orders/${params.id}/dispute`)
+                      .then(res => res.json())
+                      .then(data => {
+                        if (data.dispute) {
+                          setDisputeDetails(data.dispute);
+                          router.push(`/disputes/${data.dispute.id}`);
+                        } else {
+                          toast.error("Couldn't load dispute details. Please try again.");
+                        }
+                      })
+                      .catch(err => {
+                        console.error("Error fetching dispute:", err);
+                        toast.error("Couldn't load dispute details. Please try again.");
+                      });
+                  }
+                }}
+              >
+                <Shield className="h-4 w-4 mr-2" />
+                View Dispute Details
+              </Button>
+            </div>
+          )}
+          
+          {/* Dispute Button - Only show for active orders that aren't already disputed */}
           {order.status !== 'DISPUTED' && order.status !== 'COMPLETED' && order.status !== 'CANCELLED' && (
             <div className="mt-4">
               <button
@@ -811,5 +881,25 @@ function formatStatus(status) {
     default:
       return status.replace(/_/g, ' ').toLowerCase()
         .replace(/\b\w/g, l => l.toUpperCase())
+  }
+}
+
+function formatDisputeReason(reason) {
+  switch (reason) {
+    case 'ITEM_NOT_RECEIVED':
+      return 'Item Not Received';
+    case 'ITEM_NOT_AS_DESCRIBED':
+      return 'Item Not As Described';
+    case 'PAYMENT_ISSUE':
+      return 'Payment Issue';
+    case 'COMMUNICATION_ISSUE':
+      return 'Communication Issue';
+    case 'ACCOUNT_ACCESS_ISSUE':
+      return 'Account Access Issue';
+    case 'OTHER':
+      return 'Other';
+    default:
+      return reason.replace(/_/g, ' ').toLowerCase()
+        .replace(/\b\w/g, l => l.toUpperCase());
   }
 } 

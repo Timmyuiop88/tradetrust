@@ -232,14 +232,18 @@ model Order {
 }
 
 model ChatMessage {
-  id        String   @id @default(uuid())
-  order     Order    @relation(fields: [orderId], references: [id])
-  orderId   String
-  sender    User     @relation(fields: [senderId], references: [id])
-  senderId  String
-  content   String
-  isRead    Boolean  @default(false)
-  createdAt DateTime @default(now())
+  id            String    @id @default(uuid())
+  sender        User      @relation(fields: [senderId], references: [id])
+  senderId      String
+  recipient     User      @relation("RecipientMessages", fields: [recipientId], references: [id])
+  recipientId   String
+  content       String
+  isRead        Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  
+  // New fields for dispute integration
+  isDisputeMessage Boolean @default(false)
+  disputeId        String?
 }
 
 model Device {

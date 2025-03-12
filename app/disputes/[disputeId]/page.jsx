@@ -10,6 +10,7 @@ import {
   CheckCircle, XCircle, AlertTriangle, HelpCircle, FileText,
   Camera, PaperclipIcon, MessageSquare, User, UserCheck, RefreshCw
 } from 'lucide-react';
+import { toast } from 'sonner';
 
 // Helper function to get status badge
 const getStatusBadge = (status) => {
@@ -143,8 +144,8 @@ export default function DisputeDetailPage() {
   }, [status, disputeId, router]);
 
   const fetchDispute = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
       const response = await fetch(`/api/disputes/${disputeId}`);
       
       if (!response.ok) {
@@ -154,35 +155,96 @@ export default function DisputeDetailPage() {
       
       const data = await response.json();
       setDispute(data.dispute);
-      setMessages(data.dispute.messages || []);
-    } catch (err) {
-      console.error('Error fetching dispute:', err);
-      setError(err.message);
+      
+      // Fetch regular chat messages between the same users
+      if (data.dispute.order) {
+        const buyerId = data.dispute.order.buyerId;
+        const sellerId = data.dispute.order.listing.sellerId;
+        
+        // Determine the other user ID (the one who is not the current user)
+        const otherUserId = session.user.id === buyerId ? sellerId : buyerId;
+        
+        // Fetch regular chat messages
+        const chatResponse = await fetch(`/api/chat/${otherUserId}`);
+        if (chatResponse.ok) {
+          const chatData = await chatResponse.json();
+          
+          // Combine dispute messages and regular chat messages
+          const allMessages = [
+            ...(data.dispute.messages || []).map(msg => ({
+              ...msg,
+              isDisputeMessage: true,
+              timestamp: new Date(msg.createdAt).getTime()
+            })),
+            ...(chatData.messages || []).map(msg => ({
+              ...msg,
+              isDisputeMessage: false,
+              timestamp: new Date(msg.createdAt).getTime()
+            }))
+          ];
+          
+          // Sort all messages by timestamp
+          allMessages.sort((a, b) => a.timestamp - b.timestamp);
+          
+          setMessages(allMessages);
+        } else {
+          // If chat messages can't be fetched, just use dispute messages
+          setMessages((data.dispute.messages || []).map(msg => ({
+            ...msg,
+            isDisputeMessage: true,
+            timestamp: new Date(msg.createdAt).getTime()
+          })));
+        }
+      } else {
+        setMessages((data.dispute.messages || []).map(msg => ({
+          ...msg,
+          isDisputeMessage: true,
+          timestamp: new Date(msg.createdAt).getTime()
+        })));
+      }
+    } catch (error) {
+      console.error('Error fetching dispute:', error);
+      setError(error.message);
     } finally {
       setLoading(false);
     }
   };
 
-  const sendMessage = async (e) => {
-    e.preventDefault();
+  const sendMessage = async () => {
+    if (!newMessage.trim()) return;
     
-    if (!newMessage.trim() && !selectedFile) return;
-
+    const tempId = Date.now().toString();
+    const tempMessage = {
+      id: tempId,
+      content: newMessage,
+      senderId: session.user.id,
+      sender: { id: session.user.id, email: session.user.email },
+      createdAt: new Date().toISOString(),
+      isDisputeMessage: true, // Default to dispute message
+      timestamp: Date.now(),
+      isPending: true
+    };
+    
+    // Add message to UI immediately
+    setMessages(prev => [...prev, tempMessage]);
+    setNewMessage('');
+    
+    // Scroll to bottom
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+    
     try {
-      setIsSending(true);
-      
-      // TODO: Handle file upload if needed
-      // For now, just send the text message
-      
+      // Send as dispute message
       const response = await fetch(`/api/disputes/${disputeId}/messages`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          content: newMessage,
+          content: tempMessage.content,
           isModOnly: isModOnly,
-          attachments: [], // Add file URLs here if implemented
+          attachments: []
         }),
       });
       
@@ -192,23 +254,62 @@ export default function DisputeDetailPage() {
       }
       
       const data = await response.json();
-      setMessages([...messages, data.message]);
-      setNewMessage('');
-      setIsModOnly(false);
       
-      // Clear file if any
-      if (selectedFile) {
-        setSelectedFile(null);
-        setFilePreview('');
+      // Replace temp message with actual message
+      setMessages(prev => 
+        prev.map(msg => 
+          msg.id === tempId 
+            ? { 
+                ...data.message, 
+                isDisputeMessage: true,
+                timestamp: new Date(data.message.createdAt).getTime(),
+                isPending: false
+              } 
+            : msg
+        )
+      );
+      
+      // Also send as regular chat message to keep both systems in sync
+      // But only if it's not a moderator-only message
+      if (dispute?.order && !isModOnly) {
+        const buyerId = dispute.order.buyerId;
+        const sellerId = dispute.order.listing.sellerId;
+        const orderId = dispute.orderId; // Get the order ID from the dispute
+        
+        // Determine the other user ID (the one who is not the current user)
+        const otherUserId = session.user.id === buyerId ? sellerId : buyerId;
+        
+        // Send as regular chat message (silently - don't affect UI)
+        // Send the original message without the prefix
+        await fetch('/api/chat/send', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            recipientId: otherUserId,
+            content: tempMessage.content,
+            isDisputeMessage: true, // Add this flag to identify it as a dispute message
+            disputeId: disputeId, // Include the dispute ID for reference
+            orderId: orderId // Include the order ID for the required connection
+          }),
+        });
       }
+    } catch (error) {
+      console.error('Error sending message:', error);
       
-      // Scroll to bottom
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    } catch (err) {
-      console.error('Error sending message:', err);
-      setError(err.message);
-    } finally {
-      setIsSending(false);
+      // Mark the message as failed
+      setMessages(prev => 
+        prev.map(msg => 
+          msg.id === tempId 
+            ? { ...msg, isPending: false, isFailed: true } 
+            : msg
+        )
+      );
+      
+      toast.error("Failed to send message", {
+        description: error.message
+      });
     }
   };
 
@@ -246,6 +347,10 @@ export default function DisputeDetailPage() {
     } catch (err) {
       console.error('Error updating dispute:', err);
       setError(err.message);
+      
+      toast.error("Failed to update dispute status", {
+        description: err.message
+      });
     } finally {
       setIsUpdating(false);
     }
@@ -464,7 +569,25 @@ export default function DisputeDetailPage() {
               <div className="p-4 border-b border-border bg-muted/30">
                 <div className="flex items-center justify-between">
                   <h2 className="text-lg font-semibold">Messages</h2>
-                  <div className="flex items-center">
+                  <div className="flex items-center space-x-2">
+                    {/* Add View Full Chat button - only show if there's a valid order with buyer/seller */}
+                    {dispute.order && (
+                      <button
+                        onClick={() => {
+                          // Determine the other user ID (the one who is not the current user)
+                          const buyerId = dispute.order.buyerId;
+                          const sellerId = dispute.order.listing.sellerId;
+                          const otherUserId = session.user.id === buyerId ? sellerId : buyerId;
+                          
+                          // Navigate to the chat page with this user
+                          router.push(`/chat/${otherUserId}`);
+                        }}
+                        className="flex items-center text-sm text-primary hover:text-primary/80"
+                      >
+                        <MessageSquare className="h-4 w-4 mr-1" />
+                        View Full Chat
+                      </button>
+                    )}
                     <button
                       onClick={fetchDispute}
                       className="flex items-center text-sm text-muted-foreground hover:text-foreground"
@@ -489,57 +612,50 @@ export default function DisputeDetailPage() {
                 ) : (
                   <div className="space-y-4">
                     {messages.map((message, index) => {
-                      const isCurrentUser = message.senderId === session?.user?.id;
-                      const isSystemMessage = message.content.startsWith('Dispute ');
-                      const isModMessage = message.isModOnly;
+                      const isCurrentUser = message.senderId === session.user.id;
+                      const isAdmin = message.sender?.role === 'ADMIN';
+                      const isModOnly = message.isModOnly;
+                      const showMessage = !isModOnly || (isModOnly && session.user.role === 'ADMIN');
                       
-                      if (isSystemMessage) {
-                        return (
-                          <div key={message.id} className="flex justify-center">
-                            <div className="bg-muted/30 text-muted-foreground text-xs px-3 py-1 rounded-full">
-                              {message.content}
-                            </div>
-                          </div>
-                        );
-                      }
+                      // Skip messages that shouldn't be shown to this user
+                      if (!showMessage) return null;
                       
                       return (
-                        <div
-                          key={message.id}
-                          className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'}`}
-                        >
-                          {isModMessage && (
-                            <div className="self-start mr-2 bg-yellow-100 text-yellow-800 text-xs px-1 py-0.5 rounded">
-                              MOD
-                            </div>
-                          )}
-                          
-                          <div
-                            className={`max-w-[80%] p-3 rounded-lg ${
-                              isCurrentUser
-                                ? 'bg-primary text-primary-foreground rounded-tr-none'
-                                : 'bg-card dark:bg-card/80 rounded-tl-none border border-border'
-                            } ${isModMessage ? 'bg-yellow-50 border-yellow-200' : ''}`}
-                          >
-                            <div className="flex items-center mb-1">
+                        <div key={message.id} className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'} mb-4`}>
+                          <div className={`max-w-[75%] ${isCurrentUser ? 'bg-primary text-primary-foreground' : isAdmin ? 'bg-blue-100 text-blue-800' : message.isDisputeMessage ? 'bg-amber-100 text-amber-800' : 'bg-muted'} rounded-lg px-4 py-2 shadow-sm`}>
+                            <div className="flex items-center gap-2 mb-1">
                               <span className="text-xs font-medium">
-                                {message.sender.email}
-                                {message.sender.role === 'ADMIN' && (
-                                  <span className="ml-1 text-green-500">
-                                    <UserCheck className="h-3 w-3 inline" />
-                                  </span>
-                                )}
+                                {isCurrentUser ? 'You' : message.sender?.email || 'Unknown User'}
+                                {isAdmin && ' (Moderator)'}
                               </span>
+                              {message.isDisputeMessage && (
+                                <span className="text-xs px-1.5 py-0.5 rounded-full bg-amber-200 text-amber-800">
+                                  Dispute
+                                </span>
+                              )}
+                              {!message.isDisputeMessage && (
+                                <span className="text-xs px-1.5 py-0.5 rounded-full bg-gray-200 text-gray-800">
+                                  Chat
+                                </span>
+                              )}
+                              {isModOnly && (
+                                <span className="text-xs px-1.5 py-0.5 rounded-full bg-blue-200 text-blue-800">
+                                  Mod Only
+                                </span>
+                              )}
                             </div>
-                            
-                            <p className="text-sm">{message.content}</p>
-                            
-                            <p className="text-xs text-muted-foreground mt-1 text-right">
-                              {new Date(message.createdAt).toLocaleTimeString([], {
-                                hour: '2-digit',
-                                minute: '2-digit',
-                              })}
-                            </p>
+                            <p className="whitespace-pre-wrap break-words">{message.content}</p>
+                            <div className="flex items-center justify-end gap-2 mt-1">
+                              <span className="text-xs opacity-70">
+                                {new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                              {message.isPending && (
+                                <span className="text-xs opacity-70">Sending...</span>
+                              )}
+                              {message.isFailed && (
+                                <span className="text-xs text-red-500">Failed to send</span>
+                              )}
+                            </div>
                           </div>
                         </div>
                       );
@@ -602,6 +718,7 @@ export default function DisputeDetailPage() {
                           type="submit"
                           className="h-10 w-10 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 flex items-center justify-center"
                           disabled={isSending || (!newMessage.trim() && !selectedFile)}
+                          onClick={sendMessage}
                         >
                           {isSending ? (
                             <Loader2 className="h-4 w-4 animate-spin" />
