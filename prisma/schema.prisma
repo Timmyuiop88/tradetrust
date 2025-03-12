@@ -144,6 +144,8 @@ model User {
   processedWithdrawals  WithdrawalRequest[] @relation("ProcessedWithdrawals")
 
   Transaction Transaction[]
+
+  ChatMessage ChatMessage[] @relation("RecipientMessages")
 }
 
 model Kyc {
@@ -204,6 +206,7 @@ model Listing {
   status        ListingStatus  @default(AVAILABLE)
   reviews       Review[]
   orders        Order[]
+  transactions  Transaction[]
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
 }
@@ -238,6 +241,8 @@ model Order {
   // Chat relationship
   chatMessages     ChatMessage[]
 
+  transactions     Transaction[]
+
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
   completedAt      DateTime?
@@ -254,11 +259,12 @@ model ChatMessage {
   recipientId   String
   content       String
   isRead        Boolean   @default(false)
+  isModOnly     Boolean   @default(false)  // For moderator-only messages
+  disputeId     String?   // Optional reference to a dispute
+  dispute       Dispute?  @relation(fields: [disputeId], references: [id])
+  orderId       String?   // Optional reference to an order
+  order         Order?    @relation(fields: [orderId], references: [id])
   createdAt     DateTime  @default(now())
-  
-  // New fields for dispute integration
-  isDisputeMessage Boolean @default(false)
-  disputeId        String?
 }
 
 model Device {
@@ -390,30 +396,31 @@ model Transaction {
   withdrawalRequestId String?
   balance           Balance?          @relation(fields: [balanceId], references: [id])
   balanceId         String?
+  listing           Listing?          @relation(fields: [listingId], references: [id])
+  listingId         String?
+  order             Order?            @relation(fields: [orderId], references: [id])
+  orderId           String?
   createdAt         DateTime          @default(now())
   completedAt       DateTime?
 }
 
 model Dispute {
-  id            String        @id @default(uuid())
-  order         Order         @relation(fields: [orderId], references: [id])
-  orderId       String        @unique
-  initiator     User          @relation("DisputeInitiator", fields: [initiatorId], references: [id])
+  id            String    @id @default(uuid())
+  order         Order     @relation(fields: [orderId], references: [id])
+  orderId       String    @unique
+  initiator     User      @relation("DisputeInitiator", fields: [initiatorId], references: [id])
   initiatorId   String
-  reason        DisputeReason
+  reason        String
   description   String
   status        DisputeStatus @default(OPEN)
-  resolution    String?
-  evidence      String[]      // URLs to evidence files
-  assignedMod   User?         @relation("AssignedModerator", fields: [assignedModId], references: [id])
+  assignedMod   User?     @relation("AssignedModerator", fields: [assignedModId], references: [id])
   assignedModId String?
-  messages      DisputeMessage[]
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  resolution    String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  messages      ChatMessage[] // Changed from DisputeMessage to ChatMessage
 
-  @@index([orderId])
-  @@index([initiatorId])
-  @@index([assignedModId])
+  DisputeMessage DisputeMessage[]
 }
 
 model DisputeMessage {

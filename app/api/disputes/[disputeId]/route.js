@@ -95,6 +95,30 @@ export async function GET(request, context) {
       dispute.messages = dispute.messages.filter(msg => !msg.isModOnly);
     }
 
+    // Get messages for the dispute
+    const messages = await prisma.chatMessage.findMany({
+      where: {
+        disputeId: disputeId,
+        OR: [
+          { isModOnly: false },
+          { isModOnly: true, senderId: session.user.id },
+          { isModOnly: true, sender: { role: 'ADMIN' } }
+        ]
+      },
+      include: {
+        sender: {
+          select: {
+            id: true,
+            email: true,
+            role: true
+          }
+        }
+      },
+      orderBy: {
+        createdAt: 'asc'
+      }
+    });
+
     return new NextResponse(
       JSON.stringify({ dispute }),
       { status: 200, headers: { 'Content-Type': 'application/json' } }

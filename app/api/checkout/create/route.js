@@ -66,11 +66,13 @@ export async function POST(request) {
         // Record the purchase transaction
         await tx.transaction.create({
           data: {
+            userId: session.user.id,
             balanceId: userBalance.id,
             amount: -listing.price,
             type: 'PURCHASE',
             description: `Purchase of ${listing.platform.name} account`,
-            reference: listingId
+            reference: listingId,
+            status: 'COMPLETED'
           }
         })
         

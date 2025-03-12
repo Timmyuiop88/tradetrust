@@ -146,6 +146,7 @@ export default function DisputeDetailPage() {
   const fetchDispute = async () => {
     setLoading(true);
     try {
+      // Fetch dispute details
       const response = await fetch(`/api/disputes/${disputeId}`);
       
       if (!response.ok) {
@@ -156,160 +157,92 @@ export default function DisputeDetailPage() {
       const data = await response.json();
       setDispute(data.dispute);
       
-      // Fetch regular chat messages between the same users
-      if (data.dispute.order) {
-        const buyerId = data.dispute.order.buyerId;
-        const sellerId = data.dispute.order.listing.sellerId;
-        
-        // Determine the other user ID (the one who is not the current user)
-        const otherUserId = session.user.id === buyerId ? sellerId : buyerId;
-        
-        // Fetch regular chat messages
-        const chatResponse = await fetch(`/api/chat/${otherUserId}`);
-        if (chatResponse.ok) {
-          const chatData = await chatResponse.json();
-          
-          // Combine dispute messages and regular chat messages
-          const allMessages = [
-            ...(data.dispute.messages || []).map(msg => ({
-              ...msg,
-              isDisputeMessage: true,
-              timestamp: new Date(msg.createdAt).getTime()
-            })),
-            ...(chatData.messages || []).map(msg => ({
-              ...msg,
-              isDisputeMessage: false,
-              timestamp: new Date(msg.createdAt).getTime()
-            }))
-          ];
-          
-          // Sort all messages by timestamp
-          allMessages.sort((a, b) => a.timestamp - b.timestamp);
-          
-          setMessages(allMessages);
-        } else {
-          // If chat messages can't be fetched, just use dispute messages
-          setMessages((data.dispute.messages || []).map(msg => ({
-            ...msg,
-            isDisputeMessage: true,
-            timestamp: new Date(msg.createdAt).getTime()
-          })));
-        }
-      } else {
-        setMessages((data.dispute.messages || []).map(msg => ({
-          ...msg,
-          isDisputeMessage: true,
-          timestamp: new Date(msg.createdAt).getTime()
-        })));
+      // Get other user ID (who we're chatting with)
+      const otherUserId = getOtherUserId(data.dispute);
+      
+      if (!otherUserId) {
+        throw new Error('Could not determine the other party in this dispute');
       }
+      
+      // Fetch messages from the chat endpoint
+      const chatResponse = await fetch(`/api/chat/${otherUserId}`);
+      
+      if (!chatResponse.ok) {
+        const errorData = await chatResponse.json();
+        console.error('Failed to fetch messages:', errorData);
+        throw new Error(errorData.error || 'Failed to fetch messages');
+      }
+      
+      const chatData = await chatResponse.json();
+      
+      // Filter messages to only show those related to this dispute
+      const disputeMessages = chatData.messages.filter(msg => msg.disputeId === disputeId);
+      
+      // Format messages consistently
+      const formattedMessages = disputeMessages.map(msg => ({
+        ...msg,
+        timestamp: new Date(msg.createdAt).getTime()
+      }));
+      
+      setMessages(formattedMessages);
     } catch (error) {
-      console.error('Error fetching dispute:', error);
+      console.error('Error fetching dispute data:', error);
       setError(error.message);
     } finally {
       setLoading(false);
     }
   };
 
-  const sendMessage = async () => {
-    if (!newMessage.trim()) return;
+  // Helper function to determine the other user ID in the dispute
+  const getOtherUserId = (dispute) => {
+    if (!dispute || !dispute.order) return null;
     
-    const tempId = Date.now().toString();
-    const tempMessage = {
-      id: tempId,
-      content: newMessage,
-      senderId: session.user.id,
-      sender: { id: session.user.id, email: session.user.email },
-      createdAt: new Date().toISOString(),
-      isDisputeMessage: true, // Default to dispute message
-      timestamp: Date.now(),
-      isPending: true
-    };
-    
-    // Add message to UI immediately
-    setMessages(prev => [...prev, tempMessage]);
-    setNewMessage('');
-    
-    // Scroll to bottom
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    // If current user is buyer, get seller
+    if (dispute.order.buyer.id === session.user.id) {
+      return dispute.order.listing.seller.id;
     }
     
+    // If current user is seller, get buyer
+    if (dispute.order.listing.seller.id === session.user.id) {
+      return dispute.order.buyer.id;
+    }
+    
+    // If moderator, get the seller by default
+    // (this could be improved to make a better choice)
+    return dispute.order.listing.seller.id;
+  };
+
+  const sendMessage = async (e) => {
+    e.preventDefault();
+    if ((!newMessage.trim() && !selectedFile) || isSending) return;
+    
+    setIsSending(true);
+    
     try {
-      // Send as dispute message
-      const response = await fetch(`/api/disputes/${disputeId}/messages`, {
+      const response = await fetch('/api/chat/send', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          content: tempMessage.content,
+          recipientId: getOtherUserId(dispute),
+          content: newMessage.trim(),
+          disputeId: disputeId,
           isModOnly: isModOnly,
-          attachments: []
+          orderId: dispute.orderId
         }),
       });
-      
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Failed to send message');
       }
       
-      const data = await response.json();
-      
-      // Replace temp message with actual message
-      setMessages(prev => 
-        prev.map(msg => 
-          msg.id === tempId 
-            ? { 
-                ...data.message, 
-                isDisputeMessage: true,
-                timestamp: new Date(data.message.createdAt).getTime(),
-                isPending: false
-              } 
-            : msg
-        )
-      );
-      
-      // Also send as regular chat message to keep both systems in sync
-      // But only if it's not a moderator-only message
-      if (dispute?.order && !isModOnly) {
-        const buyerId = dispute.order.buyerId;
-        const sellerId = dispute.order.listing.sellerId;
-        const orderId = dispute.orderId; // Get the order ID from the dispute
-        
-        // Determine the other user ID (the one who is not the current user)
-        const otherUserId = session.user.id === buyerId ? sellerId : buyerId;
-        
-        // Send as regular chat message (silently - don't affect UI)
-        // Send the original message without the prefix
-        await fetch('/api/chat/send', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            recipientId: otherUserId,
-            content: tempMessage.content,
-            isDisputeMessage: true, // Add this flag to identify it as a dispute message
-            disputeId: disputeId, // Include the dispute ID for reference
-            orderId: orderId // Include the order ID for the required connection
-          }),
-        });
-      }
+      setNewMessage('');
+      fetchDispute(); // Refresh the messages
     } catch (error) {
+      toast.error(`Failed to send message: ${error.message}`);
       console.error('Error sending message:', error);
-      
-      // Mark the message as failed
-      setMessages(prev => 
-        prev.map(msg => 
-          msg.id === tempId 
-            ? { ...msg, isPending: false, isFailed: true } 
-            : msg
-        )
-      );
-      
-      toast.error("Failed to send message", {
-        description: error.message
-      });
+    } finally {
+      setIsSending(false);
     }
   };
 
