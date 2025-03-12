@@ -42,7 +42,7 @@ export function PaymentSettingsSection() {
     const handleOpenModal = (existingMethod = null) => {
         if (existingMethod) {
             setSelectedMethod(existingMethod.method)
-            setAddress(existingMethod.address)
+            setAddress(existingMethod.details?.address || "")
             setIsDefault(existingMethod.isDefault)
             setEditingId(existingMethod.id)
         } else {
@@ -74,7 +74,7 @@ export function PaymentSettingsSection() {
             await axios.post("/api/users/payout-settings", {
                 id: editingId,
                 method: selectedMethod,
-                address: address.trim(),
+                details: { address: address.trim() },
                 isDefault
             }, {
                 withCredentials: true,
@@ -167,7 +167,7 @@ export function PaymentSettingsSection() {
                                         )}
                                     </div>
                                     <p className="text-sm text-muted-foreground truncate max-w-[200px] sm:max-w-[300px]">
-                                        {method.address}
+                                        {method.details?.address || "No address provided"}
                                     </p>
                                 </div>
                             </div>

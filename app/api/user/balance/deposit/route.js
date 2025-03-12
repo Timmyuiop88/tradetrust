@@ -48,6 +48,7 @@ export async function POST(request) {
         // Create transaction record
         const transaction = await tx.transaction.create({
           data: {
+            userId: session.user.id,
             balanceId: balance.id,
             amount,
             type: 'DEPOSIT',
