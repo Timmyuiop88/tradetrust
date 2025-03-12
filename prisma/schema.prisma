@@ -14,6 +14,8 @@ generator client {
 enum Role {
   USER
   ADMIN
+  MODERATOR
+  SUPER_ADMIN
 }
 
 enum ListingStatus {
