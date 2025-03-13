@@ -8,9 +8,11 @@ import Image from 'next/image';
 import { 
   AlertCircle, ArrowLeft, Clock, Loader2, Shield, X, Send, 
   CheckCircle, XCircle, AlertTriangle, HelpCircle, FileText,
-  Camera, PaperclipIcon, MessageSquare, User, UserCheck, RefreshCw
+  Camera, PaperclipIcon, MessageSquare, User, UserCheck, RefreshCw,
+  ShoppingBag, Circle
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useChat } from '@/app/hooks/useChat';
 
 // Helper function to get status badge
 const getStatusBadge = (status) => {
@@ -126,209 +128,259 @@ export default function DisputeDetailPage() {
   const [newMessage, setNewMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [isModOnly, setIsModOnly] = useState(false);
-  const [selectedFile, setSelectedFile] = useState(null);
-  const [filePreview, setFilePreview] = useState('');
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [imagePreview, setImagePreview] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [updateStatus, setUpdateStatus] = useState('');
   const [resolution, setResolution] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
+  const [disputeCreationTime, setDisputeCreationTime] = useState(null);
+  const [pendingMessages, setPendingMessages] = useState([]);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
+  // Fetch dispute details to get the orderId
   useEffect(() => {
-    if (status === 'authenticated') {
-      fetchDispute();
-    } else if (status === 'unauthenticated') {
+    const fetchDispute = async () => {
+      if (!disputeId || !session) return;
+      
+      try {
+        setLoading(true);
+        const response = await fetch(`/api/disputes/${disputeId}`);
+        
+        if (!response.ok) {
+          throw new Error(`Failed to fetch dispute: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        setDispute(data);
+        setDisputeCreationTime(new Date(data.createdAt));
+        setError(null);
+      } catch (err) {
+        console.error('Error fetching dispute:', err);
+        setError(err.message);
+        toast.error('Failed to load dispute details');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchDispute();
+  }, [disputeId, session]);
+
+  // Use the chat hook with orderId from dispute and add optimistic updates
+  const {
+    messages: { data: chatMessagesData, isLoading: chatMessagesLoading, error: chatMessagesError, refetch },
+    order,
+    sendMessage,
+    uploadImage,
+  } = useChat({ 
+    orderId: dispute?.orderId,
+    onSuccess: () => {
+      // Remove any pending messages that have been confirmed
+      setPendingMessages(prev => 
+        prev.filter(msg => !chatMessagesData?.some(m => 
+          m.content === msg.content && 
+          Math.abs(new Date(m.createdAt) - new Date(msg.createdAt)) < 5000
+        ))
+      );
+    }
+  });
+
+  // Scroll to bottom when messages change
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [chatMessagesData]);
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (status === 'unauthenticated') {
       router.push('/login');
     }
-  }, [status, disputeId, router]);
+  }, [status, router]);
 
-  const fetchDispute = async () => {
-    setLoading(true);
+  // Function to handle file selection
+  const handleImageSelect = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file');
+      return;
+    }
+
+    // Validate file size (5MB max)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image size should be less than 5MB');
+      return;
+    }
+
+    setSelectedImage(file);
+    const previewUrl = URL.createObjectURL(file);
+    setImagePreview(previewUrl);
+  };
+
+  // Function to remove the selected file
+  const removeSelectedImage = () => {
+    setSelectedImage(null);
+    if (imagePreview) {
+      URL.revokeObjectURL(imagePreview);
+      setImagePreview('');
+    }
+  };
+
+  // Function to handle manual refresh without full reload
+  const handleManualRefresh = async () => {
+    if (isRefreshing) return;
+    
+    setIsRefreshing(true);
     try {
-      // Fetch dispute details
-      const response = await fetch(`/api/disputes/${disputeId}`);
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to fetch dispute');
-      }
-      
-      const data = await response.json();
-      setDispute(data.dispute);
-      
-      // Get other user ID (who we're chatting with)
-      const otherUserId = getOtherUserId(data.dispute);
-      
-      if (!otherUserId) {
-        throw new Error('Could not determine the other party in this dispute');
-      }
-      
-      // Fetch messages from the chat endpoint
-      const chatResponse = await fetch(`/api/chat/${otherUserId}`);
-      
-      if (!chatResponse.ok) {
-        const errorData = await chatResponse.json();
-        console.error('Failed to fetch messages:', errorData);
-        throw new Error(errorData.error || 'Failed to fetch messages');
-      }
-      
-      const chatData = await chatResponse.json();
-      
-      // Filter messages to only show those related to this dispute
-      const disputeMessages = chatData.messages.filter(msg => msg.disputeId === disputeId);
-      
-      // Format messages consistently
-      const formattedMessages = disputeMessages.map(msg => ({
-        ...msg,
-        timestamp: new Date(msg.createdAt).getTime()
-      }));
-      
-      setMessages(formattedMessages);
-    } catch (error) {
-      console.error('Error fetching dispute data:', error);
-      setError(error.message);
+      await refetch();
     } finally {
-      setLoading(false);
+      setIsRefreshing(false);
     }
   };
 
-  // Helper function to determine the other user ID in the dispute
-  const getOtherUserId = (dispute) => {
-    if (!dispute || !dispute.order) return null;
-    
-    // If current user is buyer, get seller
-    if (dispute.order.buyer.id === session.user.id) {
-      return dispute.order.listing.seller.id;
-    }
-    
-    // If current user is seller, get buyer
-    if (dispute.order.listing.seller.id === session.user.id) {
-      return dispute.order.buyer.id;
-    }
-    
-    // If moderator, get the seller by default
-    // (this could be improved to make a better choice)
-    return dispute.order.listing.seller.id;
-  };
+  // Set up periodic refresh
+  useEffect(() => {
+    if (!dispute?.orderId) return;
 
-  const sendMessage = async (e) => {
+    const intervalId = setInterval(() => {
+      if (!isRefreshing && !isSending) {
+        refetch();
+      }
+    }, 5000); // Refresh every 5 seconds
+
+    return () => clearInterval(intervalId);
+  }, [dispute?.orderId, isRefreshing, isSending, refetch]);
+
+  // Function to handle sending a message
+  const handleSendMessage = async (e) => {
     e.preventDefault();
-    if ((!newMessage.trim() && !selectedFile) || isSending) return;
+    
+    if ((!newMessage.trim() && !selectedImage) || isSending || !dispute?.orderId) {
+      return;
+    }
     
     setIsSending(true);
     
+    // Create a temporary message
+    const tempMessage = {
+      id: `temp-${Date.now()}`,
+      content: newMessage.trim(),
+      senderId: session.user.id,
+      sender: session.user,
+      createdAt: new Date().toISOString(),
+      isPending: true,
+      disputeId: disputeId
+    };
+    
+    // If there's an image, add it to the temporary message
+    if (selectedImage && imagePreview) {
+      tempMessage.content = `${tempMessage.content}\n\n[IMAGE]${imagePreview}[/IMAGE]`;
+    }
+    
+    // Add the temporary message to the pending messages
+    setPendingMessages(prev => [...prev, tempMessage]);
+    
     try {
-      const response = await fetch('/api/chat/send', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          recipientId: getOtherUserId(dispute),
-          content: newMessage.trim(),
-          disputeId: disputeId,
-          isModOnly: isModOnly,
-          orderId: dispute.orderId
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to send message');
+      // Upload image if selected
+      let imageUrl = null;
+      if (selectedImage) {
+        setIsUploading(true);
+        toast.info('Uploading image...');
+        
+        try {
+          imageUrl = await uploadImage(selectedImage);
+          if (!imageUrl) {
+            throw new Error('Failed to upload image');
+          }
+        } catch (error) {
+          console.error('Image upload error:', error);
+          toast.error('Failed to upload image. Please try again.');
+          // Remove the temporary message on failure
+          setPendingMessages(prev => prev.filter(msg => msg.id !== tempMessage.id));
+          setIsUploading(false);
+          setIsSending(false);
+          return;
+        }
+        
+        setIsUploading(false);
       }
       
-      setNewMessage('');
-      fetchDispute(); // Refresh the messages
+      // Prepare message content
+      const messageContent = imageUrl 
+        ? `${newMessage.trim()}\n\n[IMAGE]${imageUrl}[/IMAGE]` 
+        : newMessage.trim();
+      
+      console.log('Sending dispute message for order:', dispute.orderId);
+      
+      // Send the message
+      const success = await sendMessage.mutate({
+        content: messageContent,
+        disputeId: disputeId,
+        isModOnly: isModOnly
+      });
+      
+      if (success) {
+        // Clear form
+        setNewMessage('');
+        setSelectedImage(null);
+        setImagePreview('');
+        // Remove the temporary message as it will be replaced by the real one
+        setPendingMessages(prev => prev.filter(msg => msg.id !== tempMessage.id));
+      } else {
+        toast.error('Failed to send message');
+        // Mark the temporary message as failed
+        setPendingMessages(prev => prev.map(msg => 
+          msg.id === tempMessage.id 
+            ? { ...msg, isPending: false, isFailed: true }
+            : msg
+        ));
+      }
+      
     } catch (error) {
-      toast.error(`Failed to send message: ${error.message}`);
       console.error('Error sending message:', error);
+      toast.error('Failed to send message');
+      // Mark the temporary message as failed
+      setPendingMessages(prev => prev.map(msg => 
+        msg.id === tempMessage.id 
+          ? { ...msg, isPending: false, isFailed: true }
+          : msg
+      ));
     } finally {
       setIsSending(false);
     }
   };
 
-  const updateDisputeStatus = async () => {
-    if (!updateStatus) return;
-    
-    try {
-      setIsUpdating(true);
-      
-      const response = await fetch(`/api/disputes/${disputeId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          status: updateStatus,
-          resolution: resolution,
-        }),
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to update dispute');
-      }
-      
-      const data = await response.json();
-      setDispute(data.dispute);
-      
-      // Refresh messages to get the system message
-      fetchDispute();
-      
-      // Reset form
-      setUpdateStatus('');
-      setResolution('');
-    } catch (err) {
-      console.error('Error updating dispute:', err);
-      setError(err.message);
-      
-      toast.error("Failed to update dispute status", {
-        description: err.message
-      });
-    } finally {
-      setIsUpdating(false);
-    }
-  };
+  // Determine the other user based on the order details
+  const otherUser = order ? 
+    (session?.user?.id === order.buyer.id ? order.listing.seller : order.buyer) : null;
 
-  // Function to handle file selection
-  const handleFileSelect = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    setSelectedFile(file);
-    const previewUrl = URL.createObjectURL(file);
-    setFilePreview(previewUrl);
-  };
-
-  // Function to remove the selected file
-  const removeSelectedFile = () => {
-    setSelectedFile(null);
-    if (filePreview) {
-      URL.revokeObjectURL(filePreview);
-      setFilePreview('');
-    }
-  };
-
-  // Scroll to bottom when messages change
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
-
-  // Check if user is a moderator
-  const isModerator = session?.user?.role === 'ADMIN';
-  
-  // Check if user is the assigned moderator
-  const isAssignedMod = dispute?.assignedModId === session?.user?.id;
-  
-  // Check if user is the buyer
-  const isBuyer = dispute?.order?.buyerId === session?.user?.id;
-  
-  // Check if user is the seller
-  const isSeller = dispute?.order?.listing?.sellerId === session?.user?.id;
-
-  if (status === 'loading') {
+  if (status === 'loading' || loading || chatMessagesLoading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (error || !dispute) {
+    return (
+      <div className="container mx-auto px-4 py-8 max-w-4xl">
+        <div className="flex gap-4 items-center mb-6">
+          <div onClick={() => router.push('/disputes')} className="text-muted-foreground hover:text-foreground cursor-pointer flex items-center">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+          </div>
+          <h1 className="text-2xl font-bold">Dispute Details</h1>
+        </div>
+        
+        <div className="bg-destructive/10 border border-destructive text-destructive px-4 py-3 rounded-md mb-4 flex items-start">
+          <AlertCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0" />
+          <span>{error || 'Failed to load dispute details'}</span>
+        </div>
       </div>
     );
   }
@@ -346,16 +398,10 @@ export default function DisputeDetailPage() {
         <div className="bg-destructive/10 border border-destructive text-destructive px-4 py-3 rounded-md mb-4 flex items-start">
           <AlertCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0" />
           <span>{error}</span>
-          <button
-            onClick={() => setError(null)}
-            className="ml-auto text-destructive hover:text-destructive/80"
-          >
-            <X className="h-4 w-4" />
-          </button>
         </div>
       )}
 
-      {loading ? (
+      {loading || status === 'loading' || chatMessagesLoading ? (
         <div className="flex justify-center items-center h-40">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
@@ -376,18 +422,8 @@ export default function DisputeDetailPage() {
                 </div>
                 
                 <div>
-                  <p className="text-sm text-muted-foreground">Listing</p>
-                  <p className="text-sm font-medium">{dispute.order.listing.username}</p>
-                </div>
-                
-                <div>
                   <p className="text-sm text-muted-foreground">Reason</p>
                   <div className="mt-1">{getReasonBadge(dispute.reason)}</div>
-                </div>
-                
-                <div>
-                  <p className="text-sm text-muted-foreground">Initiated by</p>
-                  <p className="text-sm font-medium">{dispute.initiator.email}</p>
                 </div>
                 
                 <div>
@@ -420,30 +456,34 @@ export default function DisputeDetailPage() {
               <h2 className="text-lg font-semibold mb-4">Parties</h2>
               
               <div className="space-y-4">
-                <div className="flex items-center">
-                  <div className="h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center mr-3">
-                    <User className="h-4 w-4" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium">Buyer</p>
-                    <p className="text-sm text-muted-foreground">{dispute.order.buyer.email}</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-center">
-                  <div className="h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center mr-3">
-                    <User className="h-4 w-4" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium">Seller</p>
-                    <p className="text-sm text-muted-foreground">{dispute.order.listing.seller.email}</p>
-                  </div>
-                </div>
+                {order && (
+                  <>
+                    <div className="flex items-center">
+                      <div className="h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center mr-3">
+                        <User className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">Buyer</p>
+                        <p className="text-sm text-muted-foreground">{order.buyer.email}</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center">
+                      <div className="h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center mr-3">
+                        <User className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">Seller</p>
+                        <p className="text-sm text-muted-foreground">{order.listing.seller.email}</p>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
             
             {/* Moderator actions */}
-            {(isModerator || isAssignedMod) && (
+            {(session?.user?.role === 'ADMIN' || session?.user?.role === 'MODERATOR') && (
               <div className="bg-card rounded-lg shadow-sm border border-border p-4">
                 <h2 className="text-lg font-semibold mb-4">Moderator Actions</h2>
                 
@@ -503,29 +543,21 @@ export default function DisputeDetailPage() {
                 <div className="flex items-center justify-between">
                   <h2 className="text-lg font-semibold">Messages</h2>
                   <div className="flex items-center space-x-2">
-                    {/* Add View Full Chat button - only show if there's a valid order with buyer/seller */}
-                    {dispute.order && (
-                      <button
-                        onClick={() => {
-                          // Determine the other user ID (the one who is not the current user)
-                          const buyerId = dispute.order.buyerId;
-                          const sellerId = dispute.order.listing.sellerId;
-                          const otherUserId = session.user.id === buyerId ? sellerId : buyerId;
-                          
-                          // Navigate to the chat page with this user
-                          router.push(`/chat/${otherUserId}`);
-                        }}
+                    {order && (
+                      <Link
+                        href={`/chat/${order.id}`}
                         className="flex items-center text-sm text-primary hover:text-primary/80"
                       >
                         <MessageSquare className="h-4 w-4 mr-1" />
                         View Full Chat
-                      </button>
+                      </Link>
                     )}
                     <button
-                      onClick={fetchDispute}
+                      onClick={handleManualRefresh}
                       className="flex items-center text-sm text-muted-foreground hover:text-foreground"
+                      disabled={isRefreshing}
                     >
-                      <RefreshCw className="h-4 w-4 mr-1" />
+                      <RefreshCw className={`h-4 w-4 mr-1 ${isRefreshing ? 'animate-spin' : ''}`} />
                       Refresh
                     </button>
                   </div>
@@ -537,62 +569,150 @@ export default function DisputeDetailPage() {
               
               {/* Messages list */}
               <div className="flex-1 overflow-y-auto p-4 bg-muted/10">
-                {messages.length === 0 ? (
+                {chatMessagesError ? (
+                  <div className="flex flex-col items-center justify-center h-full p-4">
+                    <AlertCircle className="h-12 w-12 text-destructive mb-4" />
+                    <p className="text-destructive mb-2">{chatMessagesError}</p>
+                    <button 
+                      className="flex items-center px-3 py-2 text-sm text-primary hover:text-primary/80"
+                      onClick={handleManualRefresh}
+                      disabled={isRefreshing}
+                    >
+                      <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+                      Try Again
+                    </button>
+                  </div>
+                ) : !chatMessagesData && !pendingMessages.length ? (
                   <div className="flex flex-col items-center justify-center h-full text-center">
                     <MessageSquare className="h-12 w-12 text-muted-foreground opacity-50 mb-4" />
                     <p className="text-muted-foreground">No messages yet</p>
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {messages.map((message, index) => {
-                      const isCurrentUser = message.senderId === session.user.id;
-                      const isAdmin = message.sender?.role === 'ADMIN';
-                      const isModOnly = message.isModOnly;
-                      const showMessage = !isModOnly || (isModOnly && session.user.role === 'ADMIN');
-                      
-                      // Skip messages that shouldn't be shown to this user
-                      if (!showMessage) return null;
-                      
-                      return (
-                        <div key={message.id} className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'} mb-4`}>
-                          <div className={`max-w-[75%] ${isCurrentUser ? 'bg-primary text-primary-foreground' : isAdmin ? 'bg-blue-100 text-blue-800' : message.isDisputeMessage ? 'bg-amber-100 text-amber-800' : 'bg-muted'} rounded-lg px-4 py-2 shadow-sm`}>
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="text-xs font-medium">
-                                {isCurrentUser ? 'You' : message.sender?.email || 'Unknown User'}
-                                {isAdmin && ' (Moderator)'}
-                              </span>
-                              {message.isDisputeMessage && (
-                                <span className="text-xs px-1.5 py-0.5 rounded-full bg-amber-200 text-amber-800">
-                                  Dispute
+                    {/* Dispute Creation Message */}
+                    {disputeCreationTime && (
+                      <div className="flex justify-center mb-4">
+                        <div className="bg-amber-100 text-amber-800 rounded-lg px-4 py-2 text-sm text-center max-w-md">
+                          <AlertTriangle className="h-4 w-4 inline-block mr-1" />
+                          A dispute was opened on {new Date(disputeCreationTime).toLocaleDateString()}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Messages with optimistic updates */}
+                    {[...(chatMessagesData || []), ...pendingMessages]
+                      .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
+                      .map((message) => {
+                        const isCurrentUser = message.senderId === session?.user?.id;
+                        const isAdmin = message.sender?.role === 'ADMIN';
+                        const messageTime = new Date(message.createdAt);
+                        
+                        // Determine if message should be displayed as a dispute message
+                        // Messages with a disputeId or sent after dispute creation should be styled as dispute messages
+                        const isAfterDispute = disputeCreationTime && messageTime > disputeCreationTime;
+                        const isDisputeMessage = message.disputeId === disputeId;
+                        const shouldShowAsDisputeMessage = isDisputeMessage || isAfterDispute;
+                        
+                        // Check if message contains an image
+                        const hasImage = message.content.includes('[IMAGE]') && message.content.includes('[/IMAGE]');
+                        let textContent = message.content;
+                        let imageUrl = null;
+                        
+                        if (hasImage) {
+                          const imageMatch = message.content.match(/\[IMAGE\](.*?)\[\/IMAGE\]/);
+                          if (imageMatch && imageMatch[1]) {
+                            imageUrl = imageMatch[1].trim();
+                            textContent = message.content.replace(/\[IMAGE\].*?\[\/IMAGE\]/s, '').trim();
+                          }
+                        }
+                        
+                        return (
+                          <div key={message.id} className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'} mb-4`}>
+                            <div className={`max-w-[75%] ${
+                              isCurrentUser 
+                                ? shouldShowAsDisputeMessage 
+                                  ? 'bg-amber-100 text-amber-800' 
+                                  : 'bg-primary text-primary-foreground' 
+                                : isAdmin 
+                                  ? 'bg-blue-100 text-blue-800' 
+                                  : shouldShowAsDisputeMessage 
+                                    ? 'bg-amber-100 text-amber-800' 
+                                    : 'bg-muted'
+                            } rounded-lg px-4 py-2 shadow-sm`}>
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="text-xs font-medium">
+                                  {isCurrentUser ? 'You' : message.sender?.email || 'Unknown User'}
+                                  {isAdmin && ' (Admin)'}
                                 </span>
+                                {shouldShowAsDisputeMessage && (
+                                  <span className="text-xs px-1.5 py-0.5 rounded-full bg-amber-200 text-amber-800">
+                                    Dispute
+                                  </span>
+                                )}
+                              </div>
+                              
+                              {/* Display image first if present */}
+                              {imageUrl && (
+                                <div className="mb-2">
+                                  <a 
+                                    href={imageUrl} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer" 
+                                    className="block"
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      window.open(imageUrl, '_blank');
+                                    }}
+                                  >
+                                    <div className="relative w-full max-w-[300px] h-[200px] rounded-md overflow-hidden">
+                                      <img
+                                        src={imageUrl}
+                                        alt="Attached image"
+                                        className="w-full h-full object-cover hover:opacity-90 transition-opacity cursor-pointer"
+                                      />
+                                    </div>
+                                  </a>
+                                </div>
                               )}
-                              {!message.isDisputeMessage && (
-                                <span className="text-xs px-1.5 py-0.5 rounded-full bg-gray-200 text-gray-800">
-                                  Chat
+                              
+                              {/* Display text content after image */}
+                              {textContent && <p className="whitespace-pre-wrap break-words">{textContent}</p>}
+                              
+                              <div className="flex items-center justify-end gap-2 mt-1">
+                                <span className="text-xs opacity-70">
+                                  {new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                 </span>
-                              )}
-                              {isModOnly && (
-                                <span className="text-xs px-1.5 py-0.5 rounded-full bg-blue-200 text-blue-800">
-                                  Mod Only
-                                </span>
-                              )}
-                            </div>
-                            <p className="whitespace-pre-wrap break-words">{message.content}</p>
-                            <div className="flex items-center justify-end gap-2 mt-1">
-                              <span className="text-xs opacity-70">
-                                {new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                              </span>
-                              {message.isPending && (
-                                <span className="text-xs opacity-70">Sending...</span>
-                              )}
-                              {message.isFailed && (
-                                <span className="text-xs text-red-500">Failed to send</span>
-                              )}
+                                
+                                {isCurrentUser && (
+                                  <span className="text-xs opacity-70">
+                                    {message.isPending ? (
+                                      <span className="flex items-center">
+                                        <Loader2 className="h-3 w-3 mr-0.5 animate-spin" />
+                                        Sending...
+                                      </span>
+                                    ) : message.isFailed ? (
+                                      <span className="flex items-center text-red-500">
+                                        <AlertCircle className="h-3 w-3 mr-0.5" />
+                                        Failed
+                                      </span>
+                                    ) : message.isRead ? (
+                                      <span className="flex items-center">
+                                        <Clock className="h-3 w-3 mr-0.5" />
+                                        Read
+                                      </span>
+                                    ) : (
+                                      <span className="flex items-center">
+                                        <Circle className="h-3 w-3 mr-0.5" />
+                                        Sent
+                                      </span>
+                                    )}
+                                  </span>
+                                )}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      })}
                     <div ref={messagesEndRef} />
                   </div>
                 )}
@@ -601,19 +721,19 @@ export default function DisputeDetailPage() {
               {/* Message input */}
               {!dispute.status.startsWith('RESOLVED_') && !dispute.status.startsWith('CANCELLED') && (
                 <div className="p-4 border-t border-border">
-                  <form onSubmit={sendMessage} className="flex flex-col gap-2">
-                    {filePreview && (
-                      <div className="relative mb-2 inline-block">
-                        <div className="relative group">
+                  <form onSubmit={handleSendMessage} className="flex flex-col gap-2">
+                    {imagePreview && (
+                      <div className="relative inline-block">
+                        <div className="relative w-32 h-32 rounded-lg overflow-hidden border border-border">
                           <img
-                            src={filePreview}
-                            alt="Selected file"
-                            className="h-32 rounded-md object-cover border border-muted"
+                            src={imagePreview}
+                            alt="Selected image"
+                            className="w-full h-full object-cover"
                           />
                           <button
                             type="button"
-                            onClick={removeSelectedFile}
-                            className="absolute -top-2 -right-2 bg-white dark:bg-gray-800 text-red-500 rounded-full p-1 shadow-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors border border-gray-200 dark:border-gray-700"
+                            onClick={removeSelectedImage}
+                            className="absolute top-1 right-1 bg-background/80 text-foreground rounded-full p-1 hover:bg-background/90"
                           >
                             <X className="h-4 w-4" />
                           </button>
@@ -625,35 +745,39 @@ export default function DisputeDetailPage() {
                       <textarea
                         value={newMessage}
                         onChange={(e) => setNewMessage(e.target.value)}
-                        placeholder="Type your message..."
-                        className="flex-1 px-3 py-2 rounded-md border border-input bg-background text-sm min-h-[60px] max-h-[120px] resize-none"
-                        disabled={isSending}
+                        placeholder={selectedImage ? "Add a message with your image..." : "Type your message..."}
+                        className="flex-1 min-h-[80px] max-h-[160px] rounded-lg border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 resize-none"
+                        disabled={isSending || dispute.status !== 'OPEN'}
                       />
                       
-                      <div className="flex flex-col gap-2 justify-end">
+                      <div className="flex flex-col gap-2">
                         <input
                           type="file"
                           ref={fileInputRef}
-                          onChange={handleFileSelect}
+                          onChange={handleImageSelect}
+                          accept="image/*"
                           className="hidden"
                         />
                         
                         <button
                           type="button"
                           onClick={() => fileInputRef.current?.click()}
-                          className="h-10 w-10 rounded-md border border-input bg-background hover:bg-muted flex items-center justify-center"
-                          disabled={isSending || selectedFile}
+                          className="h-10 w-10 inline-flex items-center justify-center rounded-md border border-input bg-background hover:bg-accent text-muted-foreground hover:text-accent-foreground disabled:opacity-50"
+                          disabled={isUploading || !!selectedImage || isSending || dispute.status !== 'OPEN'}
                         >
-                          <PaperclipIcon className="h-4 w-4" />
+                          {isUploading || isSending ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <PaperclipIcon className="h-4 w-4" />
+                          )}
                         </button>
                         
                         <button
                           type="submit"
-                          className="h-10 w-10 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 flex items-center justify-center"
-                          disabled={isSending || (!newMessage.trim() && !selectedFile)}
-                          onClick={sendMessage}
+                          className="h-10 w-10 inline-flex items-center justify-center rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                          disabled={isUploading || isSending || (!newMessage.trim() && !selectedImage) || dispute.status !== 'OPEN'}
                         >
-                          {isSending ? (
+                          {isUploading || isSending ? (
                             <Loader2 className="h-4 w-4 animate-spin" />
                           ) : (
                             <Send className="h-4 w-4" />
@@ -661,18 +785,19 @@ export default function DisputeDetailPage() {
                         </button>
                       </div>
                     </div>
-                    
-                    {(isModerator || isAssignedMod) && (
+
+                    {/* Moderator Only Toggle */}
+                    {(session?.user?.role === 'ADMIN' || session?.user?.role === 'MODERATOR') && (
                       <div className="flex items-center mt-2">
                         <input
                           type="checkbox"
                           id="modOnly"
                           checked={isModOnly}
                           onChange={(e) => setIsModOnly(e.target.checked)}
-                          className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                          className="h-4 w-4 rounded border-input text-primary focus:ring-primary"
                         />
                         <label htmlFor="modOnly" className="ml-2 text-sm text-muted-foreground">
-                          Moderator-only message (not visible to users)
+                          Moderator-only message
                         </label>
                       </div>
                     )}

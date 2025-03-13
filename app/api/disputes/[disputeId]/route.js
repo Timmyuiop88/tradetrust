@@ -1,23 +1,24 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
+import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
-import prisma from '@/app/lib/prisma';
+import { prisma } from '@/lib/prisma';
 
 // GET - Fetch a specific dispute
-export async function GET(request, context) {
+export async function GET(request, { params }) {
   try {
     const session = await getServerSession(authOptions);
     
-    if (!session || !session.user) {
-      return new NextResponse(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { status: 401, headers: { 'Content-Type': 'application/json' } }
-      );
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-
-    const { disputeId } = await Promise.resolve(context.params);
-
-    // Get the dispute with related data
+    
+    const disputeId = params.disputeId;
+    
+    if (!disputeId) {
+      return NextResponse.json({ error: 'Dispute ID is required' }, { status: 400 });
+    }
+    
+    // Get the dispute with related order and user details
     const dispute = await prisma.dispute.findUnique({
       where: { id: disputeId },
       include: {
@@ -27,7 +28,7 @@ export async function GET(request, context) {
               select: {
                 id: true,
                 email: true,
-              },
+              }
             },
             listing: {
               include: {
@@ -35,117 +36,77 @@ export async function GET(request, context) {
                   select: {
                     id: true,
                     email: true,
-                  },
-                },
-              },
-            },
-          },
+                  }
+                }
+              }
+            }
+          }
         },
         initiator: {
           select: {
             id: true,
             email: true,
-          },
-        },
-        assignedMod: {
-          select: {
-            id: true,
-            email: true,
-          },
-        },
-        messages: {
-          orderBy: {
-            createdAt: 'asc',
-          },
-          include: {
-            sender: {
-              select: {
-                id: true,
-                email: true,
-                role: true,
-              },
-            },
-          },
-        },
-      },
+          }
+        }
+      }
     });
-
+    
     if (!dispute) {
-      return new NextResponse(
-        JSON.stringify({ error: 'Dispute not found' }),
-        { status: 404, headers: { 'Content-Type': 'application/json' } }
-      );
+      return NextResponse.json({ error: 'Dispute not found' }, { status: 404 });
     }
-
+    
     // Check if the user is authorized to view this dispute
     const isBuyer = dispute.order.buyerId === session.user.id;
     const isSeller = dispute.order.listing.sellerId === session.user.id;
-    const isModerator = session.user.role === 'ADMIN';
-    const isAssignedMod = dispute.assignedModId === session.user.id;
-
-    if (!isBuyer && !isSeller && !(isModerator || isAssignedMod)) {
-      return new NextResponse(
-        JSON.stringify({ error: 'You are not authorized to view this dispute' }),
-        { status: 403, headers: { 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Filter out mod-only messages for non-moderators
-    if (!isModerator && !isAssignedMod) {
-      dispute.messages = dispute.messages.filter(msg => !msg.isModOnly);
-    }
-
-    // Get messages for the dispute
-    const messages = await prisma.chatMessage.findMany({
-      where: {
-        disputeId: disputeId,
-        OR: [
-          { isModOnly: false },
-          { isModOnly: true, senderId: session.user.id },
-          { isModOnly: true, sender: { role: 'ADMIN' } }
-        ]
-      },
-      include: {
-        sender: {
-          select: {
-            id: true,
-            email: true,
-            role: true
-          }
-        }
-      },
-      orderBy: {
-        createdAt: 'asc'
-      }
-    });
-
-    return new NextResponse(
-      JSON.stringify({ dispute }),
-      { status: 200, headers: { 'Content-Type': 'application/json' } }
-    );
+    const isAdmin = session.user.role === 'ADMIN' || session.user.role === 'MODERATOR';
     
+    if (!isBuyer && !isSeller && !isAdmin) {
+      return NextResponse.json({ error: 'You do not have access to this dispute' }, { status: 403 });
+    }
+    
+    // Format the response
+    const formattedDispute = {
+      id: dispute.id,
+      orderId: dispute.orderId,
+      reason: dispute.reason,
+      status: dispute.status,
+      resolution: dispute.resolution,
+      createdAt: dispute.createdAt,
+      updatedAt: dispute.updatedAt,
+      createdBy: dispute.createdBy,
+      order: {
+        id: dispute.order.id,
+        status: dispute.order.status,
+        buyer: dispute.order.buyer,
+        seller: dispute.order.listing.seller,
+        listing: {
+          id: dispute.order.listing.id,
+          title: dispute.order.listing.title || 'Unnamed Listing',
+          price: dispute.order.listing.price,
+        }
+      }
+    };
+    
+    return NextResponse.json(formattedDispute);
   } catch (error) {
     console.error('Error fetching dispute:', error);
-    return new NextResponse(
-      JSON.stringify({ error: 'Failed to fetch dispute: ' + error.message }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    return NextResponse.json(
+      { error: 'Failed to fetch dispute details' },
+      { status: 500 }
     );
   }
 }
 
 // PATCH - Update a dispute (status, assign moderator, etc.)
-export async function PATCH(request, context) {
+export async function PATCH(request, { params }) {
   try {
     const session = await getServerSession(authOptions);
     
-    if (!session || !session.user) {
-      return new NextResponse(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { status: 401, headers: { 'Content-Type': 'application/json' } }
-      );
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { disputeId } = await Promise.resolve(context.params);
+    const disputeId = params.disputeId;
     const body = await request.json();
     const { status, resolution, assignedModId } = body;
 
@@ -177,10 +138,7 @@ export async function PATCH(request, context) {
     });
 
     if (!dispute) {
-      return new NextResponse(
-        JSON.stringify({ error: 'Dispute not found' }),
-        { status: 404, headers: { 'Content-Type': 'application/json' } }
-      );
+      return NextResponse.json({ error: 'Dispute not found' }, { status: 404 });
     }
 
     // Check if the user is authorized to update this dispute
@@ -188,10 +146,7 @@ export async function PATCH(request, context) {
     const isAssignedMod = dispute.assignedModId === session.user.id;
 
     if (!(isModerator || isAssignedMod)) {
-      return new NextResponse(
-        JSON.stringify({ error: 'You are not authorized to update this dispute' }),
-        { status: 403, headers: { 'Content-Type': 'application/json' } }
-      );
+      return NextResponse.json({ error: 'You are not authorized to update this dispute' }, { status: 403 });
     }
 
     // Update the dispute
@@ -208,10 +163,7 @@ export async function PATCH(request, context) {
     if (assignedModId) {
       // Only allow assigning moderators if the user is a moderator
       if (!isModerator) {
-        return new NextResponse(
-          JSON.stringify({ error: 'Only moderators can assign disputes' }),
-          { status: 403, headers: { 'Content-Type': 'application/json' } }
-        );
+        return NextResponse.json({ error: 'Only moderators can assign disputes' }, { status: 403 });
       }
       
       // Check if the assigned user is a moderator
@@ -221,10 +173,7 @@ export async function PATCH(request, context) {
       });
       
       if (!assignedMod || assignedMod.role !== 'ADMIN') {
-        return new NextResponse(
-          JSON.stringify({ error: 'The assigned user must be a moderator' }),
-          { status: 400, headers: { 'Content-Type': 'application/json' } }
-        );
+        return NextResponse.json({ error: 'The assigned user must be a moderator' }, { status: 400 });
       }
       
       updateData.assignedModId = assignedModId;
@@ -255,7 +204,7 @@ export async function PATCH(request, context) {
             },
           },
         },
-        initiator: {
+        createdBy: {
           select: {
             id: true,
             email: true,
@@ -275,64 +224,31 @@ export async function PATCH(request, context) {
     
     if (status) {
       systemMessage = `Dispute status updated to ${status} by ${session.user.email}`;
-      
-      if (resolution) {
-        systemMessage += `. Resolution: ${resolution}`;
-      }
-      
-      // If the dispute is resolved, update the order status accordingly
-      if (status.startsWith('RESOLVED_')) {
-        let orderStatus;
-        
-        if (status === 'RESOLVED_BUYER_FAVOR') {
-          orderStatus = 'CANCELLED'; // Refund to buyer
-        } else if (status === 'RESOLVED_SELLER_FAVOR') {
-          orderStatus = 'COMPLETED'; // Release funds to seller
-        } else {
-          orderStatus = 'COMPLETED'; // Default to completed for compromise
-        }
-        
-        await prisma.order.update({
-          where: { id: dispute.orderId },
-          data: { status: orderStatus },
-        });
-        
-        systemMessage += `. Order status updated to ${orderStatus}.`;
-      }
-    } else if (assignedModId) {
-      const assignedMod = await prisma.user.findUnique({
-        where: { id: assignedModId },
-        select: { email: true },
-      });
-      
-      systemMessage = `Dispute assigned to moderator ${assignedMod.email} by ${session.user.email}`;
+    }
+    
+    if (resolution) {
+      systemMessage += systemMessage ? ' with resolution: ' : `Resolution added by ${session.user.email}: `;
+      systemMessage += resolution;
     }
     
     if (systemMessage) {
-      await prisma.disputeMessage.create({
+      await prisma.chatMessage.create({
         data: {
-          dispute: {
-            connect: { id: disputeId },
-          },
-          sender: {
-            connect: { id: session.user.id },
-          },
+          senderId: session.user.id,
+          recipientId: dispute.order.buyerId === session.user.id ? dispute.order.listing.sellerId : dispute.order.buyerId,
           content: systemMessage,
-          isModOnly: false, // Visible to all parties
+          orderId: dispute.orderId,
+          isDisputeMessage: true,
+          disputeId: disputeId,
+          isSystemMessage: true,
         },
       });
     }
 
-    return new NextResponse(
-      JSON.stringify({ dispute: updatedDispute }),
-      { status: 200, headers: { 'Content-Type': 'application/json' } }
-    );
-    
+    return NextResponse.json(updatedDispute);
   } catch (error) {
     console.error('Error updating dispute:', error);
-    return new NextResponse(
-      JSON.stringify({ error: 'Failed to update dispute: ' + error.message }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
-    );
+    return NextResponse.json({ error: 'Failed to update dispute' }, { status: 500 });
   }
-} 
+}
+      

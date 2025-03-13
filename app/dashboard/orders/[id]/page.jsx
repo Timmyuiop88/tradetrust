@@ -163,21 +163,8 @@ export default function OrderDetailPage() {
   }
   
   const handleOpenChat = () => {
-    try {
-      // Determine the correct user ID to chat with
-      const chatWithUserId = isBuyer ? order.sellerId : order.buyerId;
-      
-      if (!chatWithUserId) {
-        toast.error("Couldn't find the user to chat with");
-        return;
-      }
-      
       // Navigate to the chat page
-      router.push(`/chat/${chatWithUserId}`);
-    } catch (error) {
-      console.error("Error opening chat:", error);
-      toast.error("Failed to open chat. Please try again.");
-    }
+      router.push(`/chat/${order.id}`);
   }
   
   const handleCredentialSubmit = async (e) => {

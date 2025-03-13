@@ -1,15 +1,323 @@
-datasource db {
-  provider = "postgresql" // or "mysql", "sqlite", etc.
-  url      = env("DATABASE_URL")
-}
-
 generator client {
   provider = "prisma-client-js"
 }
 
-// =====================
-// ENUMS
-// =====================
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                   String              @id @default(uuid())
+  email                String              @unique
+  password             String
+  role                 Role                @default(USER)
+  isEmailVerified      Boolean             @default(false)
+  isKycVerified        Boolean             @default(false)
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+  kycId                String?             @unique
+  accounts             Account[]
+  Balance              Balance?
+  ChatMessage          ChatMessage[]       @relation("RecipientMessages")
+  chatMessages         ChatMessage[]
+  devices              Device[]
+  assignedDisputes     Dispute[]           @relation("AssignedModerator")
+  initiatedDisputes    Dispute[]           @relation("DisputeInitiator")
+  disputeMessages      DisputeMessage[]
+  sellerFavorites      Favorite[]          @relation("SellerFavorites")
+  userFavorites        Favorite[]          @relation("UserFavorites")
+  kyc                  Kyc?
+  listings             Listing[]
+  orders               Order[]             @relation("BuyerOrders")
+  PayoutSettings       PayoutSettings[]
+  Review               Review[]
+  sessions             Session[]
+  Transaction          Transaction[]
+  processedWithdrawals WithdrawalRequest[] @relation("ProcessedWithdrawals")
+  withdrawalRequests   WithdrawalRequest[]
+}
+
+model Kyc {
+  id        String    @id @default(uuid())
+  userId    String    @unique
+  fullName  String
+  dob       DateTime?
+  address   String?
+  country   String?
+  idType    String?
+  idNumber  String?
+  idDocUrl  String?
+  verified  Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  user      User      @relation(fields: [userId], references: [id])
+}
+
+model Platform {
+  id        String    @id @default(uuid())
+  name      String    @unique
+  icon      String?
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  listings  Listing[]
+}
+
+model Category {
+  id          String    @id @default(uuid())
+  name        String    @unique
+  description String?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  listings    Listing[]
+}
+
+model Listing {
+  id             String        @id @default(uuid())
+  sellerId       String
+  platformId     String
+  categoryId     String
+  username       String
+  price          Float
+  followers      Int
+  engagement     Float
+  description    String
+  accountAge     Int
+  posts          Int
+  verified       Boolean       @default(false)
+  mediaProof     String[]
+  negotiable     Boolean       @default(false)
+  status         ListingStatus @default(AVAILABLE)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  transferMethod String
+  category       Category      @relation(fields: [categoryId], references: [id])
+  platform       Platform      @relation(fields: [platformId], references: [id])
+  seller         User          @relation(fields: [sellerId], references: [id])
+  orders         Order[]
+  reviews        Review[]
+  transactions   Transaction[]
+}
+
+model Order {
+  id               String        @id @default(uuid())
+  listingId        String
+  buyerId          String
+  sellerId         String
+  price            Float
+  isNegotiated     Boolean       @default(false)
+  negotiationPrice Float?
+  status           OrderStatus   @default(PENDING)
+  escrowAmount     Float
+  escrowReleased   Boolean       @default(false)
+  sellerDeadline   DateTime?
+  buyerDeadline    DateTime?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  credentials      Json?
+  completedAt      DateTime?
+  chatMessages     ChatMessage[]
+  dispute          Dispute?
+  buyer            User          @relation("BuyerOrders", fields: [buyerId], references: [id])
+  listing          Listing       @relation(fields: [listingId], references: [id])
+  transactions     Transaction[]
+}
+
+model ChatMessage {
+  id          String   @id @default(uuid())
+  orderId     String?
+  senderId    String
+  content     String
+  createdAt   DateTime @default(now())
+  isRead      Boolean  @default(false)
+  disputeId   String?
+  isModOnly   Boolean  @default(false)
+  recipientId String
+  dispute     Dispute? @relation(fields: [disputeId], references: [id])
+  order       Order?   @relation(fields: [orderId], references: [id])
+  recipient   User     @relation("RecipientMessages", fields: [recipientId], references: [id])
+  sender      User     @relation(fields: [senderId], references: [id])
+}
+
+model Device {
+  id        String   @id @default(uuid())
+  userId    String
+  deviceId  String
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model Account {
+  id                String   @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  user              User     @relation(fields: [userId], references: [id])
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  user         User     @relation(fields: [userId], references: [id])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Review {
+  id         String   @id @default(uuid())
+  listingId  String
+  reviewerId String
+  rating     Int
+  comment    String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  listing    Listing  @relation(fields: [listingId], references: [id])
+  reviewer   User     @relation(fields: [reviewerId], references: [id])
+}
+
+model PayoutSettings {
+  id                 String              @id @default(uuid())
+  userId             String
+  method             PaymentMethod
+  isDefault          Boolean             @default(false)
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  details            Json
+  isVerified         Boolean             @default(false)
+  lastUsed           DateTime?
+  user               User                @relation(fields: [userId], references: [id])
+  withdrawalRequests WithdrawalRequest[]
+
+  @@unique([userId, method])
+}
+
+model Favorite {
+  id        String   @id @default(cuid())
+  userId    String
+  sellerId  String
+  createdAt DateTime @default(now())
+  seller    User     @relation("SellerFavorites", fields: [sellerId], references: [id], onDelete: Cascade)
+  user      User     @relation("UserFavorites", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, sellerId])
+  @@index([userId])
+  @@index([sellerId])
+}
+
+model Balance {
+  id             String        @id @default(cuid())
+  userId         String        @unique
+  buyingBalance  Float         @default(0)
+  sellingBalance Float         @default(0)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions   Transaction[]
+
+  @@index([userId])
+}
+
+model Transaction {
+  id                  String             @id @default(uuid())
+  amount              Float
+  type                TransactionType
+  status              TransactionStatus  @default(PENDING)
+  description         String?
+  createdAt           DateTime           @default(now())
+  completedAt         DateTime?
+  fee                 Float              @default(0)
+  userId              String
+  withdrawalRequestId String?
+  balanceId           String?
+  listingId           String?
+  orderId             String?
+  balance             Balance?           @relation(fields: [balanceId], references: [id])
+  listing             Listing?           @relation(fields: [listingId], references: [id])
+  order               Order?             @relation(fields: [orderId], references: [id])
+  user                User               @relation(fields: [userId], references: [id])
+  withdrawalRequest   WithdrawalRequest? @relation(fields: [withdrawalRequestId], references: [id])
+}
+
+model Dispute {
+  id             String           @id @default(uuid())
+  orderId        String           @unique
+  initiatorId    String
+  description    String
+  status         DisputeStatus    @default(OPEN)
+  resolution     String?
+  assignedModId  String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  reason         String
+  messages       ChatMessage[]
+  assignedMod    User?            @relation("AssignedModerator", fields: [assignedModId], references: [id])
+  initiator      User             @relation("DisputeInitiator", fields: [initiatorId], references: [id])
+  order          Order            @relation(fields: [orderId], references: [id])
+  DisputeMessage DisputeMessage[]
+}
+
+model DisputeMessage {
+  id          String   @id @default(uuid())
+  disputeId   String
+  senderId    String
+  content     String
+  isModOnly   Boolean  @default(false)
+  attachments String[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  dispute     Dispute  @relation(fields: [disputeId], references: [id])
+  sender      User     @relation(fields: [senderId], references: [id])
+
+  @@index([disputeId])
+  @@index([senderId])
+}
+
+model WithdrawalRequest {
+  id              String           @id @default(uuid())
+  userId          String
+  amount          Float
+  fee             Float            @default(0)
+  netAmount       Float
+  payoutSettingId String
+  status          WithdrawalStatus @default(PROCESSING)
+  notes           String?
+  processedById   String?
+  trackingInfo    String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  completedAt     DateTime?
+  transactions    Transaction[]
+  payoutSetting   PayoutSettings   @relation(fields: [payoutSettingId], references: [id])
+  processedBy     User?            @relation("ProcessedWithdrawals", fields: [processedById], references: [id])
+  user            User             @relation(fields: [userId], references: [id])
+}
 
 enum Role {
   USER
@@ -25,12 +333,12 @@ enum ListingStatus {
 }
 
 enum OrderStatus {
-  PENDING           // Buyer initiated an order, waiting for seller acceptance
-  WAITING_FOR_SELLER // Seller must provide login details within a timer
-  WAITING_FOR_BUYER  // Buyer must confirm account access or secure details
-  COMPLETED          // Transaction finished, escrow released
-  CANCELLED          // Cancelled by either party or timed out
-  DISPUTED           // Dispute raised, admin intervention required
+  PENDING
+  WAITING_FOR_SELLER
+  WAITING_FOR_BUYER
+  COMPLETED
+  CANCELLED
+  DISPUTED
 }
 
 enum AccountPlatform {
@@ -91,371 +399,3 @@ enum WithdrawalStatus {
   REJECTED
   CANCELLED
 }
-
-// =====================
-// MODELS
-// =====================
-
-model User {
-  id          String     @id @default(uuid())
-  email       String     @unique
-  password    String     // Or store a hashed password if using credentials
-  role        Role       @default(USER)
-  isEmailVerified Boolean    @default(false)
-  isKycVerified   Boolean    @default(false)
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-  // One-to-one or one-to-many KYC (here assumed one-to-one)
-  kyc         Kyc?
-  kycId       String?    @unique
-
-  // Relationship: a user can have multiple listings
-  listings    Listing[]
-
-  // Relationship: a user can be the buyer in multiple orders
-  orders      Order[]    @relation("BuyerOrders")
-
-  // Relationship: a user can also send messages
-  chatMessages ChatMessage[]
-
-  // Relationship: devices for secure login
-  devices     Device[]
-
-  // NextAuth relationships
-  accounts   Account[]
-  sessions   Session[]
-
-  PayoutSettings PayoutSettings[]
-
-  Review Review[]
-
-  sellerFavorites Favorite[] @relation("SellerFavorites")
-  userFavorites Favorite[] @relation("UserFavorites")
-
-  Balance Balance[]
-
-  // Add these new relations
-  initiatedDisputes Dispute[]        @relation("DisputeInitiator")
-  assignedDisputes  Dispute[]        @relation("AssignedModerator")
-  disputeMessages   DisputeMessage[]
-
-  // Add this new relation
-  withdrawalRequests    WithdrawalRequest[]
-  processedWithdrawals  WithdrawalRequest[] @relation("ProcessedWithdrawals")
-
-  Transaction Transaction[]
-
-  ChatMessage ChatMessage[] @relation("RecipientMessages")
-}
-
-model Kyc {
-  id          String   @id @default(uuid())
-  user        User     @relation(fields: [userId], references: [id])
-  userId      String   @unique
-  fullName    String
-  dob         DateTime?
-  address     String?
-  country     String?
-  idType      String?  // e.g. passport, driver license
-  idNumber    String?
-  idDocUrl    String?  // link or reference to stored ID document
-  verified    Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-}
-
-model Platform {
-  id          String    @id @default(uuid())
-  name        String    @unique
-  icon        String?   // Store icon name/path
-  isActive    Boolean   @default(true)
-  listings    Listing[]
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-}
-
-model Category {
-  id          String    @id @default(uuid())
-  name        String    @unique
-  description String?
-  isActive    Boolean   @default(true)
-  listings    Listing[]
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-}
-
-model Listing {
-  id            String         @id @default(uuid())
-  seller        User           @relation(fields: [sellerId], references: [id])
-  sellerId      String
-  platform      Platform       @relation(fields: [platformId], references: [id])
-  platformId    String
-  category      Category       @relation(fields: [categoryId], references: [id])
-  categoryId    String
-  username      String
-  price         Float
-  followers     Int
-  engagement    Float
-  description   String
-  accountAge    Int           
-  posts         Int
-  verified      Boolean        @default(false)
-  mediaProof    String[]      
-  negotiable    Boolean        @default(false)
-  transferMethod String        // Add this field
-  status        ListingStatus  @default(AVAILABLE)
-  reviews       Review[]
-  orders        Order[]
-  transactions  Transaction[]
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-}
-
-model Order {
-  id               String       @id @default(uuid())
-  listing          Listing      @relation(fields: [listingId], references: [id])
-  listingId        String
-
-  // Buyer relationship
-  buyer            User         @relation("BuyerOrders", fields: [buyerId], references: [id])
-  buyerId          String
-  credentials      Json?
-
-  // Seller ID can be derived from Listing, but you may store it for quick reference
-  sellerId         String
-
-  // Price details
-  price            Float
-  isNegotiated     Boolean      @default(false)
-  negotiationPrice Float?
-
-  // Escrow & status
-  status           OrderStatus  @default(PENDING)
-  escrowAmount     Float        // Amount held in escrow
-  escrowReleased   Boolean      @default(false)
-
-  // Timers (optional) for your 20-minute windows
-  sellerDeadline   DateTime?
-  buyerDeadline    DateTime?
-
-  // Chat relationship
-  chatMessages     ChatMessage[]
-
-  transactions     Transaction[]
-
-  createdAt        DateTime     @default(now())
-  updatedAt        DateTime     @updatedAt
-  completedAt      DateTime?
-
-  // Add this new relation
-  dispute          Dispute?
-}
-
-model ChatMessage {
-  id            String    @id @default(uuid())
-  sender        User      @relation(fields: [senderId], references: [id])
-  senderId      String
-  recipient     User      @relation("RecipientMessages", fields: [recipientId], references: [id])
-  recipientId   String
-  content       String
-  isRead        Boolean   @default(false)
-  isModOnly     Boolean   @default(false)  // For moderator-only messages
-  disputeId     String?   // Optional reference to a dispute
-  dispute       Dispute?  @relation(fields: [disputeId], references: [id])
-  orderId       String?   // Optional reference to an order
-  order         Order?    @relation(fields: [orderId], references: [id])
-  createdAt     DateTime  @default(now())
-}
-
-model Device {
-  id         String   @id @default(uuid())
-  user       User     @relation(fields: [userId], references: [id])
-  userId     String
-  deviceId   String   // Unique identifier for the device
-  ipAddress  String?
-  userAgent  String?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-}
-
-// =====================
-// NEXTAUTH MODELS
-// =====================
-// If you plan to use NextAuth for OAuth or credential-based auth,
-// these tables store user sessions, OAuth tokens, etc.
-
-model Account {
-  id                String   @id @default(cuid())
-  userId            String
-  type              String
-  provider          String
-  providerAccountId String
-  refresh_token     String?
-  access_token      String?
-  expires_at        Int?
-  token_type        String?
-  scope             String?
-  id_token          String?
-  session_state     String?
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
-
-  user User @relation(fields: [userId], references: [id])
-
-  @@unique([provider, providerAccountId])
-}
-
-model Session {
-  id           String   @id @default(cuid())
-  sessionToken String   @unique
-  userId       String
-  expires      DateTime
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id])
-}
-
-model VerificationToken {
-  identifier String
-  token      String   @unique
-  expires    DateTime
-
-  @@unique([identifier, token])
-}
-
-model Review {
-  id          String    @id @default(uuid())
-  listing     Listing   @relation(fields: [listingId], references: [id])
-  listingId   String
-  reviewer    User      @relation(fields: [reviewerId], references: [id])
-  reviewerId  String
-  rating      Int       // 1-5
-  comment     String
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-}
-
-model PayoutSettings {
-  id              String        @id @default(uuid())
-  user            User          @relation(fields: [userId], references: [id])
-  userId          String
-  method          PaymentMethod
-  details         Json          // Store payment method details (wallet address, bank info, etc.)
-  isDefault       Boolean       @default(false)
-  isVerified      Boolean       @default(false)
-  lastUsed        DateTime?
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-
-  // Add relation to withdrawal requests
-  withdrawalRequests WithdrawalRequest[]
-
-  @@unique([userId, method])
-}
-
-model Favorite {
-  id        String   @id @default(cuid())
-  userId    String
-  sellerId  String
-  createdAt DateTime @default(now())
-  
-  user      User     @relation("UserFavorites", fields: [userId], references: [id], onDelete: Cascade)
-  seller    User     @relation("SellerFavorites", fields: [sellerId], references: [id], onDelete: Cascade)
-  
-  @@unique([userId, sellerId])
-  @@index([userId])
-  @@index([sellerId])
-}
-
-model Balance {
-  id            String   @id @default(cuid())
-  userId        String   @unique
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  buyingBalance Float    @default(0)
-  sellingBalance Float   @default(0)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  
-  // Transactions related to this balance
-  transactions  Transaction[]
-  
-  @@index([userId])
-}
-
-model Transaction {
-  id                String            @id @default(uuid())
-  user              User              @relation(fields: [userId], references: [id])
-  userId            String            // Now required
-  type              TransactionType
-  amount            Float
-  fee               Float             @default(0)
-  status            TransactionStatus @default(PENDING)
-  description       String?
-  withdrawalRequest WithdrawalRequest? @relation(fields: [withdrawalRequestId], references: [id])
-  withdrawalRequestId String?
-  balance           Balance?          @relation(fields: [balanceId], references: [id])
-  balanceId         String?
-  listing           Listing?          @relation(fields: [listingId], references: [id])
-  listingId         String?
-  order             Order?            @relation(fields: [orderId], references: [id])
-  orderId           String?
-  createdAt         DateTime          @default(now())
-  completedAt       DateTime?
-}
-
-model Dispute {
-  id            String    @id @default(uuid())
-  order         Order     @relation(fields: [orderId], references: [id])
-  orderId       String    @unique
-  initiator     User      @relation("DisputeInitiator", fields: [initiatorId], references: [id])
-  initiatorId   String
-  reason        String
-  description   String
-  status        DisputeStatus @default(OPEN)
-  assignedMod   User?     @relation("AssignedModerator", fields: [assignedModId], references: [id])
-  assignedModId String?
-  resolution    String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  messages      ChatMessage[] // Changed from DisputeMessage to ChatMessage
-
-  DisputeMessage DisputeMessage[]
-}
-
-model DisputeMessage {
-  id          String   @id @default(uuid())
-  dispute     Dispute  @relation(fields: [disputeId], references: [id])
-  disputeId   String
-  sender      User     @relation(fields: [senderId], references: [id])
-  senderId    String
-  content     String
-  isModOnly   Boolean  @default(false) // Messages only visible to moderators
-  attachments String[] // URLs to attached files
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@index([disputeId])
-  @@index([senderId])
-}
-
-model WithdrawalRequest {
-  id                String           @id @default(uuid())
-  user              User             @relation(fields: [userId], references: [id])
-  userId            String
-  amount            Float
-  fee               Float            @default(0)
-  netAmount         Float            // Amount after fees
-  payoutSetting     PayoutSettings   @relation(fields: [payoutSettingId], references: [id])
-  payoutSettingId   String
-  status            WithdrawalStatus @default(PROCESSING)
-  notes             String?          // Admin notes
-  transactions      Transaction[]    // Related transactions
-  processedBy       User?            @relation("ProcessedWithdrawals", fields: [processedById], references: [id])
-  processedById     String?
-  trackingInfo      String?          // For tracking the payment (transaction hash, reference number)
-  createdAt         DateTime         @default(now())
-  updatedAt         DateTime         @updatedAt
-  completedAt       DateTime?
-}
-
