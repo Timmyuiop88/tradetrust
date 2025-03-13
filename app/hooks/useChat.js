@@ -1,179 +1,130 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useCallback } from 'react';
 import { useSession } from 'next-auth/react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEdgeStore } from '@/app/lib/edgeStore';
+import { toast } from 'sonner';
 
-export function useChat(options = {}) {
-  const { orderId } = options;
-  const [messages, setMessages] = useState([]);
-  const [order, setOrder] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+export function useChat({
+  orderId,
+  refetchInterval = 5000,
+  staleTime = 10000,
+  cacheTime = 1000 * 60 * 5, // 5 minutes
+  onSuccess,
+  onError,
+  enabled = true,
+} = {}) {
   const { data: session } = useSession();
-  const lastFetchTimeRef = useRef(0);
   const { edgestore } = useEdgeStore();
-
-  // Function to fetch messages
-  const fetchMessages = useCallback(async () => {
-    if (!session || !orderId) return;
-
-    // Rate limit: only fetch every 20 seconds
-    const now = Date.now();
-    if (now - lastFetchTimeRef.current < 20000) {
-      console.log('Skipping fetch - rate limited (20s)');
-      return;
-    }
-    
-    // Update the last fetch time
-    lastFetchTimeRef.current = now;
-
-    try {
-      setLoading(true);
-      
-      // Use only the orderId for the API endpoint
-      const apiUrl = `/api/chat/${orderId}`;
-      console.log(`Fetching messages from: ${apiUrl}`);
-      
-      const timestamp = new Date().getTime();
-      const response = await fetch(`${apiUrl}?t=${timestamp}`);
-      
-      if (!response.ok) {
-        console.error(`API error: ${response.status} ${response.statusText}`);
-        throw new Error(`Failed to fetch messages: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      console.log('Messages fetched successfully:', data);
-      
-      setMessages(data.messages || []);
-      setOrder(data.order || null);
-      setError(null);
-    } catch (err) {
-      console.error('Error fetching messages:', err);
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }, [session, orderId]);
-
-  // Function to refresh messages (exposed to component)
-  const refreshMessages = useCallback(() => {
-    fetchMessages();
-  }, [fetchMessages]);
-
-  // Initialize and fetch messages
-  useEffect(() => {
-    if (session && orderId) {
-      fetchMessages();
-      
-      // Update user's last seen status when they view the chat
-      updateLastSeen();
-      
-      // Set up a polling interval with a 20-second delay
-      const pollingInterval = setInterval(() => {
-        fetchMessages();
-      }, 5000); // 5 seconds
-      
-      // Clean up the interval when the component unmounts
-      return () => clearInterval(pollingInterval);
-    }
-  }, [session, orderId, fetchMessages]);
-
-  // Function to update user's last seen status
-  const updateLastSeen = async () => {
+  const queryClient = useQueryClient();
+  
+  // Update user's last seen status
+  const updateLastSeen = useCallback(async () => {
     if (!session) return;
     
     try {
       await fetch('/api/users/status', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          lastSeen: new Date().toISOString(),
-        }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lastSeen: new Date().toISOString() }),
       });
     } catch (err) {
       console.error('Error updating last seen status:', err);
     }
-  };
+  }, [session]);
 
-  // Function to upload image to EdgeStore
-  const uploadImage = async (file) => {
-    if (!file || !edgestore) {
-      console.error('No file or EdgeStore not available');
-      return null;
-    }
-    
-    try {
-      console.log('Uploading image to EdgeStore...');
+  // Use React Query to fetch messages
+  const messagesQuery = useQuery({
+    queryKey: ['chat', orderId],
+    queryFn: async () => {
+      if (!session || !orderId) throw new Error('Missing session or order ID');
       
-      // Upload the file to EdgeStore
+      const timestamp = new Date().getTime();
+      const response = await fetch(`/api/chat/${orderId}?t=${timestamp}`);
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Failed to fetch messages: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      updateLastSeen();
+      return data;
+    },
+    enabled: !!session && !!orderId && enabled,
+    refetchInterval,
+    staleTime,
+    gcTime: cacheTime,
+    onSuccess,
+    onError: (error) => {
+      console.error('Error fetching messages:', error);
+      if (onError) onError(error);
+    },
+  });
+
+  // Image upload mutation
+  const uploadImageMutation = useMutation({
+    mutationFn: async (file) => {
+      if (!file || !edgestore) {
+        throw new Error('No file or EdgeStore not available');
+      }
+      
       const res = await edgestore.publicFiles.upload({
         file,
-        options: {
-          temporary: false,
-        },
+        options: { temporary: false },
       });
       
-      console.log('Image uploaded successfully:', res);
-      
-      // Return the URL of the uploaded image
       return res.url;
-    } catch (err) {
-      console.error('Error uploading image:', err);
-      throw new Error('Failed to upload image');
-    }
-  };
+    },
+    onError: (error) => {
+      console.error('Error uploading image:', error);
+      toast.error('Failed to upload image. Please try again.');
+    },
+  });
 
-  // Function to send a message
-  const sendMessage = async (messageData) => {
-    if (!session || !orderId || !messageData.content) return false;
-    
-    try {
+  // Send message mutation
+  const sendMessageMutation = useMutation({
+    mutationFn: async (messageData) => {
+      if (!session || !orderId || !messageData.content) {
+        throw new Error('Missing required data to send message');
+      }
+      
       const response = await fetch('/api/chat/send', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          orderId: orderId,
+          orderId,
           content: messageData.content,
           isDisputeMessage: messageData.isDisputeMessage || false,
           disputeId: messageData.disputeId || null,
+          isModOnly: messageData.isModOnly || false,
+          recipientId: messageData.recipientId || null,
         }),
       });
       
       if (!response.ok) {
-        const data = await response.json();
+        const data = await response.json().catch(() => ({}));
         throw new Error(data.error || 'Failed to send message');
       }
       
-      // Update last seen status when sending a message
       updateLastSeen();
-      
-      // Refresh messages to get the new message
-      await fetchMessages();
-      
-      return true;
-    } catch (err) {
-      console.error('Error sending message:', err);
-      setError(err.message);
-      return false;
-    }
-  };
+      const responseData = await response.json();
+      return responseData;
+    },
+    onSuccess: () => {
+      // Invalidate and refetch messages after sending
+      queryClient.invalidateQueries({ queryKey: ['chat', orderId] });
+    },
+    onError: (error) => {
+      console.error('Error sending message:', error);
+      toast.error('Failed to send message. Please try again.');
+    },
+  });
 
   return {
-    messages: {
-      data: messages,
-      isLoading: loading,
-      error: error,
-      refetch: refreshMessages,
-    },
-    order: order,
-    sendMessage: {
-      mutate: sendMessage,
-      isLoading: false,
-    },
-    uploadImage,
+    messages: messagesQuery,
+    order: messagesQuery.data?.order || null,
+    sendMessage: sendMessageMutation,
+    uploadImage: uploadImageMutation.mutateAsync,
+    uploadImageStatus: uploadImageMutation.status,
   };
 } 
