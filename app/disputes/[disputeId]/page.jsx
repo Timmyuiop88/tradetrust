@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
@@ -9,10 +9,14 @@ import {
   AlertCircle, ArrowLeft, Clock, Loader2, Shield, X, Send, 
   CheckCircle, XCircle, AlertTriangle, HelpCircle, FileText,
   Camera, PaperclipIcon, MessageSquare, User, UserCheck, RefreshCw,
-  ShoppingBag, Circle
+  ShoppingBag, Circle,Image as ImageIcon
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useChat } from '@/app/hooks/useChat';
+import { motion, AnimatePresence } from 'framer-motion';
+import { cn } from '@/lib/utils';
+import { useDispute } from '@/app/hooks/useDispute';
+import { useQueryClient } from '@tanstack/react-query';
 
 // Helper function to get status badge
 const getStatusBadge = (status) => {
@@ -117,17 +121,253 @@ const getReasonBadge = (reason) => {
   }
 };
 
+// Message skeleton for loading state
+const MessageSkeleton = ({ align = 'left' }) => (
+  <div className={`flex ${align === 'right' ? 'justify-end' : 'justify-start'} mb-4`}>
+    <div className={`max-w-[75%] ${align === 'right' ? 'bg-primary/30' : 'bg-muted'} rounded-lg px-4 py-2 shadow-sm animate-pulse`}>
+      <div className="h-4 w-24 bg-muted-foreground/20 rounded mb-2"></div>
+      <div className="space-y-2">
+        <div className="h-3 w-48 bg-muted-foreground/20 rounded"></div>
+        <div className="h-3 w-32 bg-muted-foreground/20 rounded"></div>
+      </div>
+      <div className="flex justify-end mt-1">
+        <div className="h-3 w-12 bg-muted-foreground/20 rounded"></div>
+      </div>
+    </div>
+  </div>
+);
+
+// Dispute content skeleton
+const DisputeDetailSkeleton = () => (
+  <div className="container mx-auto px-4 py-8 max-w-4xl">
+    <div className="flex gap-4 items-center mb-6">
+      <div className="w-8 h-8 rounded-full bg-muted-foreground/20 animate-pulse"></div>
+      <div className="h-8 w-48 bg-muted-foreground/20 rounded animate-pulse"></div>
+    </div>
+    
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {/* Sidebar skeleton */}
+      <div className="md:col-span-1">
+        <div className="bg-card rounded-lg shadow-sm border border-border p-4 mb-4 animate-pulse">
+          <div className="flex items-center justify-between mb-4">
+            <div className="h-6 w-32 bg-muted-foreground/20 rounded"></div>
+            <div className="h-6 w-20 bg-muted-foreground/20 rounded-full"></div>
+          </div>
+          
+          <div className="space-y-6">
+            {[1, 2, 3, 4].map(i => (
+              <div key={i}>
+                <div className="h-4 w-24 bg-muted-foreground/20 rounded mb-2"></div>
+                <div className="h-5 w-full bg-muted-foreground/20 rounded"></div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+      
+      {/* Chat skeleton */}
+      <div className="md:col-span-2">
+        <div className="bg-card rounded-lg shadow-sm border border-border overflow-hidden flex flex-col h-[600px]">
+          <div className="p-4 border-b flex items-center justify-between bg-background">
+            <div className="h-6 w-40 bg-muted-foreground/20 rounded"></div>
+            <div className="h-8 w-8 rounded-full bg-muted-foreground/20"></div>
+          </div>
+          
+          <div className="flex-1 overflow-y-auto bg-muted/5 p-4">
+            <div className="space-y-4 py-4">
+              <MessageSkeleton align="left" />
+              <MessageSkeleton align="right" />
+              <MessageSkeleton align="left" />
+            </div>
+          </div>
+          
+          <div className="border-t bg-background p-4">
+            <div className="flex items-center gap-2">
+              <div className="h-12 w-full bg-muted-foreground/20 rounded-lg"></div>
+              <div className="h-12 w-12 bg-muted-foreground/20 rounded-full"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+// First, let's modify the message display section to be more efficient
+const MessageList = React.memo(({ messages, pendingMessages, session }) => {
+  // Combine and process messages only when dependencies change
+  const processedMessages = useMemo(() => {
+    // Create a map to track seen message IDs
+    const seenIds = new Map();
+    
+    // Process real messages first (they take precedence)
+    const realMessages = (messages || []).map(msg => ({
+      ...msg,
+      _source: 'server',
+      _key: `server-${msg.id}`
+    }));
+    
+    // Process pending messages
+    const tempMessages = (pendingMessages || []).map(msg => ({
+      ...msg,
+      _source: 'pending',
+      _key: `pending-${msg.id}`
+    }));
+    
+    // Combine all messages
+    const allMessages = [...realMessages, ...tempMessages];
+    
+    // Sort by creation time
+    allMessages.sort((a, b) => 
+      new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+    );
+    
+    // Filter out duplicates with a sophisticated approach
+    const uniqueMessages = [];
+    
+    for (const message of allMessages) {
+      // If we've seen this exact ID before, skip it
+      if (seenIds.has(message.id)) continue;
+      
+      // Mark this ID as seen
+      seenIds.set(message.id, true);
+      
+      // For pending messages that have been sent successfully, check if they exist in real messages
+      if (message._source === 'pending' && !message.isPending && !message.isFailed) {
+        // Look for a matching real message with similar content and timestamp
+        const matchingRealMessage = realMessages.find(rm => 
+          rm.content === message.content && 
+          Math.abs(new Date(rm.createdAt).getTime() - new Date(message.createdAt).getTime()) < 5000
+        );
+        
+        // If we found a matching real message, skip this pending message
+        if (matchingRealMessage) continue;
+      }
+      
+      // For real messages, check if there's a pending version with the same content
+      if (message._source === 'server') {
+        // Look for a matching pending message with similar content and timestamp
+        const matchingPendingMessage = tempMessages.find(pm => 
+          pm.content === message.content && 
+          Math.abs(new Date(pm.createdAt).getTime() - new Date(message.createdAt).getTime()) < 5000
+        );
+        
+        // If we found a matching pending message, skip this real message if the pending one is already in our list
+        if (matchingPendingMessage && uniqueMessages.some(um => um.id === matchingPendingMessage.id)) continue;
+      }
+      
+      // This message passed all our checks, add it to the unique list
+      uniqueMessages.push(message);
+    }
+    
+    return uniqueMessages;
+  }, [messages, pendingMessages]);
+  
+  return (
+    <AnimatePresence initial={false}>
+      {processedMessages.map(message => {
+        const isCurrentUser = message.senderId === session.user.id;
+        const isPending = message.isPending;
+        const isFailed = message.isFailed;
+        
+        // Extract image from content if present
+        const hasImage = message.content && message.content.includes('[IMAGE]') && message.content.includes('[/IMAGE]');
+        let imageSrc = null;
+        let textContent = message.content || '';
+        
+        if (hasImage) {
+          const imageMatch = message.content.match(/\[IMAGE\](.*?)\[\/IMAGE\]/);
+          if (imageMatch && imageMatch[1]) {
+            imageSrc = imageMatch[1].trim();
+            textContent = message.content.replace(/\[IMAGE\].*?\[\/IMAGE\]/, '').trim();
+          }
+        }
+        
+        // Use the special _key property for React's key prop
+        return (
+          <motion.div
+            key={message._key || `${message._source}-${message.id}`}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'} mb-4`}
+          >
+            <div className={cn(
+              "rounded-lg px-4 py-2 shadow-sm",
+              isPending && "opacity-70",
+              isFailed && "border border-destructive",
+              isCurrentUser 
+                ? "bg-primary text-primary-foreground"
+                : message.disputeId 
+                  ? "bg-amber-100 text-amber-800"
+                  : "bg-muted"
+            )}>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-xs font-medium">
+                  {isCurrentUser ? 'You' : (message.sender?.email || 'Unknown')}
+                </span>
+                {message.isModOnly && (
+                  <span className="text-xs px-1.5 py-0.5 rounded-full bg-amber-200 text-amber-800">
+                    Moderator Only
+                  </span>
+                )}
+              </div>
+              
+              {/* Message content */}
+              {textContent && (
+                <p className="whitespace-pre-wrap break-words">{textContent}</p>
+              )}
+              
+              {/* Display image if present */}
+              {imageSrc && (
+                <div className="mt-2 rounded-md overflow-hidden">
+                  <Image
+                    src={imageSrc}
+                    alt="Message image"
+                    width={300}
+                    height={200}
+                    className="max-w-full object-contain"
+                  />
+                </div>
+              )}
+              
+              {/* Message timestamp and read status */}
+              <div className="flex items-center justify-end gap-2 mt-1">
+                <span className="text-xs opacity-70">
+                  {new Date(message.createdAt).toLocaleTimeString([], { 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                  })}
+                </span>
+                {isCurrentUser && (
+                  <span className="text-xs">
+                    {isPending ? (
+                      <Clock className="h-3 w-3 animate-pulse" />
+                    ) : isFailed ? (
+                      <AlertCircle className="h-3 w-3 text-destructive" />
+                    ) : message.isRead ? (
+                      <UserCheck className="h-3 w-3 text-primary" />
+                    ) : (
+                      <Circle className="h-2 w-2 fill-muted-foreground/70" />
+                    )}
+                  </span>
+                )}
+              </div>
+            </div>
+          </motion.div>
+        );
+      })}
+    </AnimatePresence>
+  );
+});
+
 export default function DisputeDetailPage() {
   const { disputeId } = useParams();
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [dispute, setDispute] = useState(null);
-  const [messages, setMessages] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [newMessage, setNewMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
-  const [isModOnly, setIsModOnly] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
   const [imagePreview, setImagePreview] = useState('');
   const [isUploading, setIsUploading] = useState(false);
@@ -135,55 +375,43 @@ export default function DisputeDetailPage() {
   const [resolution, setResolution] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
   const messagesEndRef = useRef(null);
-  const fileInputRef = useRef(null);
   const [disputeCreationTime, setDisputeCreationTime] = useState(null);
   const [pendingMessages, setPendingMessages] = useState([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Fetch dispute details to get the orderId
-  useEffect(() => {
-    const fetchDispute = async () => {
-      if (!disputeId || !session) return;
-      
-      try {
-        setLoading(true);
-        const response = await fetch(`/api/disputes/${disputeId}`);
-        
-        if (!response.ok) {
-          throw new Error(`Failed to fetch dispute: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        setDispute(data);
-        setDisputeCreationTime(new Date(data.createdAt));
-        setError(null);
-      } catch (err) {
-        console.error('Error fetching dispute:', err);
-        setError(err.message);
-        toast.error('Failed to load dispute details');
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchDispute();
-  }, [disputeId, session]);
+  // Add the useDispute hook
+  const { 
+    data: disputeData,
+    isLoading: disputeLoading,
+    error: disputeError,
+    refetch: refetchDispute
+  } = useDispute(disputeId);
 
-  // Use the chat hook with orderId from dispute and add optimistic updates
+  // Use the chat hook with orderId from dispute
   const {
-    messages: { data: chatMessagesData, isLoading: chatMessagesLoading, error: chatMessagesError, refetch },
+    messages: { 
+      data: chatMessagesData, 
+      isLoading: chatMessagesLoading, 
+      error: chatMessagesError, 
+      refetch 
+    },
     order,
     sendMessage,
     uploadImage,
   } = useChat({ 
-    orderId: dispute?.orderId,
+    orderId: disputeData?.orderId,
     onSuccess: () => {
-      // Remove any pending messages that have been confirmed
+      // Clear pending messages that have been confirmed
       setPendingMessages(prev => 
-        prev.filter(msg => !chatMessagesData?.some(m => 
-          m.content === msg.content && 
-          Math.abs(new Date(m.createdAt) - new Date(msg.createdAt)) < 5000
-        ))
+        prev.filter(msg => {
+          // Check if this pending message exists in the actual messages
+          const matchingMessage = chatMessagesData?.messages?.find(m => 
+            m.content === msg.content && 
+            Math.abs(new Date(m.createdAt) - new Date(msg.createdAt)) < 5000
+          );
+          // Keep the message if it's not found in actual messages
+          return !matchingMessage;
+        })
       );
     }
   });
@@ -245,7 +473,7 @@ export default function DisputeDetailPage() {
 
   // Set up periodic refresh
   useEffect(() => {
-    if (!dispute?.orderId) return;
+    if (!disputeData?.orderId) return;
 
     const intervalId = setInterval(() => {
       if (!isRefreshing && !isSending) {
@@ -254,132 +482,149 @@ export default function DisputeDetailPage() {
     }, 5000); // Refresh every 5 seconds
 
     return () => clearInterval(intervalId);
-  }, [dispute?.orderId, isRefreshing, isSending, refetch]);
+  }, [disputeData?.orderId, isRefreshing, isSending, refetch]);
 
-  // Function to handle sending a message
-  const handleSendMessage = async (e) => {
+  // Add this near your other hooks
+  const queryClient = useQueryClient();
+
+  // First, determine the other user based on the dispute details
+  const otherUser = useMemo(() => {
+    if (!order || !session) return null;
+    
+    return session.user.id === order.buyerId 
+      ? order.listing.seller 
+      : order.buyer;
+  }, [order, session]);
+
+  // Now define handleSendMessage after otherUser is defined
+  const handleSendMessage = useCallback(async (e) => {
     e.preventDefault();
     
-    if ((!newMessage.trim() && !selectedImage) || isSending || !dispute?.orderId) {
+    if ((!newMessage.trim() && !selectedImage) || isSending || !disputeData?.orderId) {
       return;
     }
     
     setIsSending(true);
     
-    // Create a temporary message
+    // Create a temporary message with a guaranteed unique ID
+    const tempId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     const tempMessage = {
-      id: `temp-${Date.now()}`,
+      id: tempId,
       content: newMessage.trim(),
       senderId: session.user.id,
       sender: session.user,
       createdAt: new Date().toISOString(),
       isPending: true,
-      disputeId: disputeId
+      disputeId: disputeId,
+      isRead: false
     };
     
-    // If there's an image, add it to the temporary message
+    // Add image to temporary message if present
     if (selectedImage && imagePreview) {
       tempMessage.content = `${tempMessage.content}\n\n[IMAGE]${imagePreview}[/IMAGE]`;
     }
     
-    // Add the temporary message to the pending messages
+    // Store message content before clearing form
+    const messageContent = newMessage;
+    
+    // Clear form early for better UX
+    setNewMessage('');
+    removeSelectedImage();
+    
+    // Add temporary message immediately
     setPendingMessages(prev => [...prev, tempMessage]);
     
+    // Scroll to bottom
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    
     try {
-      // Upload image if selected
+      // Handle image upload if present
       let imageUrl = null;
       if (selectedImage) {
         setIsUploading(true);
-        toast.info('Uploading image...');
-        
-        try {
-          imageUrl = await uploadImage(selectedImage);
-          if (!imageUrl) {
-            throw new Error('Failed to upload image');
-          }
-        } catch (error) {
-          console.error('Image upload error:', error);
-          toast.error('Failed to upload image. Please try again.');
-          // Remove the temporary message on failure
-          setPendingMessages(prev => prev.filter(msg => msg.id !== tempMessage.id));
-          setIsUploading(false);
-          setIsSending(false);
-          return;
-        }
-        
+        imageUrl = await uploadImage(selectedImage);
         setIsUploading(false);
       }
       
       // Prepare message content
-      const messageContent = imageUrl 
-        ? `${newMessage.trim()}\n\n[IMAGE]${imageUrl}[/IMAGE]` 
-        : newMessage.trim();
-      
-      console.log('Sending dispute message for order:', dispute.orderId);
+      const finalContent = imageUrl 
+        ? `${messageContent}\n\n[IMAGE]${imageUrl}[/IMAGE]` 
+        : messageContent;
       
       // Send the message
-      const success = await sendMessage.mutate({
-        content: messageContent,
+      const result = await sendMessage.mutateAsync({
+        content: finalContent,
         disputeId: disputeId,
-        isModOnly: isModOnly
+        recipientId: otherUser?.id
       });
       
-      if (success) {
-        // Clear form
-        setNewMessage('');
-        setSelectedImage(null);
-        setImagePreview('');
-        // Remove the temporary message as it will be replaced by the real one
-        setPendingMessages(prev => prev.filter(msg => msg.id !== tempMessage.id));
-      } else {
-        toast.error('Failed to send message');
-        // Mark the temporary message as failed
-        setPendingMessages(prev => prev.map(msg => 
-          msg.id === tempMessage.id 
-            ? { ...msg, isPending: false, isFailed: true }
+      // Update the temporary message with the real message data
+      // But keep the original tempId to avoid key conflicts
+      setPendingMessages(prev => 
+        prev.map(msg => 
+          msg.id === tempId 
+            ? { 
+                ...msg, 
+                realId: result?.id, // Store the real ID separately
+                isPending: false,
+                isSent: true
+              } 
             : msg
-        ));
-      }
+        )
+      );
+      
+      // After a short delay, clean up any duplicate messages
+      setTimeout(() => {
+        setPendingMessages(prev => {
+          // Keep only pending messages that don't have a matching real message
+          return prev.filter(pm => {
+            // Keep failed messages
+            if (pm.isFailed) return true;
+            
+            // Keep pending messages
+            if (pm.isPending) return true;
+            
+            // For sent messages, check if they exist in real messages
+            const matchingRealMessage = chatMessagesData?.messages?.some(rm => 
+              rm.content === pm.content && 
+              Math.abs(new Date(rm.createdAt).getTime() - new Date(pm.createdAt).getTime()) < 5000
+            );
+            
+            // Keep if no matching real message found
+            return !matchingRealMessage;
+          });
+        });
+      }, 2000); // Wait 2 seconds before cleanup
       
     } catch (error) {
       console.error('Error sending message:', error);
       toast.error('Failed to send message');
-      // Mark the temporary message as failed
       setPendingMessages(prev => prev.map(msg => 
-        msg.id === tempMessage.id 
+        msg.id === tempId 
           ? { ...msg, isPending: false, isFailed: true }
           : msg
       ));
     } finally {
       setIsSending(false);
     }
-  };
+  }, [newMessage, selectedImage, imagePreview, isSending, disputeData?.orderId, session, disputeId, otherUser?.id, uploadImage, sendMessage, chatMessagesData?.messages]);
 
-  // Determine the other user based on the order details
-  const otherUser = order ? 
-    (session?.user?.id === order.buyer.id ? order.listing.seller : order.buyer) : null;
-
-  if (status === 'loading' || loading || chatMessagesLoading) {
-    return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-      </div>
-    );
+  // Fix for status checking
+  if (status === 'loading' || (disputeLoading && !disputeData)) {
+    return <DisputeDetailSkeleton />;
+  }
+  
+  // Return for data loading
+  if (chatMessagesLoading && !chatMessagesData) {
+    return <DisputeDetailSkeleton />;
   }
 
-  if (error || !dispute) {
+  if (disputeError) {
     return (
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
-        <div className="flex gap-4 items-center mb-6">
-          <div onClick={() => router.push('/disputes')} className="text-muted-foreground hover:text-foreground cursor-pointer flex items-center">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-          </div>
-          <h1 className="text-2xl font-bold">Dispute Details</h1>
-        </div>
-        
-        <div className="bg-destructive/10 border border-destructive text-destructive px-4 py-3 rounded-md mb-4 flex items-start">
-          <AlertCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0" />
-          <span>{error || 'Failed to load dispute details'}</span>
+      <div className="flex flex-col items-center justify-center h-[60vh]">
+        <AlertCircle className="h-12 w-12 text-destructive mb-4" />
+        <div className="text-center">
+          <span>{disputeError.message || 'Failed to load dispute details'}</span>
         </div>
       </div>
     );
@@ -394,59 +639,48 @@ export default function DisputeDetailPage() {
         <h1 className="text-2xl font-bold">Dispute Details</h1>
       </div>
 
-      {error && (
-        <div className="bg-destructive/10 border border-destructive text-destructive px-4 py-3 rounded-md mb-4 flex items-start">
-          <AlertCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0" />
-          <span>{error}</span>
-        </div>
-      )}
-
-      {loading || status === 'loading' || chatMessagesLoading ? (
-        <div className="flex justify-center items-center h-40">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      ) : dispute ? (
+      {disputeData ? (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Dispute details sidebar */}
           <div className="md:col-span-1">
             <div className="bg-card rounded-lg shadow-sm border border-border p-4 mb-4">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold">Dispute Info</h2>
-                {getStatusBadge(dispute.status)}
+                {getStatusBadge(disputeData?.status)}
               </div>
               
               <div className="space-y-4">
                 <div>
                   <p className="text-sm text-muted-foreground">Order ID</p>
-                  <p className="text-sm font-medium truncate">{dispute.orderId}</p>
+                  <p className="text-sm font-medium truncate">{disputeData?.orderId}</p>
                 </div>
                 
                 <div>
                   <p className="text-sm text-muted-foreground">Reason</p>
-                  <div className="mt-1">{getReasonBadge(dispute.reason)}</div>
+                  <div className="mt-1">{getReasonBadge(disputeData?.reason)}</div>
                 </div>
                 
                 <div>
                   <p className="text-sm text-muted-foreground">Created</p>
-                  <p className="text-sm">{new Date(dispute.createdAt).toLocaleString()}</p>
+                  <p className="text-sm">{new Date(disputeData?.createdAt).toLocaleString()}</p>
                 </div>
                 
                 <div>
                   <p className="text-sm text-muted-foreground">Last updated</p>
-                  <p className="text-sm">{new Date(dispute.updatedAt).toLocaleString()}</p>
+                  <p className="text-sm">{new Date(disputeData?.updatedAt).toLocaleString()}</p>
                 </div>
                 
-                {dispute.assignedMod && (
+                {disputeData?.assignedMod && (
                   <div>
                     <p className="text-sm text-muted-foreground">Assigned moderator</p>
-                    <p className="text-sm font-medium">{dispute.assignedMod.email}</p>
+                    <p className="text-sm font-medium">{disputeData?.assignedMod.email}</p>
                   </div>
                 )}
                 
-                {dispute.resolution && (
+                {disputeData?.resolution && (
                   <div>
                     <p className="text-sm text-muted-foreground">Resolution</p>
-                    <p className="text-sm">{dispute.resolution}</p>
+                    <p className="text-sm">{disputeData?.resolution}</p>
                   </div>
                 )}
               </div>
@@ -536,284 +770,111 @@ export default function DisputeDetailPage() {
           </div>
           
           {/* Messages section */}
-          <div className="md:col-span-2 flex flex-col h-[70vh]">
-            <div className="bg-card rounded-lg shadow-sm border border-border overflow-hidden flex flex-col h-full">
-              {/* Messages header */}
-              <div className="p-4 border-b border-border bg-muted/30">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-semibold">Messages</h2>
-                  <div className="flex items-center space-x-2">
-                    {order && (
-                      <Link
-                        href={`/chat/${order.id}`}
-                        className="flex items-center text-sm text-primary hover:text-primary/80"
-                      >
-                        <MessageSquare className="h-4 w-4 mr-1" />
-                        View Full Chat
-                      </Link>
-                    )}
-                    <button
-                      onClick={handleManualRefresh}
-                      className="flex items-center text-sm text-muted-foreground hover:text-foreground"
-                      disabled={isRefreshing}
-                    >
-                      <RefreshCw className={`h-4 w-4 mr-1 ${isRefreshing ? 'animate-spin' : ''}`} />
-                      Refresh
-                    </button>
-                  </div>
+          <div className="md:col-span-2">
+            <div className="bg-card rounded-lg shadow-sm border border-border overflow-hidden flex flex-col h-[600px]">
+              {/* Chat header */}
+              <div className="p-4 border-b flex items-center justify-between bg-background">
+                <div className="flex items-center gap-2">
+                  <MessageSquare className="h-5 w-5 text-muted-foreground" />
+                  <h3 className="font-medium">
+                    {otherUser ? `Chat with ${otherUser.email}` : 'Dispute Communication'}
+                  </h3>
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  {dispute.description}
-                </p>
+                
+                {/* Refresh button */}
+                <button 
+                  onClick={handleManualRefresh}
+                  className={cn(
+                    "p-2 rounded-full hover:bg-muted transition-colors",
+                    isRefreshing && "animate-spin text-primary"
+                  )}
+                  disabled={isRefreshing}
+                  aria-label="Refresh messages"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                </button>
               </div>
               
-              {/* Messages list */}
-              <div className="flex-1 overflow-y-auto p-4 bg-muted/10">
-                {chatMessagesError ? (
-                  <div className="flex flex-col items-center justify-center h-full p-4">
-                    <AlertCircle className="h-12 w-12 text-destructive mb-4" />
-                    <p className="text-destructive mb-2">{chatMessagesError}</p>
-                    <button 
-                      className="flex items-center px-3 py-2 text-sm text-primary hover:text-primary/80"
-                      onClick={handleManualRefresh}
-                      disabled={isRefreshing}
-                    >
-                      <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
-                      Try Again
-                    </button>
-                  </div>
-                ) : !chatMessagesData && !pendingMessages.length ? (
-                  <div className="flex flex-col items-center justify-center h-full text-center">
-                    <MessageSquare className="h-12 w-12 text-muted-foreground opacity-50 mb-4" />
-                    <p className="text-muted-foreground">No messages yet</p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {/* Dispute Creation Message */}
-                    {disputeCreationTime && (
-                      <div className="flex justify-center mb-4">
-                        <div className="bg-amber-100 text-amber-800 rounded-lg px-4 py-2 text-sm text-center max-w-md">
-                          <AlertTriangle className="h-4 w-4 inline-block mr-1" />
-                          A dispute was opened on {new Date(disputeCreationTime).toLocaleDateString()}
-                        </div>
-                      </div>
-                    )}
-                    
-                    {/* Messages with optimistic updates */}
-                    {[...(chatMessagesData || []), ...pendingMessages]
-                      .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
-                      .map((message) => {
-                        const isCurrentUser = message.senderId === session?.user?.id;
-                        const isAdmin = message.sender?.role === 'ADMIN';
-                        const messageTime = new Date(message.createdAt);
-                        
-                        // Determine if message should be displayed as a dispute message
-                        // Messages with a disputeId or sent after dispute creation should be styled as dispute messages
-                        const isAfterDispute = disputeCreationTime && messageTime > disputeCreationTime;
-                        const isDisputeMessage = message.disputeId === disputeId;
-                        const shouldShowAsDisputeMessage = isDisputeMessage || isAfterDispute;
-                        
-                        // Check if message contains an image
-                        const hasImage = message.content.includes('[IMAGE]') && message.content.includes('[/IMAGE]');
-                        let textContent = message.content;
-                        let imageUrl = null;
-                        
-                        if (hasImage) {
-                          const imageMatch = message.content.match(/\[IMAGE\](.*?)\[\/IMAGE\]/);
-                          if (imageMatch && imageMatch[1]) {
-                            imageUrl = imageMatch[1].trim();
-                            textContent = message.content.replace(/\[IMAGE\].*?\[\/IMAGE\]/s, '').trim();
-                          }
-                        }
-                        
-                        return (
-                          <div key={message.id} className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'} mb-4`}>
-                            <div className={`max-w-[75%] ${
-                              isCurrentUser 
-                                ? shouldShowAsDisputeMessage 
-                                  ? 'bg-amber-100 text-amber-800' 
-                                  : 'bg-primary text-primary-foreground' 
-                                : isAdmin 
-                                  ? 'bg-blue-100 text-blue-800' 
-                                  : shouldShowAsDisputeMessage 
-                                    ? 'bg-amber-100 text-amber-800' 
-                                    : 'bg-muted'
-                            } rounded-lg px-4 py-2 shadow-sm`}>
-                              <div className="flex items-center gap-2 mb-1">
-                                <span className="text-xs font-medium">
-                                  {isCurrentUser ? 'You' : message.sender?.email || 'Unknown User'}
-                                  {isAdmin && ' (Admin)'}
-                                </span>
-                                {shouldShowAsDisputeMessage && (
-                                  <span className="text-xs px-1.5 py-0.5 rounded-full bg-amber-200 text-amber-800">
-                                    Dispute
-                                  </span>
-                                )}
-                              </div>
-                              
-                              {/* Display image first if present */}
-                              {imageUrl && (
-                                <div className="mb-2">
-                                  <a 
-                                    href={imageUrl} 
-                                    target="_blank" 
-                                    rel="noopener noreferrer" 
-                                    className="block"
-                                    onClick={(e) => {
-                                      e.preventDefault();
-                                      window.open(imageUrl, '_blank');
-                                    }}
-                                  >
-                                    <div className="relative w-full max-w-[300px] h-[200px] rounded-md overflow-hidden">
-                                      <img
-                                        src={imageUrl}
-                                        alt="Attached image"
-                                        className="w-full h-full object-cover hover:opacity-90 transition-opacity cursor-pointer"
-                                      />
-                                    </div>
-                                  </a>
-                                </div>
-                              )}
-                              
-                              {/* Display text content after image */}
-                              {textContent && <p className="whitespace-pre-wrap break-words">{textContent}</p>}
-                              
-                              <div className="flex items-center justify-end gap-2 mt-1">
-                                <span className="text-xs opacity-70">
-                                  {new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                </span>
-                                
-                                {isCurrentUser && (
-                                  <span className="text-xs opacity-70">
-                                    {message.isPending ? (
-                                      <span className="flex items-center">
-                                        <Loader2 className="h-3 w-3 mr-0.5 animate-spin" />
-                                        Sending...
-                                      </span>
-                                    ) : message.isFailed ? (
-                                      <span className="flex items-center text-red-500">
-                                        <AlertCircle className="h-3 w-3 mr-0.5" />
-                                        Failed
-                                      </span>
-                                    ) : message.isRead ? (
-                                      <span className="flex items-center">
-                                        <Clock className="h-3 w-3 mr-0.5" />
-                                        Read
-                                      </span>
-                                    ) : (
-                                      <span className="flex items-center">
-                                        <Circle className="h-3 w-3 mr-0.5" />
-                                        Sent
-                                      </span>
-                                    )}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    <div ref={messagesEndRef} />
-                  </div>
-                )}
+              {/* Messages container */}
+              <div className="flex-1 overflow-y-auto bg-muted/5 p-4">
+                <MessageList 
+                  messages={chatMessagesData?.messages || []} 
+                  pendingMessages={pendingMessages} 
+                  session={session} 
+                />
+                <div ref={messagesEndRef} />
               </div>
               
               {/* Message input */}
-              {!dispute.status.startsWith('RESOLVED_') && !dispute.status.startsWith('CANCELLED') && (
-                <div className="p-4 border-t border-border">
-                  <form onSubmit={handleSendMessage} className="flex flex-col gap-2">
-                    {imagePreview && (
-                      <div className="relative inline-block">
-                        <div className="relative w-32 h-32 rounded-lg overflow-hidden border border-border">
-                          <img
-                            src={imagePreview}
-                            alt="Selected image"
-                            className="w-full h-full object-cover"
-                          />
-                          <button
-                            type="button"
-                            onClick={removeSelectedImage}
-                            className="absolute top-1 right-1 bg-background/80 text-foreground rounded-full p-1 hover:bg-background/90"
-                          >
-                            <X className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                    
-                    <div className="flex gap-2">
+              <div className="border-t bg-background p-4">
+                <form onSubmit={handleSendMessage} className="flex flex-col gap-2">
+                  {/* Image preview */}
+                  {imagePreview && (
+                    <div className="relative w-24 h-24 border rounded-md overflow-hidden group">
+                      <Image
+                        src={imagePreview}
+                        alt="Selected image"
+                        width={96}
+                        height={96}
+                        className="object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={removeSelectedImage}
+                        className="absolute top-1 right-1 bg-black/70 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  )}
+                  
+                  <div className="flex items-center gap-2">
+                    <div className="relative flex-1">
                       <textarea
                         value={newMessage}
                         onChange={(e) => setNewMessage(e.target.value)}
-                        placeholder={selectedImage ? "Add a message with your image..." : "Type your message..."}
-                        className="flex-1 min-h-[80px] max-h-[160px] rounded-lg border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 resize-none"
-                        disabled={isSending || dispute.status !== 'OPEN'}
+                        placeholder="Type a message..."
+                        className="w-full px-4 py-3 bg-muted rounded-lg resize-none min-h-[50px] max-h-[120px] pr-10"
+                        style={{ height: Math.min(120, Math.max(50, newMessage.split('\n').length * 24)) + 'px' }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            handleSendMessage(e);
+                          }
+                        }}
+                        disabled={isSending || isUploading || disputeData.status !== 'OPEN'}
                       />
-                      
-                      <div className="flex flex-col gap-2">
-                        <input
-                          type="file"
-                          ref={fileInputRef}
-                          onChange={handleImageSelect}
-                          accept="image/*"
-                          className="hidden"
-                        />
-                        
-                        <button
-                          type="button"
-                          onClick={() => fileInputRef.current?.click()}
-                          className="h-10 w-10 inline-flex items-center justify-center rounded-md border border-input bg-background hover:bg-accent text-muted-foreground hover:text-accent-foreground disabled:opacity-50"
-                          disabled={isUploading || !!selectedImage || isSending || dispute.status !== 'OPEN'}
-                        >
-                          {isUploading || isSending ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <PaperclipIcon className="h-4 w-4" />
-                          )}
-                        </button>
-                        
-                        <button
-                          type="submit"
-                          className="h-10 w-10 inline-flex items-center justify-center rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-                          disabled={isUploading || isSending || (!newMessage.trim() && !selectedImage) || dispute.status !== 'OPEN'}
-                        >
-                          {isUploading || isSending ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <Send className="h-4 w-4" />
-                          )}
-                        </button>
-                      </div>
+                      {/* Image upload button */}
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className={cn(
+                          "absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors",
+                          (isSending || isUploading || !!selectedImage || disputeData.status !== 'OPEN') && "opacity-50 cursor-not-allowed"
+                        )}
+                        disabled={isSending || isUploading || !!selectedImage || disputeData.status !== 'OPEN'}
+                      >
+                        <ImageIcon className="h-5 w-5" />
+                      </button>
                     </div>
-
-                    {/* Moderator Only Toggle */}
-                    {(session?.user?.role === 'ADMIN' || session?.user?.role === 'MODERATOR') && (
-                      <div className="flex items-center mt-2">
-                        <input
-                          type="checkbox"
-                          id="modOnly"
-                          checked={isModOnly}
-                          onChange={(e) => setIsModOnly(e.target.checked)}
-                          className="h-4 w-4 rounded border-input text-primary focus:ring-primary"
-                        />
-                        <label htmlFor="modOnly" className="ml-2 text-sm text-muted-foreground">
-                          Moderator-only message
-                        </label>
-                      </div>
-                    )}
-                  </form>
-                </div>
-              )}
-              
-              {/* Dispute resolved message */}
-              {(dispute.status.startsWith('RESOLVED_') || dispute.status.startsWith('CANCELLED')) && (
-                <div className="p-4 border-t border-border bg-muted/20">
-                  <div className="flex items-center justify-center text-muted-foreground">
-                    <FileText className="h-4 w-4 mr-2" />
-                    <span>This dispute has been {dispute.status.toLowerCase().replace('_', ' ')}. No further messages can be sent.</span>
+                    
+                    <button
+                      type="submit"
+                      disabled={(!newMessage.trim() && !selectedImage) || isSending || isUploading || disputeData.status !== 'OPEN'}
+                      className={cn(
+                        "rounded-full w-12 h-12 flex items-center justify-center bg-primary text-primary-foreground hover:bg-primary/90 transition-colors",
+                        ((!newMessage.trim() && !selectedImage) || isSending || isUploading || disputeData.status !== 'OPEN') && "opacity-50 cursor-not-allowed"
+                      )}
+                    >
+                      {isSending || isUploading ? (
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                      ) : (
+                        <Send className="h-5 w-5" />
+                      )}
+                    </button>
                   </div>
-                </div>
-              )}
+                </form>
+              </div>
             </div>
           </div>
         </div>
