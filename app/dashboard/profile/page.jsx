@@ -18,6 +18,7 @@ import {
 } from "lucide-react"
 import { format } from "date-fns"
 import { AddBalanceSheet } from "@/app/components/add-balance-sheet"
+import { UserReviews } from "./user-reviews"
 
 export default function ProfilePage() {
   const router = useRouter()
@@ -736,6 +737,9 @@ export default function ProfilePage() {
           </Card>
         </TabsContent>
       </Tabs>
+      
+      {/* Add the UserReviews component at the bottom of the page */}
+      <UserReviews />
     </div>
   )
 }

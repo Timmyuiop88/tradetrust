@@ -19,6 +19,8 @@ import { useCountdown } from "@/app/hooks/useCountdown"
 import { Input } from "@/app/components/input"
 import { Label } from "@/app/components/label"
 import { Textarea } from "@/app/components/textarea"
+import { ReviewForm } from "@/app/components/review-form"
+import prisma from "@/lib/prisma"
 
 export default function OrderDetailPage() {
   const router = useRouter()
@@ -40,6 +42,8 @@ export default function OrderDetailPage() {
   const [disputeDescription, setDisputeDescription] = useState('')
   const [isSubmittingDispute, setIsSubmittingDispute] = useState(false)
   const [disputeDetails, setDisputeDetails] = useState(null)
+  const [showReviewForm, setShowReviewForm] = useState(false)
+  const [hasReviewed, setHasReviewed] = useState(false)
   
   // Get the countdown timer for seller deadline
   const { minutes, seconds, isExpired: isSellerDeadlineExpired } = 
@@ -99,6 +103,31 @@ export default function OrderDetailPage() {
     const interval = setInterval(() => fetchOrder(false), 15000)
     return () => clearInterval(interval)
   }, [fetchOrder])
+  
+  // Check if the order is completed and if the user has already reviewed
+  useEffect(() => {
+    if (order && order.status === 'COMPLETED' && !hasReviewed && session?.user?.id === order.buyerId) {
+      // Check if the user has already reviewed this order
+      const checkReview = async () => {
+        try {
+          const response = await fetch(`/api/reviews?userId=${order.listing.sellerId}`);
+          if (response.ok) {
+            const data = await response.json();
+            const hasReviewed = data.reviews.some(review => 
+              review.listing.id === order.listingId && review.reviewer.id === session.user.id
+            );
+            
+            setHasReviewed(hasReviewed);
+            setShowReviewForm(!hasReviewed);
+          }
+        } catch (error) {
+          console.error("Error checking review status:", error);
+        }
+      };
+      
+      checkReview();
+    }
+  }, [order, session]);
   
   const handleCopyOrderId = () => {
     navigator.clipboard.writeText(order.id)
@@ -830,6 +859,29 @@ export default function OrderDetailPage() {
               </div>
             </form>
           </div>
+        </div>
+      )}
+      
+      {/* Review Form Dialog */}
+      {showReviewForm && order && (
+        <ReviewForm 
+          order={order} 
+          onClose={() => setShowReviewForm(false)} 
+        />
+      )}
+      
+      {/* Add a button to leave a review if the order is completed and the user is the buyer */}
+      {order && order.status === 'COMPLETED' && session?.user?.id === order.buyerId && hasReviewed && (
+        <div className="mt-6 text-center">
+          <p className="text-green-600 mb-2">Thank you for your review!</p>
+        </div>
+      )}
+      
+      {order && order.status === 'COMPLETED' && session?.user?.id === order.buyerId && !showReviewForm && !hasReviewed && (
+        <div className="mt-6 text-center">
+          <Button onClick={() => setShowReviewForm(true)}>
+            Leave a Review
+          </Button>
         </div>
       )}
     </div>

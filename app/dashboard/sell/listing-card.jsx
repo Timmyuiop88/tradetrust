@@ -23,4 +23,23 @@ export function ListingCard({ listing }) {
       </CardFooter>
     </Card>
   );
+}
+
+export function ListingCardSkeleton() {
+  return (
+    <Card className="overflow-hidden h-full flex flex-col">
+      <CardContent className="flex-grow p-4 flex items-center justify-between">
+        <div className="w-3/4">
+          <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded mb-2 animate-pulse"></div>
+          <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-full animate-pulse"></div>
+          <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-2/3 mt-1 animate-pulse"></div>
+        </div>
+        <div className="h-6 w-16 bg-gray-200 dark:bg-gray-700 rounded-full animate-pulse"></div>
+      </CardContent>
+      <CardFooter className="p-4 pt-0 flex justify-between items-center">
+        <div className="h-5 w-20 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+        <div className="h-4 w-28 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+      </CardFooter>
+    </Card>
+  );
 } 

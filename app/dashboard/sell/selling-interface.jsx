@@ -7,6 +7,8 @@ import { useRouter } from "next/navigation"
 import { useQuery } from "@tanstack/react-query"
 import { useSession } from "next-auth/react"
 import { ListingCard } from "./listing-card"
+import { Skeleton } from "@/app/components/skeleton"
+import { ListingCardSkeleton } from "./listing-card"
 
 async function fetchSellerListings(sellerId) {
   const response = await fetch(`/api/listings/seller?sellerId=${sellerId}`)
@@ -60,8 +62,10 @@ export function SellingInterface() {
         </CardHeader>
         <CardContent>
           {isLoading && (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {[...Array(4)].map((_, index) => (
+                <ListingCardSkeleton key={index} />
+              ))}
             </div>
           )}
 

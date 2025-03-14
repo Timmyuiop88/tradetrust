@@ -79,7 +79,7 @@ export default function CreateListingPage() {
       }
       
       const data = await response.json()
-      router.push(`/dashboard/sell/listings/${data.id}`)
+      router.push(`/dashboard/listings/${data.id}`)
     } catch (err) {
       setError(err.message || 'Something went wrong')
     } finally {
