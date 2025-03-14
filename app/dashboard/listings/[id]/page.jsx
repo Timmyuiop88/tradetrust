@@ -31,7 +31,7 @@ import { Badge } from "@/app/components/badge"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/app/components/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/tabs"
 import { formatDistanceToNow } from "date-fns"
-import { toast } from "sonner"
+import { toast } from "@/app/components/custom-toast"
 import { useInView } from "react-intersection-observer"
 import { cn } from "@/app/lib/utils"
 import { AddBalanceSheet } from "@/app/components/add-balance-sheet"
@@ -110,10 +110,14 @@ export default function ListingDetailsPage() {
   useEffect(() => {
     const fetchListing = async () => {
       try {
+        setLoading(true)
         const response = await fetch(`/api/listings/${id}`)
+        
         if (!response.ok) {
-          throw new Error('Failed to fetch listing')
+          const errorData = await response.json()
+          throw new Error(errorData.error || 'Failed to fetch listing')
         }
+        
         const data = await response.json()
         setListing(data)
         
@@ -123,10 +127,14 @@ export default function ListingDetailsPage() {
           if (favResponse.ok) {
             const { isFavorite } = await favResponse.json();
             setIsFavorite(isFavorite);
+          } else {
+            const errorData = await favResponse.json();
+            toast.error(errorData.error || 'Failed to check favorite status');
           }
         }
       } catch (err) {
         setError(err.message || 'Something went wrong')
+        toast.error(err.message || 'Failed to load listing details')
       } finally {
         setLoading(false)
       }
@@ -173,10 +181,12 @@ export default function ListingDetailsPage() {
       } else {
         // Handle insufficient funds error specifically
         if (data.error === 'Insufficient funds in your buying balance' && data.currentBalance !== undefined) {
+          toast.error(data.error || 'Failed to create order')
           setInsufficientFunds(true)
           setCurrentBalance(data.currentBalance)
           setRequiredAmount(data.required)
           setIsAddBalanceOpen(true)
+         
         } else {
           toast.error(data.error || 'Failed to create order')
         }

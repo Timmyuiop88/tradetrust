@@ -1,46 +1,59 @@
-import { PrismaClient } from "@prisma/client"
-import bcrypt from "bcryptjs"
-import { NextResponse } from "next/server"
+import { NextResponse } from 'next/server'
+import { prisma } from '@/lib/prisma'
+import bcrypt from 'bcryptjs'
 
-const prisma = new PrismaClient()
-
-export async function POST(req) {
+export async function POST(request) {
   try {
-    const { email, password } = await req.json()
-
-    // Check if user exists
-    const existingUser = await prisma.user.findUnique({
-      where: { email }
-    })
-
-    if (existingUser) {
+    const body = await request.json()
+    const { email, password, firstName, lastName } = body
+    
+    // Validate inputs
+    if (!email || !password) {
       return NextResponse.json(
-        { error: "Email already exists" },
+        { error: 'Email and password are required' },
         { status: 400 }
       )
     }
-
+    
+    // Check if user already exists
+    const existingUser = await prisma.user.findUnique({
+      where: { email }
+    })
+    
+    if (existingUser) {
+      return NextResponse.json(
+        { error: 'User with this email already exists' },
+        { status: 400 }
+      )
+    }
+    
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10)
-
+    
     // Create user
     const user = await prisma.user.create({
       data: {
         email,
         password: hashedPassword,
-        role: "USER"
+        firstName,
+        lastName,
+        Balance: {
+          create: {
+            buyingBalance: 0,
+            sellingBalance: 0
+          }
+        }
       }
     })
-
-    return NextResponse.json({
-      id: user.id,
-      email: user.email,
-      role: user.role
-    })
+    
+    // Remove password from response
+    const { password: _, ...userWithoutPassword } = user
+    
+    return NextResponse.json(userWithoutPassword)
   } catch (error) {
-    console.error("Signup error:", error)
+    console.error('Error during signup:', error)
     return NextResponse.json(
-      { error: "Something went wrong" },
+      { error: 'An error occurred during signup' },
       { status: 500 }
     )
   }

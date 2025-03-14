@@ -10,6 +10,8 @@ datasource db {
 model User {
   id                   String              @id @default(uuid())
   email                String              @unique
+  firstName            String?
+  lastName             String?
   password             String
   role                 Role                @default(USER)
   isEmailVerified      Boolean             @default(false)
@@ -330,6 +332,7 @@ enum ListingStatus {
   AVAILABLE
   SOLD
   INACTIVE
+  DISPUTED
 }
 
 enum OrderStatus {

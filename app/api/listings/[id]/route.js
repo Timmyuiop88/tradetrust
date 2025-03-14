@@ -12,16 +12,18 @@ export async function GET(request, { params }) {
     const userFields = {
       id: true,
       email: true,
-     
+      firstName: true,
+      lastName: true,
       createdAt: true
     }
     
     try {
       await prisma.user.findFirst({
-        select: { name: true },
+        select: { firstName: true, lastName: true },
         take: 1
       })
-      userFields.name = true
+      userFields.firstName = true
+      userFields.lastName = true
     } catch (error) {
       console.log('Name field not available in User model')
     }

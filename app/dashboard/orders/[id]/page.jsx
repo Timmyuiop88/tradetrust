@@ -170,8 +170,14 @@ export default function OrderDetailPage() {
   const handleCredentialSubmit = async (e) => {
     e.preventDefault()
     
-    if (!credentials.email || !credentials.password) {
-      toast.error('Email and password are required')
+    // Enhanced validation
+    if (!credentials.email.trim()) {
+      toast.error('Account email/username is required')
+      return
+    }
+    
+    if (!credentials.password.trim()) {
+      toast.error('Account password is required')
       return
     }
     
@@ -182,7 +188,11 @@ export default function OrderDetailPage() {
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(credentials)
+        body: JSON.stringify({
+          email: credentials.email.trim(),
+          password: credentials.password.trim(),
+          additionalInfo: credentials.additionalInfo.trim() || null
+        })
       })
       
       if (response.ok) {
@@ -650,20 +660,7 @@ export default function OrderDetailPage() {
         </CardContent>
         
         <CardFooter className="flex flex-col gap-3">
-          {/* Seller Actions */}
-          {isSeller && order.status === 'WAITING_FOR_SELLER' && (
-            <Button 
-              className="w-full" 
-              onClick={handleReleaseCredentials}
-              disabled={releasing}
-            >
-              {releasing ? (
-                <>Loading...</>
-              ) : (
-                <>Release Account Details</>
-              )}
-            </Button>
-          )}
+        
           
           {/* Buyer Actions */}
           {isBuyer && order.status === 'WAITING_FOR_BUYER' && (

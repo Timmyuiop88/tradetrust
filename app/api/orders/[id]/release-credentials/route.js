@@ -40,8 +40,18 @@ export async function POST(request, { params }) {
       }, { status: 400 })
     }
     
-    // Get credentials from request body
-    const { email, password, additionalInfo } = await request.json()
+    // Get credentials from request body with error handling
+    let email, password, additionalInfo;
+    try {
+      const body = await request.json();
+      email = body.email;
+      password = body.password;
+      additionalInfo = body.additionalInfo;
+    } catch (error) {
+      return NextResponse.json({ 
+        error: 'Invalid request body. Please provide valid JSON data.' 
+      }, { status: 400 })
+    }
     
     if (!email || !password) {
       return NextResponse.json({ error: 'Email and password are required' }, { status: 400 })
