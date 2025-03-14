@@ -234,6 +234,12 @@ export async function POST(request) {
       },
     });
 
+    // Update the listing status to DISPUTED
+    await prisma.listing.update({
+      where: { id: order.listingId },
+      data: { status: 'DISPUTED' },
+    });
+
     // Update the order status to DISPUTED
     await prisma.order.update({
       where: { id: orderId },
