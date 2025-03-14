@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useUser } from "@/app/hooks/useUser"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/app/components/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/tabs"
@@ -13,6 +13,17 @@ import { Button } from "@/app/components/button"
 export default function SettingsPage() {
   const { data: userData, isLoading } = useUser()
   const [activeTab, setActiveTab] = useState("account")
+
+  // Check for hash in URL and set active tab accordingly
+  useEffect(() => {
+    // Get the hash from the URL (e.g., #payment)
+    const hash = window.location.hash.replace('#', '');
+    
+    // If hash exists and matches one of our tabs, set it as active
+    if (hash && ['account', 'payment', 'legal', 'logout'].includes(hash)) {
+      setActiveTab(hash);
+    }
+  }, []);
 
   if (isLoading) {
     return (
@@ -60,7 +71,7 @@ export default function SettingsPage() {
           </Card>
         </TabsContent>
         
-        <TabsContent value="payment">
+        <TabsContent value="payment" id="payment">
           <Card>
             <CardHeader>
               <CardTitle>Payment Methods</CardTitle>

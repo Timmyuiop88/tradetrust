@@ -13,7 +13,8 @@ import { Badge } from "@/app/components/badge"
 import { 
   User, Mail, Calendar, Shield, CheckCircle, XCircle, 
   AlertCircle, MapPin, FileText, CreditCard, Package, 
-  Settings, Edit, ExternalLink, Wallet, DollarSign, ArrowUpRight, ArrowDownRight, Clock
+  Settings, Edit, ExternalLink, Wallet, DollarSign, ArrowUpRight, ArrowDownRight, Clock,
+  Wallet2
 } from "lucide-react"
 import { format } from "date-fns"
 import { AddBalanceSheet } from "@/app/components/add-balance-sheet"
@@ -440,7 +441,7 @@ export default function ProfilePage() {
                 <Button 
                   variant="outline" 
                   className="h-auto flex-col items-center justify-center py-4 gap-2"
-                  onClick={() => router.push('/dashboard/listings/new')}
+                  onClick={() => router.push('/dashboard/sell')}
                 >
                   <Package className="h-6 w-6 text-primary" />
                   <span>Create Listing</span>
@@ -458,10 +459,10 @@ export default function ProfilePage() {
                 <Button 
                   variant="outline" 
                   className="h-auto flex-col items-center justify-center py-4 gap-2"
-                  onClick={() => setActiveTab("kyc")}
+                  onClick={() => router.push('/dashboard/settings#payment')}
                 >
-                  <Shield className="h-6 w-6 text-primary" />
-                  <span>KYC Verification</span>
+                  <Wallet2 className="h-6 w-6 text-primary" />
+                  <span>Payment Methods</span>
                 </Button>
               </div>
             </CardContent>
