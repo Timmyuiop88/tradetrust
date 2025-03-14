@@ -159,73 +159,83 @@ export default function ChatPage() {
 
   // Create a more sophisticated message processing function
   const processMessages = useCallback((realMessages, pendingMessages) => {
-    // Create a map to track seen message IDs
-    const seenIds = new Map();
+    // Create a map for tracking unique messages
+    const uniqueMessages = new Map();
     
-    // Process real messages first (they take precedence)
-    const realMessagesList = (realMessages || []).map(msg => ({
-      ...msg,
-      _source: 'server',
-      _key: `server-${msg.id}`
-    }));
-    
-    // Process pending messages
-    const pendingMessagesList = (pendingMessages || []).map(msg => ({
-      ...msg,
-      _source: 'pending',
-      _key: `pending-${msg.id}`
-    }));
-    
-    // Combine all messages
-    const allMessages = [...realMessagesList, ...pendingMessagesList];
+    // Process all messages
+    const allMessages = [
+      ...(realMessages || []).map(msg => ({
+        ...msg,
+        _source: 'server',
+        _key: `server-${msg.id}`
+      })),
+      ...(pendingMessages || []).map(msg => ({
+        ...msg,
+        _source: 'pending',
+        _key: `pending-${msg.id}`
+      }))
+    ];
     
     // Sort by creation time
     allMessages.sort((a, b) => 
       new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
     );
     
-    // Filter out duplicates with a sophisticated approach
-    const uniqueMessages = [];
+    // First pass: identify and mark duplicates
+    const messageMap = new Map();
     
-    for (const message of allMessages) {
-      // If we've seen this exact ID before, skip it
-      if (seenIds.has(message.id)) continue;
+    allMessages.forEach(message => {
+      // For messages with images, extract the text content for comparison
+      let compareContent = message.content;
+      let hasImage = false;
       
-      // Mark this ID as seen
-      seenIds.set(message.id, true);
-      
-      // For pending messages that have been sent successfully, check if they exist in real messages
-      if (message._source === 'pending' && !message.isPending && !message.isFailed) {
-        // Look for a matching real message with similar content and timestamp
-        const matchingRealMessage = realMessagesList.find(rm => 
-          rm.content === message.content && 
-          Math.abs(new Date(rm.createdAt).getTime() - new Date(message.createdAt).getTime()) < 5000
-        );
-        
-        // If we found a matching real message, skip this pending message
-        if (matchingRealMessage) continue;
+      if (message.content && message.content.includes('[IMAGE]')) {
+        hasImage = true;
+        compareContent = message.content.replace(/\[IMAGE\].*?\[\/IMAGE\]/, '').trim();
       }
       
-      // For real messages, check if there's a pending version with the same content
-      if (message._source === 'server') {
-        // Look for a matching pending message with similar content and timestamp
-        const matchingPendingMessage = pendingMessagesList.find(pm => 
-          pm.content === message.content && 
-          Math.abs(new Date(pm.createdAt).getTime() - new Date(message.createdAt).getTime()) < 5000
-        );
-        
-        // If we found a matching pending message, skip this real message if the pending one is already in our list
-        if (matchingPendingMessage && uniqueMessages.some(um => um.id === matchingPendingMessage.id)) continue;
+      // Create a key that ignores the image URL but considers the text and sender
+      const key = `${compareContent}-${message.senderId}-${hasImage}`;
+      
+      if (!messageMap.has(key)) {
+        messageMap.set(key, []);
       }
       
-      // This message passed all our checks, add it to the unique list
-      uniqueMessages.push(message);
-    }
+      messageMap.get(key).push(message);
+    });
     
-    return uniqueMessages;
+    // Second pass: select the best message from each group
+    messageMap.forEach((messages, key) => {
+      // If there's only one message with this key, use it
+      if (messages.length === 1) {
+        uniqueMessages.set(messages[0]._key, messages[0]);
+        return;
+      }
+      
+      // If we have multiple messages, prefer server messages over pending ones
+      const serverMessages = messages.filter(m => m._source === 'server');
+      if (serverMessages.length > 0) {
+        // Use the most recent server message
+        const mostRecentServerMessage = serverMessages.reduce((latest, current) => 
+          new Date(current.createdAt) > new Date(latest.createdAt) ? current : latest
+        );
+        uniqueMessages.set(mostRecentServerMessage._key, mostRecentServerMessage);
+      } else {
+        // If no server messages, use the most recent pending message
+        const mostRecentPendingMessage = messages.reduce((latest, current) => 
+          new Date(current.createdAt) > new Date(latest.createdAt) ? current : latest
+        );
+        uniqueMessages.set(mostRecentPendingMessage._key, mostRecentPendingMessage);
+      }
+    });
+    
+    // Convert back to array and sort
+    return Array.from(uniqueMessages.values()).sort((a, b) => 
+      new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+    );
   }, []);
 
-  // Update the handleSendMessage function
+  // Update the handleSendMessage function to better handle image uploads
   const handleSendMessage = useCallback(async (e) => {
     e.preventDefault();
     
@@ -248,17 +258,17 @@ export default function ChatPage() {
       isRead: false
     };
     
-    // Add image to temporary message if present
-    if (selectedImage && imagePreview) {
-      tempMessage.content = `${tempMessage.content}\n\n[IMAGE]${imagePreview}[/IMAGE]`;
-    }
-    
     // Store message content before clearing form
     const messageContent = newMessage;
     
     // Clear form early for better UX
     setNewMessage('');
-    removeSelectedImage();
+    
+    // Add image to temporary message if present
+    if (selectedImage && imagePreview) {
+      tempMessage.content = `${tempMessage.content}\n\n[IMAGE]${imagePreview}[/IMAGE]`;
+      tempMessage.hasLocalImage = true; // Flag to identify messages with local images
+    }
     
     // Add temporary message immediately
     setPendingMessages(prev => [...prev, tempMessage]);
@@ -274,6 +284,9 @@ export default function ChatPage() {
         imageUrl = await uploadImage(selectedImage);
         setIsUploading(false);
       }
+      
+      // Remove selected image after upload
+      removeSelectedImage();
       
       // Prepare message content
       const finalContent = imageUrl 
@@ -302,9 +315,11 @@ export default function ChatPage() {
           msg.id === tempId 
             ? { 
                 ...msg, 
+                content: finalContent, // Update with the real content including server image URL
                 realId: result?.id,
                 isPending: false,
-                isSent: true
+                isSent: true,
+                hasLocalImage: false // Clear the local image flag
               } 
             : msg
         )
@@ -322,10 +337,19 @@ export default function ChatPage() {
             if (pm.isPending) return true;
             
             // For sent messages, check if they exist in real messages
-            const matchingRealMessage = messages.data?.messages?.some(rm => 
-              rm.content === pm.content && 
-              Math.abs(new Date(rm.createdAt).getTime() - new Date(pm.createdAt).getTime()) < 5000
-            );
+            const matchingRealMessage = messages.data?.messages?.some(rm => {
+              // For messages with images, compare without the image part
+              if (pm.hasLocalImage || rm.content.includes('[IMAGE]')) {
+                const pmTextContent = pm.content.replace(/\[IMAGE\].*?\[\/IMAGE\]/, '').trim();
+                const rmTextContent = rm.content.replace(/\[IMAGE\].*?\[\/IMAGE\]/, '').trim();
+                return rmTextContent === pmTextContent && 
+                  Math.abs(new Date(rm.createdAt).getTime() - new Date(pm.createdAt).getTime()) < 5000;
+              }
+              
+              // For regular messages, compare the full content
+              return rm.content === pm.content && 
+                Math.abs(new Date(rm.createdAt).getTime() - new Date(pm.createdAt).getTime()) < 5000;
+            });
             
             // Keep if no matching real message found
             return !matchingRealMessage;
@@ -343,7 +367,7 @@ export default function ChatPage() {
     } finally {
       setIsSending(false);
     }
-  }, [newMessage, selectedImage, imagePreview, isSending, orderId, session, activeDispute?.id, uploadImage, sendMessage, order]);
+  }, [newMessage, selectedImage, imagePreview, isSending, orderId, session, activeDispute?.id, uploadImage, sendMessage, order, messages.data?.messages]);
 
   // Determine the other user based on the order details
   const otherUser = order ? 
@@ -604,8 +628,6 @@ export default function ChatPage() {
                 );
               })}
             </AnimatePresence>
-            
-         
             
             <div ref={messagesEndRef} />
           </div>

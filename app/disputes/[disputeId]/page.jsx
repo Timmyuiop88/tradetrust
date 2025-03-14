@@ -9,7 +9,7 @@ import {
   AlertCircle, ArrowLeft, Clock, Loader2, Shield, X, Send, 
   CheckCircle, XCircle, AlertTriangle, HelpCircle, FileText,
   Camera, PaperclipIcon, MessageSquare, User, UserCheck, RefreshCw,
-  ShoppingBag, Circle,Image as ImageIcon
+  ShoppingBag, Circle,Image as ImageIcon, Maximize2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useChat } from '@/app/hooks/useChat';
@@ -222,45 +222,60 @@ const MessageList = React.memo(({ messages, pendingMessages, session }) => {
       new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
     );
     
-    // Filter out duplicates with a sophisticated approach
+    // First pass: identify and mark duplicates
+    const messageMap = new Map();
+    
+    allMessages.forEach(message => {
+      // For messages with images, extract the text content for comparison
+      let compareContent = message.content;
+      let hasImage = false;
+      
+      if (message.content && message.content.includes('[IMAGE]')) {
+        hasImage = true;
+        compareContent = message.content.replace(/\[IMAGE\].*?\[\/IMAGE\]/, '').trim();
+      }
+      
+      // Create a key that ignores the image URL but considers the text and sender
+      const key = `${compareContent}-${message.senderId}-${hasImage}`;
+      
+      if (!messageMap.has(key)) {
+        messageMap.set(key, []);
+      }
+      
+      messageMap.get(key).push(message);
+    });
+    
+    // Second pass: select the best message from each group
     const uniqueMessages = [];
     
-    for (const message of allMessages) {
-      // If we've seen this exact ID before, skip it
-      if (seenIds.has(message.id)) continue;
-      
-      // Mark this ID as seen
-      seenIds.set(message.id, true);
-      
-      // For pending messages that have been sent successfully, check if they exist in real messages
-      if (message._source === 'pending' && !message.isPending && !message.isFailed) {
-        // Look for a matching real message with similar content and timestamp
-        const matchingRealMessage = realMessages.find(rm => 
-          rm.content === message.content && 
-          Math.abs(new Date(rm.createdAt).getTime() - new Date(message.createdAt).getTime()) < 5000
-        );
-        
-        // If we found a matching real message, skip this pending message
-        if (matchingRealMessage) continue;
+    messageMap.forEach((messages, key) => {
+      // If there's only one message with this key, use it
+      if (messages.length === 1) {
+        uniqueMessages.push(messages[0]);
+        return;
       }
       
-      // For real messages, check if there's a pending version with the same content
-      if (message._source === 'server') {
-        // Look for a matching pending message with similar content and timestamp
-        const matchingPendingMessage = tempMessages.find(pm => 
-          pm.content === message.content && 
-          Math.abs(new Date(pm.createdAt).getTime() - new Date(message.createdAt).getTime()) < 5000
+      // If we have multiple messages, prefer server messages over pending ones
+      const serverMessages = messages.filter(m => m._source === 'server');
+      if (serverMessages.length > 0) {
+        // Use the most recent server message
+        const mostRecentServerMessage = serverMessages.reduce((latest, current) => 
+          new Date(current.createdAt) > new Date(latest.createdAt) ? current : latest
         );
-        
-        // If we found a matching pending message, skip this real message if the pending one is already in our list
-        if (matchingPendingMessage && uniqueMessages.some(um => um.id === matchingPendingMessage.id)) continue;
+        uniqueMessages.push(mostRecentServerMessage);
+      } else {
+        // If no server messages, use the most recent pending message
+        const mostRecentPendingMessage = messages.reduce((latest, current) => 
+          new Date(current.createdAt) > new Date(latest.createdAt) ? current : latest
+        );
+        uniqueMessages.push(mostRecentPendingMessage);
       }
-      
-      // This message passed all our checks, add it to the unique list
-      uniqueMessages.push(message);
-    }
+    });
     
-    return uniqueMessages;
+    // Sort the unique messages by creation time
+    return uniqueMessages.sort((a, b) => 
+      new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+    );
   }, [messages, pendingMessages]);
   
   return (
@@ -378,6 +393,7 @@ export default function DisputeDetailPage() {
   const [disputeCreationTime, setDisputeCreationTime] = useState(null);
   const [pendingMessages, setPendingMessages] = useState([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const fileInputRef = useRef(null);
 
   // Add the useDispute hook
   const { 
@@ -430,24 +446,29 @@ export default function DisputeDetailPage() {
 
   // Function to handle file selection
   const handleImageSelect = (e) => {
-    const file = e.target.files[0];
+    const file = e.target.files?.[0];
     if (!file) return;
-
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      toast.error('Please select an image file');
-      return;
-    }
-
-    // Validate file size (5MB max)
+    
+    // Check file size (limit to 5MB)
     if (file.size > 5 * 1024 * 1024) {
-      toast.error('Image size should be less than 5MB');
+      toast.error('Image size must be less than 5MB');
       return;
     }
-
+    
+    // Check file type
+    if (!file.type.startsWith('image/')) {
+      toast.error('Only image files are allowed');
+      return;
+    }
+    
     setSelectedImage(file);
-    const previewUrl = URL.createObjectURL(file);
-    setImagePreview(previewUrl);
+    
+    // Create a preview URL
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setImagePreview(e.target.result);
+    };
+    reader.readAsDataURL(file);
   };
 
   // Function to remove the selected file
@@ -559,21 +580,22 @@ export default function DisputeDetailPage() {
       });
       
       // Update the temporary message with the real message data
-      // But keep the original tempId to avoid key conflicts
       setPendingMessages(prev => 
         prev.map(msg => 
           msg.id === tempId 
             ? { 
                 ...msg, 
-                realId: result?.id, // Store the real ID separately
+                content: finalContent,
+                realId: result?.id,
                 isPending: false,
-                isSent: true
+                isSent: true,
+                hasLocalImage: false
               } 
             : msg
         )
       );
       
-      // After a short delay, clean up any duplicate messages
+      // And update the cleanup logic to handle image messages properly
       setTimeout(() => {
         setPendingMessages(prev => {
           // Keep only pending messages that don't have a matching real message
@@ -585,10 +607,19 @@ export default function DisputeDetailPage() {
             if (pm.isPending) return true;
             
             // For sent messages, check if they exist in real messages
-            const matchingRealMessage = chatMessagesData?.messages?.some(rm => 
-              rm.content === pm.content && 
-              Math.abs(new Date(rm.createdAt).getTime() - new Date(pm.createdAt).getTime()) < 5000
-            );
+            const matchingRealMessage = chatMessagesData?.messages?.some(rm => {
+              // For messages with images, compare without the image part
+              if (pm.hasLocalImage || rm.content.includes('[IMAGE]')) {
+                const pmTextContent = pm.content.replace(/\[IMAGE\].*?\[\/IMAGE\]/, '').trim();
+                const rmTextContent = rm.content.replace(/\[IMAGE\].*?\[\/IMAGE\]/, '').trim();
+                return rmTextContent === pmTextContent && 
+                  Math.abs(new Date(rm.createdAt).getTime() - new Date(pm.createdAt).getTime()) < 5000;
+              }
+              
+              // For regular messages, compare the full content
+              return rm.content === pm.content && 
+                Math.abs(new Date(rm.createdAt).getTime() - new Date(pm.createdAt).getTime()) < 5000;
+            });
             
             // Keep if no matching real message found
             return !matchingRealMessage;
@@ -781,18 +812,32 @@ export default function DisputeDetailPage() {
                   </h3>
                 </div>
                 
-                {/* Refresh button */}
-                <button 
-                  onClick={handleManualRefresh}
-                  className={cn(
-                    "p-2 rounded-full hover:bg-muted transition-colors",
-                    isRefreshing && "animate-spin text-primary"
-                  )}
-                  disabled={isRefreshing}
-                  aria-label="Refresh messages"
-                >
-                  <RefreshCw className="h-4 w-4" />
-                </button>
+                {/* Action buttons */}
+                <div className="flex items-center gap-2">
+                  {/* Full screen chat button */}
+                  <Link
+                    href={`/chat/${disputeData?.orderId}`}
+                    className={cn(
+                      "p-2 rounded-full hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+                    )}
+                    aria-label="Open full chat"
+                  >
+                    <Maximize2 className="h-4 w-4" />
+                  </Link>
+                  
+                  {/* Refresh button */}
+                  <button 
+                    onClick={handleManualRefresh}
+                    className={cn(
+                      "p-2 rounded-full hover:bg-muted transition-colors",
+                      isRefreshing && "animate-spin text-primary"
+                    )}
+                    disabled={isRefreshing}
+                    aria-label="Refresh messages"
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
               
               {/* Messages container */}
@@ -893,6 +938,16 @@ export default function DisputeDetailPage() {
           </Link>
         </div>
       )}
+
+      {/* Hidden file input */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        className="hidden"
+        accept="image/*"
+        onChange={handleImageSelect}
+        disabled={isSending || isUploading || disputeData.status !== 'OPEN'}
+      />
     </div>
   );
 } 
