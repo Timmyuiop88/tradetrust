@@ -73,7 +73,8 @@ export async function POST(request, { params }) {
         }
       })
       
-      // Calculate seller amount (90% of order amount - 10% platform fee)
+      // Calculate fees
+      const platformFee = Number(order.price * 0.1) // 10% platform fee
       const sellerAmount = Number(order.price * 0.9)
       
       // Update seller balance
@@ -86,7 +87,7 @@ export async function POST(request, { params }) {
         }
       })
       
-      // Record the transaction
+      // Record the seller's transaction
       await tx.transaction.create({
         data: {
           userId: order.sellerId,
@@ -95,7 +96,20 @@ export async function POST(request, { params }) {
           type: "SALE",
           status: "COMPLETED",
           description: `Sale of ${order.listing.platform?.name || 'account'} (after fees)`,
-          orderId: order.id
+          orderId: order.id,
+          fee: 0 // Seller's transaction doesn't show the fee
+        }
+      })
+      
+      // Update the buyer's purchase transaction to include the fee
+      await tx.transaction.update({
+        where: {
+          userId: order.buyerId,
+          orderId: order.id,
+          type: 'PURCHASE'
+        },
+        data: {
+          fee: platformFee
         }
       })
       

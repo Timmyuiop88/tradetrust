@@ -18,7 +18,9 @@ export async function GET(request) {
     const skip = (page - 1) * limit
     
     // Build where clause
-    const where = {}
+    const where = {
+      status: 'AVAILABLE'
+    }
     
     if (platform && platform !== 'All') {
       const platformRecord = await prisma.platform.findFirst({
@@ -45,52 +47,47 @@ export async function GET(request) {
       orderBy = { createdAt: 'desc' }
     }
     
-    // Get listings
-    const [listings, totalCount] = await Promise.all([
-      prisma.listing.findMany({
-        where,
-        orderBy,
-        skip,
-        take: limit,
-        include: {
-          platform: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
-          category: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
-          seller: {
-            select: {
-              id: true,
-              email: true,
-            },
-          },
+    // Get listings with subscription-based ordering
+    const listings = await prisma.listing.findMany({
+      where,
+      orderBy: [
+        { searchRanking: 'desc' },
+        { createdAt: 'desc' }
+      ],
+      skip,
+      take: limit,
+      include: {
+        platform: true,
+        seller: {
+          include: {
+            subscription: {
+              include: {
+                plan: true
+              }
+            }
+          }
         }
-      }),
-      prisma.listing.count({ where })
-    ])
+      }
+    })
     
-    // Transform the data to include userId
-    const transformedListings = listings.map(listing => ({
+    // Enhance listings with subscription features
+    const enhancedListings = listings.map(listing => ({
       ...listing,
-      userId: listing.sellerId,
-      userEmail: listing.seller.email,
-      seller: undefined,
+      seller: {
+        ...listing.seller,
+        isPremium: listing.seller.subscription?.plan.tier === 'PREMIUM',
+        isVerified: listing.seller.subscription?.plan.tier !== 'FREE'
+      }
     }))
     
     // Calculate pagination info
+    const totalCount = await prisma.listing.count({ where })
     const totalPages = Math.ceil(totalCount / limit)
     const hasNextPage = page < totalPages
     const nextPage = hasNextPage ? page + 1 : null
     
     return NextResponse.json({
-      listings: transformedListings,
+      listings: enhancedListings,
       pagination: {
         page,
         limit,
