@@ -19,6 +19,7 @@ import {
 import { format } from "date-fns"
 import { AddBalanceSheet } from "@/app/components/add-balance-sheet"
 import { UserReviews } from "./user-reviews"
+import { useSession } from "next-auth/react"
 
 export default function ProfilePage() {
   const router = useRouter()
@@ -31,6 +32,8 @@ export default function ProfilePage() {
   const [salesLoading, setSalesLoading] = useState(true)
   const [activityData, setActivityData] = useState(null)
   const [activityLoading, setActivityLoading] = useState(true)
+  const { data: session } = useSession()
+  const userId = session?.user?.id
   
   // Define formatDate function at the top level
   const formatDate = (dateString) => {
@@ -796,8 +799,10 @@ export default function ProfilePage() {
         </TabsContent>
       </Tabs>
       
-      {/* Add the UserReviews component at the bottom of the page */}
-      <UserReviews />
+      {/* Add the UserReviews component at the bottom of the page if has verified KYC */}
+      {userData.kyc && (
+        <UserReviews />
+      )}
     </div>
   )
 }
