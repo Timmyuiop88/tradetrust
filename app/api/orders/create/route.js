@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 import { addMinutes } from 'date-fns'
+import { SubscriptionService } from '@/lib/services/subscriptionService'
 
 export async function POST(request) {
   try {
@@ -18,11 +19,19 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Listing ID is required' }, { status: 400 })
     }
     
-    // Get the listing with seller info
+    // Get the listing with seller info and subscription
     const listing = await prisma.listing.findUnique({
       where: { id: listingId },
       include: { 
-        seller: true,
+        seller: {
+          include: {
+            Subscription: {
+              include: {
+                plan: true
+              }
+            }
+          }
+        },
         platform: true
       }
     })
@@ -56,39 +65,10 @@ export async function POST(request) {
     
     // Process the payment and create order in a transaction
     const result = await prisma.$transaction(async (tx) => {
-      // Deduct from buyer's buying balance
-      await tx.balance.update({
-        where: { userId: session.user.id },
-        data: {
-          buyingBalance: {
-            decrement: listing.price
-          }
-        }
-      })
-      
-      // Record the purchase transaction
-      await tx.transaction.create({
-        data: {
-          userId: session.user.id,
-          balanceId: userBalance.id,
-          listingId: listingId,
-          amount: -listing.price,
-          type: 'PURCHASE',
-          description: `Purchase of ${listing.platform.name} account`,
-          status: 'COMPLETED'
-        }
-      })
-      
-      // Update listing status to SOLD
-      await tx.listing.update({
-        where: { id: listingId },
-        data: { status: 'SOLD' }
-      })
-      
       // Set deadlines for seller and buyer
       const sellerDeadline = addMinutes(new Date(), 20) // 20 minutes for seller to provide details
       
-      // Create the order
+      // Create the order first so we have the orderId
       const order = await tx.order.create({
         data: {
           listingId,
@@ -101,6 +81,36 @@ export async function POST(request) {
           escrowReleased: false,
           sellerDeadline
         }
+      })
+      
+      // Deduct from buyer's buying balance
+      await tx.balance.update({
+        where: { userId: session.user.id },
+        data: {
+          buyingBalance: {
+            decrement: listing.price
+          }
+        }
+      })
+      
+      // Record the purchase transaction with orderId
+      await tx.transaction.create({
+        data: {
+          userId: session.user.id,
+          balanceId: userBalance.id,
+          listingId: listingId,
+          orderId: order.id, // Add the orderId reference
+          amount: -listing.price,
+          type: 'PURCHASE',
+          description: `Purchase of ${listing.platform.name} account`,
+          status: 'COMPLETED'
+        }
+      })
+      
+      // Update listing status to PENDING (not SOLD yet)
+      await tx.listing.update({
+        where: { id: listingId },
+        data: { status: 'PENDING' }
       })
       
       return { order, listing }
