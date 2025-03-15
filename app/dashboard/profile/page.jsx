@@ -20,6 +20,7 @@ import { format } from "date-fns"
 import { AddBalanceSheet } from "@/app/components/add-balance-sheet"
 import { UserReviews } from "./user-reviews"
 import { useSession } from "next-auth/react"
+import { CompactPlanIndicator } from "@/app/components/CompactPlanIndicator"
 
 export default function ProfilePage() {
   const router = useRouter()
@@ -265,10 +266,10 @@ export default function ProfilePage() {
               <p className="text-muted-foreground">{user.email}</p>
               <div className="flex flex-wrap gap-2 mt-2 justify-center md:justify-start">
                
-                <Badge className={`${isKycVerified ? "bg-green-500" : "bg-red-500"}`} variant={isKycVerified ? "success" : "outline"}>
+                <Badge  variant={isKycVerified ? "default" : "outline"}>
                   {isKycVerified ? "KYC Verified" : "KYC Incomplete"}
                 </Badge>
-                <Badge  className={`${isKycVerified ? "bg-green-500" : "bg-red-500"}`} variant={user.isEmailVerified ? "success" : "danger"}>
+                <Badge  variant={user.isEmailVerified ? "default" : "outline"}>
                   {user.isEmailVerified ? "Email Verified" : "Email Unverified"}
                 </Badge>
               </div>
@@ -285,6 +286,17 @@ export default function ProfilePage() {
           </div>
         </CardContent>
       </Card>
+
+      <Card className="mb-6">
+  <CardContent className="pt-6">
+    <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
+      {/* Existing avatar and user info */}
+      <div className="w-full">
+        <CompactPlanIndicator />
+      </div>
+    </div>
+  </CardContent>
+</Card>
 
       {/* Balance Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
