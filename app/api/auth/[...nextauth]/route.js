@@ -28,6 +28,8 @@ export const authOptions = {
         return {
           id: user.id,
           email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
           role: user.role,
           isKycVerified: user.isKycVerified || false,
           isEmailVerified: user.isEmailVerified || false
@@ -36,23 +38,27 @@ export const authOptions = {
     })
   ],
   callbacks: {
-    jwt: async ({ token, user }) => {
+    async jwt({ token, user }) {
       if (user) {
-        token.id = user.id;
-        token.role = user.role;
-        token.isKycVerified = user.isKycVerified;
-        token.isEmailVerified = user.isEmailVerified;
+        token.id = user.id
+        token.role = user.role
+        token.firstName = user.firstName
+        token.lastName = user.lastName
+        token.isEmailVerified = user.isEmailVerified
+        token.isKycVerified = user.isKycVerified
       }
-      return token;
+      return token
     },
-    session: async ({ session, token }) => {
+    async session({ session, token }) {
       if (token) {
-        session.user.id = token.id;
-        session.user.role = token.role;
-        session.user.isKycVerified = token.isKycVerified;
-        session.user.isEmailVerified = token.isEmailVerified;
+        session.user.id = token.id
+        session.user.role = token.role
+        session.user.firstName = token.firstName
+        session.user.lastName = token.lastName
+        session.user.isEmailVerified = token.isEmailVerified
+        session.user.isKycVerified = token.isKycVerified
       }
-      return session;
+      return session
     },
   },
   pages: {

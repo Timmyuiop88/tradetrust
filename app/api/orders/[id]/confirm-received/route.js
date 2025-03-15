@@ -17,11 +17,15 @@ export async function POST(request, { params }) {
       return NextResponse.json({ error: 'Order ID is required' }, { status: 400 })
     }
     
-    // Get the order
+    // Get the order with listing details
     const order = await prisma.order.findUnique({
       where: { id: orderId },
       include: {
-        listing: true
+        listing: {
+          include: {
+            platform: true
+          }
+        }
       }
     })
     
@@ -41,23 +45,43 @@ export async function POST(request, { params }) {
       }, { status: 400 })
     }
     
-    // Process the confirmation in a transaction
+    // Get seller's balance
+    const sellerBalance = await prisma.balance.findUnique({
+      where: { userId: order.sellerId }
+    })
+    
+    if (!sellerBalance) {
+      return NextResponse.json({ error: 'Seller balance not found' }, { status: 404 })
+    }
+    
+    // Execute transaction in a transaction to ensure atomicity
     const result = await prisma.$transaction(async (tx) => {
-      // Get seller's balance
-      const sellerBalance = await tx.balance.findUnique({
-        where: { userId: order.sellerId }
+      // Update order status
+      const updatedOrder = await tx.order.update({
+        where: { id: orderId },
+        data: {
+          status: 'COMPLETED',
+          completedAt: new Date()
+        }
       })
       
-      if (!sellerBalance) {
-        throw new Error('Seller balance not found')
-      }
+      // Update listing status
+      await tx.listing.update({
+        where: { id: order.listingId },
+        data: {
+          status: 'SOLD'
+        }
+      })
       
-      // Add funds to seller's selling balance
-      await tx.balance.update({
+      // Calculate seller amount (90% of order amount - 10% platform fee)
+      const sellerAmount = Number(order.price * 0.9)
+      
+      // Update seller balance
+      const updatedBalance = await tx.balance.update({
         where: { id: sellerBalance.id },
         data: {
           sellingBalance: {
-            increment: order.price
+            increment: sellerAmount
           }
         }
       })
@@ -65,30 +89,22 @@ export async function POST(request, { params }) {
       // Record the transaction
       await tx.transaction.create({
         data: {
+          userId: order.sellerId,
           balanceId: sellerBalance.id,
-          amount: order.price,
-          type: 'SALE',
-          description: `Sale of ${order.listing.title}`,
-          reference: order.id
+          amount: sellerAmount,
+          type: "SALE",
+          status: "COMPLETED",
+          description: `Sale of ${order.listing.platform?.name || 'account'} (after fees)`,
+          orderId: order.id
         }
       })
       
-      // Update order status
-      await tx.order.update({
-        where: { id: orderId },
-        data: {
-          status: 'COMPLETED',
-          escrowReleased: true,
-          updatedAt: new Date()
-        }
-      })
-      
-      return { success: true }
+      return { updatedOrder, updatedBalance }
     })
     
     return NextResponse.json({
       success: true,
-      message: 'Receipt confirmed and payment released to seller.'
+      message: 'Receipt confirmed and payment released to seller'
     })
   } catch (error) {
     console.error('Error confirming receipt:', error)

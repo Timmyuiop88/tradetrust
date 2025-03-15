@@ -6,7 +6,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { useState } from 'react'
 import { EdgeStoreProvider } from '@/app/lib/edgeStore'
-
+import { ToastProvider } from '@/app/components/custom-toast'
+import { Toaster } from 'sonner'
 // Configure React Query defaults
 const queryConfig = {
   defaultOptions: {
@@ -65,7 +66,10 @@ export function Providers({ children }) {
       <QueryClientProvider client={queryClient}>
         <ThemeProvider attribute="class" defaultTheme="dark">
           <EdgeStoreProvider>
-            {children}
+            <ToastProvider/>
+            <Toaster position="top-right" richColors closeButton />
+              {children}
+        
  
           </EdgeStoreProvider>
         </ThemeProvider>

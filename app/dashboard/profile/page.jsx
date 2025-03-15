@@ -187,27 +187,85 @@ export default function ProfilePage() {
     return name.split(" ").map(n => n[0]).join("").toUpperCase()
   }
 
+  // Helper function to get activity icon
+  const getActivityIcon = (type) => {
+    switch (type) {
+      case 'PURCHASE':
+        return <CreditCard className="h-5 w-5 text-blue-500" />;
+      case 'SALE':
+        return <DollarSign className="h-5 w-5 text-green-500" />;
+      case 'LISTING_CREATED':
+        return <Package className="h-5 w-5 text-purple-500" />;
+      case 'BALANCE_ADDED':
+        return <ArrowUpRight className="h-5 w-5 text-green-500" />;
+      case 'WITHDRAWAL':
+        return <ArrowDownRight className="h-5 w-5 text-amber-500" />;
+      case 'DISPUTE_OPENED':
+        return <AlertCircle className="h-5 w-5 text-red-500" />;
+      case 'DISPUTE_RESOLVED':
+        return <CheckCircle className="h-5 w-5 text-green-500" />;
+      default:
+        return <Clock className="h-5 w-5 text-primary" />;
+    }
+  };
+
+  // Helper function to get entity icon
+  const getEntityIcon = (entityType) => {
+    switch (entityType) {
+      case 'order':
+        return <CreditCard className="h-3 w-3" />;
+      case 'listing':
+        return <Package className="h-3 w-3" />;
+      case 'dispute':
+        return <AlertCircle className="h-3 w-3" />;
+      default:
+        return null;
+    }
+  };
+
+  // Helper function to get activity message
+  const getActivityMessage = (activity) => {
+    switch (activity.type) {
+      case 'PURCHASE':
+        return `Purchased ${activity.metadata?.listingTitle || 'an item'}`;
+      case 'SALE':
+        return `Sold ${activity.metadata?.listingTitle || 'an item'}`;
+      case 'LISTING_CREATED':
+        return `Created listing: ${activity.metadata?.listingTitle || 'New listing'}`;
+      case 'BALANCE_ADDED':
+        return `Added ${formatCurrency(activity.metadata?.amount)} to balance`;
+      case 'WITHDRAWAL':
+        return `Withdrew ${formatCurrency(activity.metadata?.amount)} from balance`;
+      case 'DISPUTE_OPENED':
+        return `Opened a dispute for order #${activity.entityId}`;
+      case 'DISPUTE_RESOLVED':
+        return `Dispute resolved for order #${activity.entityId}`;
+      default:
+        return activity.description || 'Activity recorded';
+    }
+  };
+
   return (
     <div className="max-w-4xl mx-auto py-8 px-0">
       {/* Profile Header */}
       <Card className="mb-6">
         <CardContent className="pt-6">
           <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
-            <Avatar className="h-24 w-24">
+            <Avatar className="h-24 w-24 p-5 border-2 border-primary">
               <AvatarImage src={user.image} alt={user.name || "User"} />
               <AvatarFallback><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" strokeWidth="0"></g><g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g><g id="SVGRepo_iconCarrier"> <path d="M11 21H5.6C5.03995 21 4.75992 21 4.54601 20.891C4.35785 20.7951 4.20487 20.6422 4.10899 20.454C4 20.2401 4 19.9601 4 19.4V17.6841C4 17.0485 4 16.7306 4.04798 16.4656C4.27087 15.2344 5.23442 14.2709 6.46558 14.048C6.5425 14.0341 6.6237 14.0242 6.71575 14.0172C6.94079 14 7.05331 13.9914 7.20361 14.0026C7.35983 14.0143 7.4472 14.0297 7.59797 14.0722C7.74302 14.1131 8.00429 14.2315 8.52682 14.4682C8.98953 14.6778 9.48358 14.8304 10 14.917M19.8726 15.2038C19.8044 15.2079 19.7357 15.21 19.6667 15.21C18.6422 15.21 17.7077 14.7524 17 14C16.2923 14.7524 15.3578 15.2099 14.3333 15.2099C14.2643 15.2099 14.1956 15.2078 14.1274 15.2037C14.0442 15.5853 14 15.9855 14 16.3979C14 18.6121 15.2748 20.4725 17 21C18.7252 20.4725 20 18.6121 20 16.3979C20 15.9855 19.9558 15.5853 19.8726 15.2038ZM15 7C15 9.20914 13.2091 11 11 11C8.79086 11 7 9.20914 7 7C7 4.79086 8.79086 3 11 3C13.2091 3 15 4.79086 15 7Z" stroke="#12b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"></path> </g></svg></AvatarFallback>
             </Avatar>
             <div className="flex-1 text-center md:text-left">
-              <h1 className="text-2xl font-bold">{user.name || user.kyc?.fullName || "User"}</h1>
+              <h1 className="text-2xl font-bold">{user.firstName && user.lastName 
+                      ? `${user.firstName} ${user.lastName}` 
+                      : user.kyc?.fullName || "User"}</h1>
               <p className="text-muted-foreground">{user.email}</p>
               <div className="flex flex-wrap gap-2 mt-2 justify-center md:justify-start">
-                <Badge variant={user.role === "ADMIN" ? "destructive" : "default"}>
-                  {user.role || "USER"}
-                </Badge>
-                <Badge variant={isKycVerified ? "success" : "outline"}>
+               
+                <Badge className={`${isKycVerified ? "bg-green-500" : "bg-red-500"}`} variant={isKycVerified ? "success" : "outline"}>
                   {isKycVerified ? "KYC Verified" : "KYC Incomplete"}
                 </Badge>
-                <Badge variant={user.isEmailVerified ? "success" : "outline"}>
+                <Badge  className={`${isKycVerified ? "bg-green-500" : "bg-red-500"}`} variant={user.isEmailVerified ? "success" : "danger"}>
                   {user.isEmailVerified ? "Email Verified" : "Email Unverified"}
                 </Badge>
               </div>
@@ -304,7 +362,11 @@ export default function ProfilePage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm text-muted-foreground">Full Name</p>
-                  <p className="font-medium">{user.name || user.kyc?.fullName || "Not provided"}</p>
+                  <p className="font-medium">
+                    {user.firstName && user.lastName 
+                      ? `${user.firstName} ${user.lastName}` 
+                      : user.kyc?.fullName || "Not provided"}
+                  </p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Email</p>
@@ -656,84 +718,80 @@ export default function ProfilePage() {
           </Card>
         </TabsContent>
         
-        <TabsContent value="activity">
+        <TabsContent value="activity" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Recent Activity</CardTitle>
-              <CardDescription>
-                Track your recent purchases, sales, and account activity
-              </CardDescription>
+              <CardTitle className="flex items-center gap-2">
+                <Clock className="h-5 w-5 text-primary" />
+                Recent Activity
+              </CardTitle>
             </CardHeader>
             <CardContent>
               {activityLoading ? (
                 <div className="space-y-4">
-                  {[...Array(5)].map((_, i) => (
-                    <div key={i} className="flex items-center gap-4">
-                      <div className="h-10 w-10 rounded-full bg-muted animate-pulse" />
-                      <div className="space-y-2 flex-1">
-                        <div className="h-4 w-1/3 bg-muted animate-pulse rounded" />
-                        <div className="h-3 w-1/2 bg-muted animate-pulse rounded" />
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} className="flex flex-col sm:flex-row gap-3 p-3 rounded-lg border animate-pulse">
+                      <div className="h-10 w-10 rounded-full bg-muted flex-shrink-0" />
+                      <div className="flex-1 space-y-2">
+                        <div className="h-4 bg-muted rounded w-3/4" />
+                        <div className="h-3 bg-muted rounded w-1/2" />
                       </div>
-                      <div className="h-6 w-20 bg-muted animate-pulse rounded" />
+                      <div className="h-4 bg-muted rounded w-20 mt-2 sm:mt-0" />
                     </div>
                   ))}
                 </div>
-              ) : activityData?.items?.length > 0 ? (
-                <div className="space-y-4">
-                  {activityData.items.map((item) => (
-                    <div key={item.id} className="flex items-start gap-4 py-3 border-b last:border-0">
-                      <div className={`h-10 w-10 rounded-full flex items-center justify-center ${getActivityIconBackground(item.type)}`}>
-                        {getActivityIcon(item.type)}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium">{item.title}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {item.description}
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {formatDate(item.timestamp)}
-                        </p>
-                      </div>
-                      {item.amount && (
-                        <div className={`font-medium ${item.amount > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                          {item.amount > 0 ? '+' : ''}{formatCurrency(item.amount)}
-                        </div>
-                      )}
-                      {item.status && (
-                        <Badge variant={getStatusVariant(item.status)}>
-                          {item.status}
-                        </Badge>
-                      )}
-                    </div>
-                  ))}
+              ) : !activityData?.items?.length ? (
+                <div className="text-center py-6">
+                  <p className="text-muted-foreground">No recent activity to display</p>
                 </div>
               ) : (
-                <div className="text-center py-8">
-                  <div className="mx-auto h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-3">
-                    <AlertCircle className="h-6 w-6 text-muted-foreground" />
-                  </div>
-                  <h3 className="font-medium mb-1">No activity yet</h3>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Your recent activity will appear here
-                  </p>
-                  <div className="flex gap-3 justify-center">
-                    <Button variant="outline" onClick={() => router.push('/marketplace')}>
-                      Browse Marketplace
-                    </Button>
-                    <Button onClick={() => router.push('/dashboard/listings/new')}>
-                      Create Listing
-                    </Button>
-                  </div>
+                <div className="space-y-3">
+                  {activityData.items.map((activity) => (
+                    <div 
+                      key={activity.id} 
+                      className="flex flex-col sm:flex-row items-start sm:items-center gap-3 p-3 rounded-lg border hover:bg-muted/50 transition-colors"
+                    >
+                      <div className="flex-shrink-0">
+                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                          {getActivityIcon(activity.type)}
+                        </div>
+                      </div>
+                      
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm sm:text-base truncate">
+                          {activity.title || getActivityMessage(activity)}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1 truncate">
+                          {activity.description}
+                          {activity.status && activity.status !== "COMPLETED" && (
+                            <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground">
+                              {activity.status}
+                            </span>
+                          )}
+                        </p>
+                      </div>
+                      
+                      <div className="text-xs text-muted-foreground mt-1 sm:mt-0 self-start sm:self-center whitespace-nowrap">
+                        {formatDate(activity.timestamp)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              
+              {activityData?.items?.length > 0 && (
+                <div className="mt-4 flex justify-center">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    className="w-full sm:w-auto"
+                    onClick={() => router.push('/dashboard/activity')}
+                  >
+                    View All Activity
+                  </Button>
                 </div>
               )}
             </CardContent>
-            {activityData?.items?.length > 0 && (
-              <CardFooter className="flex justify-center border-t pt-6">
-                <Button variant="outline" onClick={() => router.push('/dashboard/activity')}>
-                  View All Activity
-                </Button>
-              </CardFooter>
-            )}
           </Card>
         </TabsContent>
       </Tabs>
@@ -744,7 +802,6 @@ export default function ProfilePage() {
   )
 }
 
-// Helper functions for the activity tab
 function getActivityIcon(type) {
   switch (type) {
     case 'PURCHASE':
