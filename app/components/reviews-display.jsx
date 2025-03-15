@@ -72,7 +72,7 @@ export function ReviewsDisplay({ userId }) {
 
         {isLoading ? (
           <div className="flex justify-center py-8">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <div className="h-12 w-[100%] bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
           </div>
         ) : isError ? (
           <div className="text-center text-red-500 py-4">

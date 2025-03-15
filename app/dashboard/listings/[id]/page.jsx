@@ -24,7 +24,8 @@ import {
   Loader2,
   ChevronLeft,
   Info,
-  Lock
+  Lock,
+  AlertTriangle
 } from "lucide-react"
 import { Button } from "@/app/components/button"
 import { Badge } from "@/app/components/badge"
@@ -35,6 +36,7 @@ import { toast } from "@/app/components/custom-toast"
 import { useInView } from "react-intersection-observer"
 import { cn } from "@/app/lib/utils"
 import { AddBalanceSheet } from "@/app/components/add-balance-sheet"
+import { useCompletionRate } from "@/app/hooks/useCompletionRate"
 
 // Platform icons mapping
 const platformIcons = {
@@ -105,6 +107,11 @@ export default function ListingDetailsPage() {
   const [requiredAmount, setRequiredAmount] = useState(0)
   const [currentBalance, setCurrentBalance] = useState(0)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+
+  // Add this hook to fetch seller completion rate
+  const { stats: sellerStats, isLoading: isLoadingSellerStats, isSeller } = 
+    useCompletionRate(listing?.seller?.id);
 
   // Fetch listing data
   useEffect(() => {
@@ -251,10 +258,100 @@ export default function ListingDetailsPage() {
     }
   }
 
+  // Function to determine the color based on completion rate
+  const getCompletionRateColor = (rate) => {
+    if (rate >= 90) return "text-green-500";
+    if (rate >= 70) return "text-amber-500";
+    return "text-red-500";
+  };
+
+  // Function to determine the icon based on completion rate
+  const getCompletionRateIcon = (rate) => {
+    if (rate >= 70) return <CheckCircle className="h-4 w-4" />;
+    return <AlertTriangle className="h-4 w-4" />;
+  };
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="max-w-4xl mx-auto py-8 px-4">
+        {/* Skeleton for the header section */}
+        <div className="mb-6">
+          <div className="h-8 w-3/4 bg-gray-200 dark:bg-gray-700 rounded-md animate-pulse mb-2"></div>
+          <div className="h-4 w-1/2 bg-gray-200 dark:bg-gray-700 rounded-md animate-pulse"></div>
+        </div>
+        
+        {/* Skeleton for the main content card */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
+          <div className="p-6">
+            {/* Listing header skeleton */}
+            <div className="flex flex-col md:flex-row justify-between mb-6">
+              <div className="w-full md:w-2/3">
+                <div className="h-7 w-3/4 bg-gray-200 dark:bg-gray-700 rounded-md animate-pulse mb-3"></div>
+                <div className="h-4 w-1/2 bg-gray-200 dark:bg-gray-700 rounded-md animate-pulse"></div>
+              </div>
+              <div className="mt-4 md:mt-0">
+                <div className="h-10 w-32 bg-gray-200 dark:bg-gray-700 rounded-md animate-pulse"></div>
+              </div>
+            </div>
+            
+            {/* Listing details skeleton */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+              <div>
+                {/* Left column details */}
+                <div className="space-y-4">
+                  {[...Array(4)].map((_, i) => (
+                    <div key={i} className="space-y-2">
+                      <div className="h-4 w-24 bg-gray-200 dark:bg-gray-700 rounded-md animate-pulse"></div>
+                      <div className="h-5 w-40 bg-gray-200 dark:bg-gray-700 rounded-md animate-pulse"></div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div>
+                {/* Right column details */}
+                <div className="space-y-4">
+                  {[...Array(4)].map((_, i) => (
+                    <div key={i} className="space-y-2">
+                      <div className="h-4 w-24 bg-gray-200 dark:bg-gray-700 rounded-md animate-pulse"></div>
+                      <div className="h-5 w-40 bg-gray-200 dark:bg-gray-700 rounded-md animate-pulse"></div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+            
+            {/* Description skeleton */}
+            <div className="mb-6">
+              <div className="h-4 w-32 bg-gray-200 dark:bg-gray-700 rounded-md animate-pulse mb-3"></div>
+              <div className="space-y-2">
+                <div className="h-4 w-full bg-gray-200 dark:bg-gray-700 rounded-md animate-pulse"></div>
+                <div className="h-4 w-full bg-gray-200 dark:bg-gray-700 rounded-md animate-pulse"></div>
+                <div className="h-4 w-3/4 bg-gray-200 dark:bg-gray-700 rounded-md animate-pulse"></div>
+              </div>
+            </div>
+            
+            {/* Action buttons skeleton */}
+            <div className="flex flex-col sm:flex-row gap-3 mt-6">
+              <div className="h-10 w-full sm:w-1/3 bg-primary/20 rounded-md animate-pulse"></div>
+              <div className="h-10 w-full sm:w-1/3 bg-gray-200 dark:bg-gray-700 rounded-md animate-pulse"></div>
+            </div>
+          </div>
+        </div>
+        
+        {/* Skeleton for the seller info card */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+          <div className="p-6">
+            <div className="h-6 w-32 bg-gray-200 dark:bg-gray-700 rounded-md animate-pulse mb-4"></div>
+            <div className="flex items-center gap-4 mb-4">
+              <div className="h-12 w-12 rounded-full bg-gray-200 dark:bg-gray-700 animate-pulse"></div>
+              <div>
+                <div className="h-5 w-40 bg-gray-200 dark:bg-gray-700 rounded-md animate-pulse mb-2"></div>
+                <div className="h-4 w-24 bg-gray-200 dark:bg-gray-700 rounded-md animate-pulse"></div>
+              </div>
+            </div>
+            <div className="h-10 w-full bg-gray-200 dark:bg-gray-700 rounded-md animate-pulse mt-4"></div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -613,6 +710,7 @@ export default function ListingDetailsPage() {
                   </div>
                   <div>
                     <p className="font-medium">Verified Seller</p>
+                    <p className="text-sm text-muted-foreground cursor-pointer" onClick={() => router.push(`/dashboard/profile/${listing.seller.id}`)}>{listing.seller.email}</p>
                     <p className="text-sm text-muted-foreground">Member since {new Date().getFullYear()}</p>
                   </div>
                 </div>
@@ -622,10 +720,34 @@ export default function ListingDetailsPage() {
                     <Clock className="h-4 w-4 text-muted-foreground" />
                     <span>Fast Response</span>
                   </div>
-                  <div className="flex items-center gap-1.5">
-                    <Star className="h-4 w-4 text-yellow-500" />
-                    <span>High Rating</span>
-                  </div>
+                  {isLoadingSellerStats ? (
+                    <div className="flex items-center gap-1.5">
+                      <div className="h-4 w-4 bg-gray-200 dark:bg-gray-700 rounded-full animate-pulse"></div>
+                      <div className="h-4 w-20 bg-gray-200 dark:bg-gray-700 rounded-md animate-pulse"></div>
+                    </div>
+                  ) : sellerStats && isSeller ? (
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-1.5">
+                        <Star className="h-4 w-4 text-yellow-500" />
+                        <span className="font-medium">
+                          {sellerStats.averageRating ? 
+                            `${sellerStats.averageRating.toFixed(1)} Rating` : 
+                            "New Seller"}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        {getCompletionRateIcon(sellerStats.completionRate)}
+                        <span className={cn("text-xs", getCompletionRateColor(sellerStats.completionRate))}>
+                          {sellerStats.completionRate}% Completion
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1.5">
+                      <Star className="h-4 w-4 text-yellow-500" />
+                      <span>New Seller</span>
+                    </div>
+                  )}
                 </div>
                 
                 <Button variant="outline" className="w-full" onClick={handleContactSeller}>
