@@ -427,6 +427,7 @@ enum ListingStatus {
   SOLD
   INACTIVE
   DISPUTED
+  PENDING
 }
 
 enum OrderStatus {

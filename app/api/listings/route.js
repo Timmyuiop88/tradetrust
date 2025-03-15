@@ -6,61 +6,51 @@ import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url)
-    
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '10')
-    const platform = searchParams.get('platform')
+    const platform = searchParams.get('platform') || 'All'
     const sortBy = searchParams.get('sortBy') || 'createdAt'
     const order = searchParams.get('order') || 'desc'
-    const search = searchParams.get('search')
+    const search = searchParams.get('search') || ''
     
-    // Calculate pagination
     const skip = (page - 1) * limit
     
-    // Build where clause
+    // Build the where clause
     const where = {
-      status: 'AVAILABLE'
-    }
-    
-    if (platform && platform !== 'All') {
-      const platformRecord = await prisma.platform.findFirst({
-        where: { name: platform }
+      status: 'AVAILABLE',
+      ...(platform !== 'All' && { platformId: platform }),
+      ...(search && {
+        OR: [
+          { title: { contains: search, mode: 'insensitive' } },
+          { description: { contains: search, mode: 'insensitive' } }
+        ]
       })
-      
-      if (platformRecord) {
-        where.platformId = platformRecord.id
-      }
     }
     
-    if (search) {
-      where.OR = [
-        { username: { contains: search, mode: 'insensitive' } },
-        { description: { contains: search, mode: 'insensitive' } }
-      ]
+    // Build the orderBy clause based on sortBy and order
+    let orderBy = []
+    
+    // First, add the subscription tier-based ordering
+    // We'll use a join to get the seller's subscription plan tier
+    
+    // Then add the user-selected sorting
+    if (sortBy === 'price') {
+      orderBy.push({ price: order })
+    } else if (sortBy === 'createdAt') {
+      orderBy.push({ createdAt: order })
     }
     
-    // Build order by
-    let orderBy = {}
-    if (sortBy && order) {
-      orderBy[sortBy] = order.toLowerCase()
-    } else {
-      orderBy = { createdAt: 'desc' }
-    }
-    
-    // Get listings with subscription-based ordering
+    // Get listings with proper includes for subscription data
     const listings = await prisma.listing.findMany({
       where,
-      orderBy: [
-        { searchRanking: 'desc' },
-        { createdAt: 'desc' }
-      ],
+      orderBy,
       skip,
       take: limit,
       include: {
         platform: true,
         seller: {
           include: {
-            subscription: {
+            Subscription: {
               include: {
                 plan: true
               }
@@ -70,31 +60,57 @@ export async function GET(request) {
       }
     })
     
-    // Enhance listings with subscription features
-    const enhancedListings = listings.map(listing => ({
-      ...listing,
-      seller: {
-        ...listing.seller,
-        isPremium: listing.seller.subscription?.plan.tier === 'PREMIUM',
-        isVerified: listing.seller.subscription?.plan.tier !== 'FREE'
+    // Post-process the listings to apply subscription-based ranking
+    const processedListings = listings.map(listing => {
+      // Add a virtual field for featured status
+      const isFeatured = listing.featured || false
+      
+      // Get the seller's plan tier (default to FREE if not found)
+      const planTier = listing.seller?.subscription?.plan?.tier || 'FREE'
+      
+      // Add plan tier info to the listing
+      return {
+        ...listing,
+        isFeatured,
+        sellerPlanTier: planTier
       }
-    }))
+    })
     
-    // Calculate pagination info
-    const totalCount = await prisma.listing.count({ where })
-    const totalPages = Math.ceil(totalCount / limit)
-    const hasNextPage = page < totalPages
-    const nextPage = hasNextPage ? page + 1 : null
+    // Sort the processed listings based on subscription tier and featured status
+    const sortedListings = processedListings.sort((a, b) => {
+      // First, sort by featured status
+      if (a.isFeatured && !b.isFeatured) return -1
+      if (!a.isFeatured && b.isFeatured) return 1
+      
+      // Then, sort by plan tier
+      const tierRanking = {
+        'PREMIUM': 3,
+        'PRO': 2,
+        'BASIC': 1,
+        'FREE': 0
+      }
+      
+      const aTierRank = tierRanking[a.sellerPlanTier] || 0
+      const bTierRank = tierRanking[b.sellerPlanTier] || 0
+      
+      if (aTierRank !== bTierRank) {
+        return bTierRank - aTierRank // Higher tier first
+      }
+      
+      // If same tier and featured status, use the original sorting
+      return 0
+    })
+    
+    // Get total count for pagination
+    const total = await prisma.listing.count({ where })
     
     return NextResponse.json({
-      listings: enhancedListings,
+      listings: sortedListings,
       pagination: {
         page,
         limit,
-        totalCount,
-        totalPages,
-        hasNextPage,
-        nextPage
+        total,
+        totalPages: Math.ceil(total / limit)
       }
     })
   } catch (error) {

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { Button } from "../../../components/button"
@@ -11,7 +11,9 @@ import { MediaUpload } from "./media-upload"
 import { PricingDetails } from "./pricing-details"
 import { ReviewListing } from "./review-listing"
 import { useKycStatus } from "@/app/hooks/useKyc"
-import { Shield, AlertCircle } from "lucide-react"
+import { useSubscription } from "@/lib/hooks/useSubscription"
+import { Shield, AlertCircle, Crown } from "lucide-react"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/app/components/dialog"
 
 const STEPS = [
   { id: 1, title: "Account Details" },
@@ -24,6 +26,7 @@ export default function CreateListingPage() {
   const { data: session, status: sessionStatus } = useSession()
   const router = useRouter()
   const { data: kycData, isLoading: kycLoading } = useKycStatus()
+  const { data: subscription } = useSubscription()
   const [currentStep, setCurrentStep] = useState(1)
   const [formData, setFormData] = useState({
     platform: "",
@@ -41,6 +44,7 @@ export default function CreateListingPage() {
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState(null)
+  const [showUpgradeDialog, setShowUpgradeDialog] = useState(false)
 
   // Redirect if not authenticated
   if (sessionStatus === "unauthenticated") {
@@ -74,11 +78,16 @@ export default function CreateListingPage() {
         body: JSON.stringify(formData),
       })
       
+      const data = await response.json()
+      
       if (!response.ok) {
-        throw new Error('Failed to create listing')
+        if (data.upgrade) {
+          setShowUpgradeDialog(true)
+          throw new Error('Listing limit reached for your subscription tier')
+        }
+        throw new Error(data.error || 'Failed to create listing')
       }
       
-      const data = await response.json()
       router.push(`/dashboard/listings/${data.id}`)
     } catch (err) {
       setError(err.message || 'Something went wrong')
@@ -118,9 +127,33 @@ export default function CreateListingPage() {
     }
   }
 
+  // Get current plan info
+  const currentPlan = subscription?.plan || { tier: 'FREE', maxListings: 3 }
+  
   return (
     <div className="max-w-3xl mx-auto space-y-6 py-8">
       <h1 className="text-2xl font-bold">Create New Listing</h1>
+      
+      {/* Subscription info banner */}
+      <div className="bg-muted/50 border rounded-lg p-4 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Crown className="h-5 w-5 text-primary" />
+          <div>
+            <p className="text-sm font-medium">Current Plan: <span className="font-semibold">{currentPlan.tier}</span></p>
+            <p className="text-xs text-muted-foreground">
+              You can create up to {currentPlan.maxListings === 999999 ? 'unlimited' : currentPlan.maxListings} listings
+            </p>
+          </div>
+        </div>
+        <Button 
+          variant="outline" 
+          size="sm"
+          onClick={() => router.push('/dashboard/subscription')}
+        >
+          Upgrade
+        </Button>
+      </div>
+      
       <Steps steps={STEPS} currentStep={currentStep} />
       
       <Card className="p-6 shadow-lg border border-gray-100 dark:border-gray-800 rounded-xl">
@@ -159,6 +192,36 @@ export default function CreateListingPage() {
           </Button>
         </div>
       </Card>
+      
+      {/* Upgrade Plan Dialog */}
+      <Dialog open={showUpgradeDialog} onOpenChange={setShowUpgradeDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Listing Limit Reached</DialogTitle>
+            <DialogDescription>
+              You've reached the maximum number of listings allowed on your current plan.
+              Upgrade to create more listings and unlock additional benefits.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
+              <Crown className="h-10 w-10 text-primary p-2 bg-primary/10 rounded-full" />
+              <div>
+                <p className="font-medium">Upgrade your subscription</p>
+                <p className="text-sm text-muted-foreground">Get more listings, lower fees, and premium features</p>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowUpgradeDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={() => router.push('/dashboard/subscription')}>
+              View Plans
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 } 

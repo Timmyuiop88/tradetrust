@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
+import { SubscriptionService } from '@/lib/services/subscriptionService'
 
 export async function POST(request, { params }) {
   try {
@@ -10,20 +11,25 @@ export async function POST(request, { params }) {
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-    
+
     const orderId = params.id
     
-    if (!orderId) {
-      return NextResponse.json({ error: 'Order ID is required' }, { status: 400 })
-    }
-    
-    // Get the order with listing details
+    // Get order details
     const order = await prisma.order.findUnique({
       where: { id: orderId },
       include: {
         listing: {
           include: {
-            platform: true
+            platform: true,
+            seller: {
+              include: {
+                Subscription: {
+                  include: {
+                    plan: true
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -33,15 +39,15 @@ export async function POST(request, { params }) {
       return NextResponse.json({ error: 'Order not found' }, { status: 404 })
     }
     
-    // Check if user is the buyer
+    // Verify the user is the buyer
     if (order.buyerId !== session.user.id) {
-      return NextResponse.json({ error: 'Only the buyer can confirm receipt' }, { status: 403 })
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
     }
     
-    // Check if order is in the correct state
+    // Check if order is in the right state
     if (order.status !== 'WAITING_FOR_BUYER') {
       return NextResponse.json({ 
-        error: 'Cannot confirm receipt in the current order state' 
+        error: 'Order must be in DELIVERED status to confirm receipt' 
       }, { status: 400 })
     }
     
@@ -51,8 +57,24 @@ export async function POST(request, { params }) {
     })
     
     if (!sellerBalance) {
-      return NextResponse.json({ error: 'Seller balance not found' }, { status: 404 })
+      return NextResponse.json({ error: 'Seller balance not found' }, { status: 500 })
     }
+    
+    // Get the purchase transaction first to update it later
+    const purchaseTransaction = await prisma.transaction.findFirst({
+      where: {
+        userId: order.buyerId,
+        orderId: order.id,
+        type: 'PURCHASE'
+      }
+    });
+    
+    if (!purchaseTransaction) {
+      return NextResponse.json({ error: 'Purchase transaction not found' }, { status: 500 })
+    }
+    
+    // Get seller's commission rate from subscription
+    const commissionRate = order.listing.seller?.subscription?.plan?.commissionRate || 0.1;
     
     // Execute transaction in a transaction to ensure atomicity
     const result = await prisma.$transaction(async (tx) => {
@@ -73,9 +95,9 @@ export async function POST(request, { params }) {
         }
       })
       
-      // Calculate fees
-      const platformFee = Number(order.price * 0.1) // 10% platform fee
-      const sellerAmount = Number(order.price * 0.9)
+      // Calculate fees based on seller's subscription plan
+      const platformFee = Number(order.price * commissionRate)
+      const sellerAmount = Number(order.price - platformFee)
       
       // Update seller balance
       const updatedBalance = await tx.balance.update({
@@ -97,16 +119,15 @@ export async function POST(request, { params }) {
           status: "COMPLETED",
           description: `Sale of ${order.listing.platform?.name || 'account'} (after fees)`,
           orderId: order.id,
-          fee: 0 // Seller's transaction doesn't show the fee
+          fee: platformFee // Record the fee amount
         }
       })
       
       // Update the buyer's purchase transaction to include the fee
+      // Use the transaction ID we retrieved earlier
       await tx.transaction.update({
-        where: {
-          userId: order.buyerId,
-          orderId: order.id,
-          type: 'PURCHASE'
+        where: { 
+          id: purchaseTransaction.id // Use the unique ID
         },
         data: {
           fee: platformFee
@@ -123,7 +144,7 @@ export async function POST(request, { params }) {
   } catch (error) {
     console.error('Error confirming receipt:', error)
     return NextResponse.json(
-      { error: error.message || 'Failed to confirm receipt' },
+      { error: 'Failed to confirm receipt' },
       { status: 500 }
     )
   }
