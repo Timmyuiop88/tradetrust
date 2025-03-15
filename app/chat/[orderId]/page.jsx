@@ -410,7 +410,7 @@ export default function ChatPage() {
               
               <div>
                 {otherUser ? (
-                  <p className="font-medium">{otherUser.email || 'Chat'}</p>
+                  <p onClick={() => router.push(`/dashboard/profile/${otherUser.id}`)} className="font-medium">{otherUser.email || 'Chat'}</p>
                 ) : (
                   <div className="h-5 w-36 bg-muted animate-pulse rounded-sm"></div>
                 )}
