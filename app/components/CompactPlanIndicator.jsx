@@ -4,7 +4,7 @@ import { useSubscription } from '@/lib/hooks/useSubscription'
 import { Card, CardContent } from './card'
 import { Badge } from './badge'
 import { Button } from './button'
-import { Crown, Loader2, ArrowRight } from 'lucide-react'
+import { Crown, ArrowRight } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
 export function CompactPlanIndicator() {
@@ -13,10 +13,15 @@ export function CompactPlanIndicator() {
 
   if (isLoading) {
     return (
-      <Card className="bg-muted/50">
+      <Card className="border">
         <CardContent className="py-3">
-          <div className="flex items-center justify-center h-6">
-            <Loader2 className="h-4 w-4 animate-spin" />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="h-4 w-4 rounded-full bg-muted animate-pulse" />
+              <div className="h-4 w-20 bg-muted rounded animate-pulse" />
+              <div className="h-5 w-16 bg-muted rounded-full animate-pulse" />
+            </div>
+            <div className="h-8 w-16 bg-muted rounded animate-pulse" />
           </div>
         </CardContent>
       </Card>

@@ -42,6 +42,7 @@ export function useReviews() {
     
     const response = await fetch(`/api/reviews?${params.toString()}`);
     if (!response.ok) {
+      console.log(response);
       throw new Error('Failed to fetch reviews');
     }
     return response.json();

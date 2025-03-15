@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { prisma } from '@/lib/prisma';
+import { platform } from 'os';
 
 // GET - Fetch reviews for a user
 export async function GET(request) {
@@ -49,18 +50,21 @@ export async function GET(request) {
         reviewer: {
           select: {
             id: true,
-          }
+            email: true,
+          },
         },
         listing: {
           select: {
             id: true,
-            seller: {
+            username: true,
+            platform: {
               select: {
-                id: true,
+                name: true,
+                icon: true
               }
             }
-          }
-        }
+          },
+        },
       },
       orderBy: {
         createdAt: 'desc'
@@ -185,6 +189,7 @@ export async function POST(request) {
         listing: {
           select: {
             id: true,
+            username: true,
             seller: {
               select: {
                 id: true,

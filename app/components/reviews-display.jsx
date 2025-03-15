@@ -106,7 +106,14 @@ export function ReviewsDisplay({ userId }) {
                   </div>
                   <div className="mt-3 text-sm">{review.comment}</div>
                   <div className="mt-2 text-xs text-muted-foreground">
-                    For: {review.listing.title}
+                    {review.listing ? (
+                      <>
+                        For: {review.listing.username || 'Unknown listing'}
+                        {review.listing.platform?.name ? ` on ${review.listing.platform.name}` : ''}
+                      </>
+                    ) : (
+                      'For: Unknown listing'
+                    )}
                   </div>
                 </div>
               ))}

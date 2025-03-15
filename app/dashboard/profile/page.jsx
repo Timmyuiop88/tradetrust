@@ -19,6 +19,7 @@ import {
 import { format } from "date-fns"
 import { AddBalanceSheet } from "@/app/components/add-balance-sheet"
 import { UserReviews } from "./user-reviews"
+import { useSession } from "next-auth/react"
 import { CompactPlanIndicator } from "@/app/components/CompactPlanIndicator"
 
 export default function ProfilePage() {
@@ -32,6 +33,8 @@ export default function ProfilePage() {
   const [salesLoading, setSalesLoading] = useState(true)
   const [activityData, setActivityData] = useState(null)
   const [activityLoading, setActivityLoading] = useState(true)
+  const { data: session } = useSession()
+  const userId = session?.user?.id
   
   // Define formatDate function at the top level
   const formatDate = (dateString) => {
@@ -288,7 +291,7 @@ export default function ProfilePage() {
   <CardContent className="pt-6">
     <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
       {/* Existing avatar and user info */}
-      <div className="w-full md:w-1/3">
+      <div className="w-full">
         <CompactPlanIndicator />
       </div>
     </div>
@@ -808,8 +811,10 @@ export default function ProfilePage() {
         </TabsContent>
       </Tabs>
       
-      {/* Add the UserReviews component at the bottom of the page */}
-      <UserReviews />
+      {/* Add the UserReviews component at the bottom of the page if has verified KYC */}
+      {userData.kyc && (
+        <UserReviews />
+      )}
     </div>
   )
 }
