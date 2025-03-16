@@ -1,0 +1,42 @@
+{{#> base subject="Deposit Confirmation"}}
+  <h1>Deposit Confirmation</h1>
+  <p>Hello {{firstName}},</p>
+  <p>Your deposit has been successfully processed and added to your account balance.</p>
+  
+  <div class="card">
+    <h2>Deposit Details</h2>
+    <table style="width: 100%; border-collapse: collapse;">
+      <tr>
+        <td style="padding: 8px 0;"><strong>Transaction ID:</strong></td>
+        <td style="padding: 8px 0; text-align: right;">{{transactionId}}</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px 0;"><strong>Date:</strong></td>
+        <td style="padding: 8px 0; text-align: right;">{{formatDate transactionDate}}</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px 0;"><strong>Amount:</strong></td>
+        <td style="padding: 8px 0; text-align: right; font-weight: bold; color: #10B981;">{{formatCurrency amount}}</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px 0;"><strong>Payment Method:</strong></td>
+        <td style="padding: 8px 0; text-align: right;">{{paymentMethod}}</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px 0;"><strong>New Balance:</strong></td>
+        <td style="padding: 8px 0; text-align: right; font-weight: bold;">{{formatCurrency newBalance}}</td>
+      </tr>
+    </table>
+  </div>
+  
+  <p>You can view your transaction history by clicking the button below:</p>
+  
+  <a href="{{transactionUrl}}" class="button">View Transaction History</a>
+  
+  <div class="card">
+    <p>If you did not make this deposit or notice any discrepancies, please contact our support team immediately.</p>
+  </div>
+  
+  <p>Thank you for using {{appName}}!</p>
+  <p>Best regards,<br>The {{appName}} Team</p>
+{{/base}} 

@@ -1,18 +1,20 @@
-{{#> base subject="Order Confirmation"}}
-  <h1>Order Confirmation</h1>
+{{#> base subject="Order Status Update"}}
+  <h1>Order Status Update</h1>
   <p>Hello {{firstName}},</p>
-  <p>Your order #{{orderId}} has been confirmed and is now being processed.</p>
+  <p>There has been an update to your order #{{orderId}}.</p>
   
   <div class="card">
-    <h2>Order Details</h2>
+    <h2>Order Status</h2>
+    <div style="text-align: center; margin: 20px 0;">
+      <span style="display: inline-block; padding: 8px 16px; background-color: {{statusColor}}; color: white; border-radius: 4px; font-weight: bold;">
+        {{status}}
+      </span>
+    </div>
+    
     <table style="width: 100%; border-collapse: collapse;">
       <tr>
         <td style="padding: 8px 0;"><strong>Order ID:</strong></td>
         <td style="padding: 8px 0; text-align: right;">{{orderId}}</td>
-      </tr>
-      <tr>
-        <td style="padding: 8px 0;"><strong>Date:</strong></td>
-        <td style="padding: 8px 0; text-align: right;">{{formatDate orderDate}}</td>
       </tr>
       <tr>
         <td style="padding: 8px 0;"><strong>Item:</strong></td>
@@ -23,20 +25,30 @@
         <td style="padding: 8px 0; text-align: right; font-weight: bold;">{{formatCurrency amount}}</td>
       </tr>
       <tr>
-        <td style="padding: 8px 0;"><strong>Status:</strong></td>
-        <td style="padding: 8px 0; text-align: right; color: #10B981;">{{status}}</td>
+        <td style="padding: 8px 0;"><strong>Updated:</strong></td>
+        <td style="padding: 8px 0; text-align: right;">{{formatDate updateDate}}</td>
       </tr>
     </table>
   </div>
+  
+  {{#if statusMessage}}
+  <div class="card">
+    <h3>Status Details</h3>
+    <p>{{statusMessage}}</p>
+  </div>
+  {{/if}}
   
   <p>You can view your order details by clicking the button below:</p>
   
   <a href="{{orderUrl}}" class="button">View Order Details</a>
   
+  {{#if nextSteps}}
   <div class="card">
-    <p>Important: Please do not share your order details with anyone. If you have any questions or concerns, please contact our support team.</p>
+    <h3>Next Steps</h3>
+    <p>{{nextSteps}}</p>
   </div>
+  {{/if}}
   
-  <p>Thank you for choosing {{appName}}!</p>
+  <p>If you have any questions about your order, please contact our support team.</p>
   <p>Best regards,<br>The {{appName}} Team</p>
-{{/base}}
+{{/base}} 

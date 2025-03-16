@@ -54,10 +54,9 @@ export async function POST(req) {
     
     // If there's a token that's not expired and was created less than 5 minutes ago, prevent spam
     if (existingToken) {
-      const tokenCreatedAt = new Date(existingToken.createdAt);
       const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
       
-      if (tokenCreatedAt > fiveMinutesAgo) {
+      if (existingToken.createdAt && new Date(existingToken.createdAt) > fiveMinutesAgo) {
         return NextResponse.json(
           { error: 'Please wait before requesting another verification email' },
           { status: 429 }

@@ -1,0 +1,55 @@
+{{#> base subject="Dispute Notification"}}
+  <h1>Dispute Notification</h1>
+  <p>Hello {{firstName}},</p>
+  
+  {{#if isInitiator}}
+  <p>Your dispute for order #{{orderId}} has been submitted successfully.</p>
+  {{else}}
+  <p>A dispute has been opened for order #{{orderId}}.</p>
+  {{/if}}
+  
+  <div class="card">
+    <h2>Dispute Details</h2>
+    <table style="width: 100%; border-collapse: collapse;">
+      <tr>
+        <td style="padding: 8px 0;"><strong>Dispute ID:</strong></td>
+        <td style="padding: 8px 0; text-align: right;">{{disputeId}}</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px 0;"><strong>Order ID:</strong></td>
+        <td style="padding: 8px 0; text-align: right;">{{orderId}}</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px 0;"><strong>Date Opened:</strong></td>
+        <td style="padding: 8px 0; text-align: right;">{{formatDate openDate}}</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px 0;"><strong>Status:</strong></td>
+        <td style="padding: 8px 0; text-align: right; color: #f59e0b;">{{status}}</td>
+      </tr>
+    </table>
+  </div>
+  
+  <div class="card">
+    <h3>Reason for Dispute</h3>
+    <p>{{reason}}</p>
+    
+    {{#if description}}
+    <h3>Description</h3>
+    <p>{{description}}</p>
+    {{/if}}
+  </div>
+  
+  <p>You can view and respond to this dispute by clicking the button below:</p>
+  
+  <a href="{{disputeUrl}}" class="button">View Dispute Details</a>
+  
+  <div class="card">
+    <h3>What Happens Next?</h3>
+    <p>Our moderation team will review the dispute and may contact both parties for additional information. Please respond promptly to any requests for information to help resolve this matter quickly.</p>
+    <p>You can communicate with the other party and our moderation team through the dispute resolution center.</p>
+  </div>
+  
+  <p>If you have any questions, please contact our support team.</p>
+  <p>Best regards,<br>The {{appName}} Team</p>
+{{/base}} 
