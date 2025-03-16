@@ -351,9 +351,6 @@ export default function ProfilePage() {
                   : user.kyc?.fullName || "User"}
               </h1>
               <p className="text-muted-foreground">{user.email}</p>
-              <div className="mt-2 flex justify-center md:justify-start">
-              <FollowersCount userId={userId} />
-              </div>
 
               <div className="flex flex-wrap gap-2 mt-2 justify-center md:justify-start">
                 <Badge

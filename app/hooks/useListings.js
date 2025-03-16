@@ -74,4 +74,35 @@ export function useCreateListing() {
       queryClient.invalidateQueries(['listings'])
     }
   })
+}
+
+export function useToggleListingStatus() {
+  const queryClient = useQueryClient()
+  
+  return useMutation({
+    mutationFn: async ({ id, status }) => {
+      const { data } = await axios.patch(`/api/listings/${id}/status`, {
+        status: status
+      })
+      return data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['listings'])
+    }
+  })
+}
+
+export function useUpdateListing() {
+  const queryClient = useQueryClient()
+  
+  return useMutation({
+    mutationFn: async (updateData) => {
+      const { id, ...listingData } = updateData
+      const { data } = await axios.patch(`/api/listings/${id}`, listingData)
+      return data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['listings'])
+    }
+  })
 } 

@@ -28,8 +28,6 @@ export function Header() {
           <Link href="/become-merchant" className="text-sm font-medium hover:text-primary transition-colors">
             Start Selling
           </Link>
-        </nav>
-        <div className="flex items-center space-x-4">
           <Button
             variant="ghost"
             size="icon"
@@ -44,6 +42,9 @@ export function Header() {
           <Button asChild>
             <Link href="/signup">Get Started</Link>
           </Button>
+        </nav>
+        <div className="flex items-center space-x-4 ">
+          
           <MobileNav />
         </div>
       </div>

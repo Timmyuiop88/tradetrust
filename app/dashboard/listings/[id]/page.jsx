@@ -510,7 +510,7 @@ export default function ListingDetailsPage() {
               </Card>
             </div>
           </div>
-        </div>
+      </div>
       </>
     );
   }
@@ -886,25 +886,25 @@ export default function ListingDetailsPage() {
                     </div>
                   ) : sellerStats && isSeller ? (
                     <div className="flex flex-col gap-1">
-                      <div className="flex items-center gap-1.5">
-                        {sellerStats.averageRating ? (
-                          <div className="flex items-center">
-                            <StarRating rating={sellerStats.averageRating} />
-                            <span className="ml-1 text-xs text-muted-foreground">
-                              ({sellerStats.averageRating.toFixed(1)})
-                            </span>
-                          </div>
-                        ) : (
-                          <span className="font-medium">New Seller</span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        {getCompletionRateIcon(sellerStats.completionRate)}
-                        <span className={cn("text-xs", getCompletionRateColor(sellerStats.completionRate))}>
-                          {sellerStats.completionRate}% Completion
-                        </span>
-                      </div>
-                    </div>
+                    <div className="flex items-center gap-1.5">
+                      {sellerStats.averageRating ? (
+                        <div className="flex items-center">
+                          <StarRating rating={sellerStats.averageRating} />
+                          <span className="ml-1 text-xs text-muted-foreground">
+                            ({sellerStats.averageRating.toFixed(1)})
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="font-medium">New Seller</span>
+                      )}
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    {getCompletionRateIcon(sellerStats.completionRate)}
+                    <span className={cn("text-xs", getCompletionRateColor(sellerStats.completionRate))}>
+                      {sellerStats.completionRate}% Completion
+                    </span>
+                  </div>
+                  </div>
                   ) : (
                     <div className="flex items-center gap-1.5">
                       <Star className="h-4 w-4 text-yellow-500" />

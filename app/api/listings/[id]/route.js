@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 import { prisma } from '@/lib/prisma'
 
+// GET a single listing
 export async function GET(request, { params }) {
   try {
     const { id } = await params
@@ -12,7 +15,9 @@ export async function GET(request, { params }) {
     const userFields = {
       id: true,
       email: true,
-      createdAt: true
+      firstName: true,
+      lastName: true,
+      isKycVerified: true,
     }
     
     try {
@@ -46,6 +51,68 @@ export async function GET(request, { params }) {
     console.error('Error fetching listing:', error)
     return NextResponse.json(
       { error: 'Failed to fetch listing' },
+      { status: 500 }
+    )
+  }
+}
+
+// PATCH to update a listing
+export async function PATCH(request, { params }) {
+  try {
+    const session = await getServerSession(authOptions)
+    
+    if (!session) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+    
+    const { id } = params
+    const body = await request.json()
+    
+    // Find the listing first to check ownership
+    const existingListing = await prisma.listing.findUnique({
+      where: { id },
+      select: { sellerId: true }
+    })
+    
+    if (!existingListing) {
+      return NextResponse.json(
+        { error: 'Listing not found' },
+        { status: 404 }
+      )
+    }
+    
+    // Check if the user is the owner of the listing
+    if (existingListing.sellerId !== session.user.id) {
+      return NextResponse.json(
+        { error: 'You don\'t have permission to update this listing' },
+        { status: 403 }
+      )
+    }
+    
+    // Only allow specific fields to be updated
+    const allowedFields = ['price', 'description', 'negotiable']
+    const updateData = {}
+    
+    for (const field of allowedFields) {
+      if (body[field] !== undefined) {
+        updateData[field] = body[field]
+      }
+    }
+    
+    // Update the listing
+    const updatedListing = await prisma.listing.update({
+      where: { id },
+      data: updateData
+    })
+    
+    return NextResponse.json(updatedListing)
+  } catch (error) {
+    console.error('Error updating listing:', error)
+    return NextResponse.json(
+      { error: 'Failed to update listing' },
       { status: 500 }
     )
   }
