@@ -1,0 +1,34 @@
+{{#> base subject="Order Confirmation"}}
+  <h1>Order Confirmation</h1>
+  <p>Hello {{firstName}},</p>
+  <p>Thank you for your order! Your order #{{orderId}} has been confirmed and is being processed.</p>
+  
+  <div class="card">
+    <h2>Order Details</h2>
+    <table class="detail-table">
+      <tr>
+        <td><span class="label">Order ID:</span></td>
+        <td><span class="value">{{orderId}}</span></td>
+      </tr>
+      <tr>
+        <td><span class="label">Date:</span></td>
+        <td><span class="value">{{formatDate orderDate}}</span></td>
+      </tr>
+      <tr>
+        <td><span class="label">Total Amount:</span></td>
+        <td><span class="amount">{{formatCurrency amount}}</span></td>
+      </tr>
+    </table>
+  </div>
+  
+  <p>You can view your order details by clicking the button below:</p>
+  
+  <div style="text-align: center;">
+    <a href="{{orderUrl}}" class="button">View Order</a>
+  </div>
+  
+  <div class="divider"></div>
+  
+  <p>If you have any questions about your order, please contact our support team.</p>
+  <p>Best regards,<br>The {{appName}} Team</p>
+{{/base}}

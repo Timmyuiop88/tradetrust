@@ -50,7 +50,7 @@ export default function SignupPage() {
     const formData = {
       firstName: e.target.firstName.value.trim(),
       lastName: e.target.lastName.value.trim(),
-      email: e.target.email.value.trim(),
+      email: e.target.email.value.trim().toLowerCase(),
       password: e.target.password.value,
       confirmPassword: e.target.confirmPassword.value,
     }
@@ -80,17 +80,8 @@ export default function SignupPage() {
         return
       }
 
-      const result = await signIn("credentials", {
-        email: formData.email,
-        password: formData.password,
-        redirect: false,
-      })
-
-      if (result?.error) {
-        setErrors({ submit: "Error signing in after signup" })
-      } else {
-        router.push("/dashboard")
-      }
+      // Redirect to verification pending page with the email
+      router.push(`/verification-pending?email=${encodeURIComponent(formData.email)}&source=signup`)
     } catch (error) {
       setErrors({ submit: "Something went wrong" })
     } finally {

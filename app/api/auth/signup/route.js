@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
+import { generateVerificationToken } from '@/lib/tokens'
+import { sendVerificationEmail } from '@/lib/email/emailService'
 
 export async function POST(request) {
   try {
@@ -15,9 +17,12 @@ export async function POST(request) {
       )
     }
     
+    // Normalize email to lowercase
+    const normalizedEmail = email.toLowerCase();
+    
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({
-      where: { email }
+      where: { email: normalizedEmail }
     })
     
     if (existingUser) {
@@ -33,7 +38,7 @@ export async function POST(request) {
     // Create user
     const user = await prisma.user.create({
       data: {
-        email,
+        email: normalizedEmail,
         password: hashedPassword,
         firstName,
         lastName,
@@ -45,6 +50,18 @@ export async function POST(request) {
         }
       }
     })
+    
+    // Generate verification token and send verification email
+    try {
+      const verificationToken = await generateVerificationToken(normalizedEmail);
+      await sendVerificationEmail({
+        email: normalizedEmail,
+        firstName: firstName || 'User',
+      }, verificationToken.token);
+    } catch (error) {
+      console.error('Error sending verification email:', error);
+      // Continue with signup process even if email fails
+    }
     
     // Remove password from response
     const { password: _, ...userWithoutPassword } = user

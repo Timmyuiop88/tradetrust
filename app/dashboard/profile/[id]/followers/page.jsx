@@ -11,8 +11,10 @@ import { FollowButton } from "@/app/components/follow-button";
 import { Loader2, ChevronLeft, ChevronRight, ArrowLeft, Shield } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { Badge } from "@/app/components/badge";
+import { useParams } from "next/navigation";
 
-export default function FollowersPage({ params }) {
+export default function FollowersPage() {
+  const params = useParams();
   const userId = params.id;
   const router = useRouter();
   const searchParams = useSearchParams();
