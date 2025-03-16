@@ -37,6 +37,7 @@ import { useInView } from "react-intersection-observer"
 import { cn } from "@/app/lib/utils"
 import { AddBalanceSheet } from "@/app/components/add-balance-sheet"
 import { useCompletionRate } from "@/app/hooks/useCompletionRate"
+import { StarRating } from "@/app/components/star-rating"
 
 // Platform icons mapping
 const platformIcons = {
@@ -710,7 +711,7 @@ export default function ListingDetailsPage() {
                   </div>
                   <div>
                     <p className="font-medium">Verified Seller</p>
-                    <p className="text-sm text-muted-foreground cursor-pointer" onClick={() => router.push(`/dashboard/profile/${listing.seller.id}`)}>{listing.seller.email}</p>
+                    <p className="text-sm text-muted-foreground cursor-pointer underline" onClick={() => router.push(`/dashboard/profile/${listing.seller.id}`)}>{listing.seller.email}</p>
                     <p className="text-sm text-muted-foreground">Member since {new Date().getFullYear()}</p>
                   </div>
                 </div>
@@ -727,21 +728,25 @@ export default function ListingDetailsPage() {
                     </div>
                   ) : sellerStats && isSeller ? (
                     <div className="flex flex-col gap-1">
-                      <div className="flex items-center gap-1.5">
-                        <Star className="h-4 w-4 text-yellow-500" />
-                        <span className="font-medium">
-                          {sellerStats.averageRating ? 
-                            `${sellerStats.averageRating.toFixed(1)} Rating` : 
-                            "New Seller"}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        {getCompletionRateIcon(sellerStats.completionRate)}
-                        <span className={cn("text-xs", getCompletionRateColor(sellerStats.completionRate))}>
-                          {sellerStats.completionRate}% Completion
-                        </span>
-                      </div>
+                    <div className="flex items-center gap-1.5">
+                      {sellerStats.averageRating ? (
+                        <div className="flex items-center">
+                          <StarRating rating={sellerStats.averageRating} />
+                          <span className="ml-1 text-xs text-muted-foreground">
+                            ({sellerStats.averageRating.toFixed(1)})
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="font-medium">New Seller</span>
+                      )}
                     </div>
+                    <div className="flex items-center gap-1.5">
+                    {getCompletionRateIcon(sellerStats.completionRate)}
+                    <span className={cn("text-xs", getCompletionRateColor(sellerStats.completionRate))}>
+                      {sellerStats.completionRate}% Completion
+                    </span>
+                  </div>
+                  </div>
                   ) : (
                     <div className="flex items-center gap-1.5">
                       <Star className="h-4 w-4 text-yellow-500" />
@@ -750,9 +755,14 @@ export default function ListingDetailsPage() {
                   )}
                 </div>
                 
+                <div className="flex gap-2">
+                <Button className="w-full" onClick={() => router.push(`/dashboard/profile/${listing.seller.id}`)}>
+                  View Seller
+                </Button>
                 <Button variant="outline" className="w-full" onClick={handleContactSeller}>
                   Contact Seller
                 </Button>
+                </div>
               </CardContent>
             </Card>
             
