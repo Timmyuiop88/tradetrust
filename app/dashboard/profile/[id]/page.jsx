@@ -74,8 +74,100 @@ export default function UserProfilePage() {
   if (isLoading) {
     return (
       <div className="max-w-4xl mx-auto py-8 px-4">
-        <div className="flex justify-center items-center min-h-[60vh]">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        {/* Profile Header Skeleton */}
+        <Card className="mb-6">
+          <CardContent className="pt-6">
+            <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
+              {/* Avatar Skeleton */}
+              <div className="h-24 w-24 rounded-full bg-gray-200 dark:bg-gray-700 animate-pulse"></div>
+              
+              <div className="flex-1 text-center md:text-left w-full">
+                <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 w-full">
+                  <div className="w-full">
+                    {/* Name Skeleton */}
+                    <div className="h-8 w-48 bg-gray-200 dark:bg-gray-700 rounded animate-pulse mx-auto md:mx-0"></div>
+                    {/* Email Skeleton */}
+                    <div className="h-4 w-36 bg-gray-200 dark:bg-gray-700 rounded animate-pulse mt-2 mx-auto md:mx-0"></div>
+                    
+                    {/* Badges Skeleton */}
+                    <div className="flex flex-wrap gap-2 mt-2 justify-center md:justify-start">
+                      <div className="h-6 w-24 bg-gray-200 dark:bg-gray-700 rounded-full animate-pulse"></div>
+                      <div className="h-6 w-28 bg-gray-200 dark:bg-gray-700 rounded-full animate-pulse"></div>
+                    </div>
+                  </div>
+                  
+                  {/* Follow Button Skeleton */}
+                  <div className="h-10 w-24 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Tabs Skeleton */}
+        <div className="h-10 w-full bg-gray-200 dark:bg-gray-700 rounded animate-pulse mb-6"></div>
+        
+        {/* Content Skeleton */}
+        <Card>
+          <CardHeader>
+            <div className="h-6 w-32 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {[...Array(4)].map((_, i) => (
+                <div key={i}>
+                  <div className="h-4 w-24 bg-gray-200 dark:bg-gray-700 rounded animate-pulse mb-2"></div>
+                  <div className="h-6 w-36 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Completion Rate Skeleton */}
+        <div className="mt-6">
+          <Card>
+            <CardHeader>
+              <div className="h-6 w-40 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+            </CardHeader>
+            <CardContent>
+              <div className="h-8 w-full bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Reviews Skeleton */}
+        <div className="mt-6">
+          <Card>
+            <CardHeader>
+              <div className="h-6 w-24 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+            </CardHeader>
+            <CardContent>
+              <div className="h-10 w-full bg-gray-200 dark:bg-gray-700 rounded animate-pulse mb-6"></div>
+              <div className="space-y-4">
+                {[...Array(3)].map((_, i) => (
+                  <div key={i} className="border rounded-lg p-4">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center space-x-3">
+                        <div className="h-10 w-10 rounded-full bg-gray-200 dark:bg-gray-700 animate-pulse"></div>
+                        <div>
+                          <div className="h-4 w-24 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                          <div className="h-3 w-16 bg-gray-200 dark:bg-gray-700 rounded animate-pulse mt-2"></div>
+                        </div>
+                      </div>
+                      <div className="flex">
+                        {[...Array(5)].map((_, i) => (
+                          <div key={i} className="h-4 w-4 bg-gray-200 dark:bg-gray-700 rounded-full ml-1 animate-pulse"></div>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="mt-3 h-4 w-full bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                    <div className="mt-2 h-3 w-1/2 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     );
@@ -144,11 +236,6 @@ export default function UserProfilePage() {
                 {currentUserId !== userId && (
                   <FollowButton userId={userId} />
                 )}
-              </div>
-              
-              {/* Add followers count */}
-              <div className="mt-4">
-                <FollowersCount userId={userId} />
               </div>
             </div>
           </div>

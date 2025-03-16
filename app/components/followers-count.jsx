@@ -22,7 +22,7 @@ export function FollowersCount({ userId, displayMode = "normal" }) {
   }
 
   return (
-    <div className="flex space-x-4 text-sm">
+    <div className="flex space-x-4 text-s">
       {/*<Link href={`/dashboard/profile/${userId}/followers`} className="flex items-center hover:text-primary transition-colors">
         <Users className="h-4 w-4 mr-1" />
         {isLoadingFollowers ? (
