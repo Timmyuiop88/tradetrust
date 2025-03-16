@@ -1,0 +1,64 @@
+{{#> base subject="Dispute Update"}}
+  <h1>Dispute Update</h1>
+  <p>Hello {{firstName}},</p>
+  <p>There has been an update to the dispute for order #{{orderId}}.</p>
+  
+  <div class="card">
+    <h2>Dispute Status</h2>
+    <div style="text-align: center; margin: 20px 0;">
+      <span style="display: inline-block; padding: 8px 16px; background-color: {{statusColor}}; color: white; border-radius: 4px; font-weight: bold;">
+        {{status}}
+      </span>
+    </div>
+    
+    <table style="width: 100%; border-collapse: collapse;">
+      <tr>
+        <td style="padding: 8px 0;"><strong>Dispute ID:</strong></td>
+        <td style="padding: 8px 0; text-align: right;">{{disputeId}}</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px 0;"><strong>Order ID:</strong></td>
+        <td style="padding: 8px 0; text-align: right;">{{orderId}}</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px 0;"><strong>Updated:</strong></td>
+        <td style="padding: 8px 0; text-align: right;">{{formatDate updateDate}}</td>
+      </tr>
+    </table>
+  </div>
+  
+  {{#if updateMessage}}
+  <div class="card">
+    <h3>Update Details</h3>
+    <p>{{updateMessage}}</p>
+  </div>
+  {{/if}}
+  
+  {{#if resolution}}
+  <div class="card">
+    <h3>Resolution</h3>
+    <p>{{resolution}}</p>
+  </div>
+  {{/if}}
+  
+  <p>You can view the dispute details by clicking the button below:</p>
+  
+  <a href="{{disputeUrl}}" class="button">View Dispute Details</a>
+  
+  {{#if hasNewMessages}}
+  <div class="card">
+    <h3>New Messages</h3>
+    <p>There are new messages in the dispute thread. Please check the dispute details to view them.</p>
+  </div>
+  {{/if}}
+  
+  {{#if nextSteps}}
+  <div class="card">
+    <h3>Next Steps</h3>
+    <p>{{nextSteps}}</p>
+  </div>
+  {{/if}}
+  
+  <p>If you have any questions, please contact our support team.</p>
+  <p>Best regards,<br>The {{appName}} Team</p>
+{{/base}} 

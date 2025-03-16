@@ -1,0 +1,46 @@
+{{#> base subject="New Message Notification"}}
+  <h1>New Message Notification</h1>
+  <p>Hello {{firstName}},</p>
+  <p>You have received a new message {{#if orderId}}regarding order #{{orderId}}{{/if}}.</p>
+  
+  <div class="card">
+    <h2>Message Details</h2>
+    <table style="width: 100%; border-collapse: collapse;">
+      <tr>
+        <td style="padding: 8px 0;"><strong>From:</strong></td>
+        <td style="padding: 8px 0; text-align: right;">{{senderName}}</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px 0;"><strong>Date:</strong></td>
+        <td style="padding: 8px 0; text-align: right;">{{formatDate messageDate}}</td>
+      </tr>
+      {{#if orderId}}
+      <tr>
+        <td style="padding: 8px 0;"><strong>Order ID:</strong></td>
+        <td style="padding: 8px 0; text-align: right;">{{orderId}}</td>
+      </tr>
+      {{/if}}
+      {{#if disputeId}}
+      <tr>
+        <td style="padding: 8px 0;"><strong>Dispute ID:</strong></td>
+        <td style="padding: 8px 0; text-align: right;">{{disputeId}}</td>
+      </tr>
+      {{/if}}
+    </table>
+  </div>
+  
+  <div class="card">
+    <h3>Message Preview</h3>
+    <p>You have a new message. For security reasons, we don't include message content in emails.</p>
+  </div>
+  
+  <p>To view and respond to this message, please click the button below:</p>
+  
+  <a href="{{messageUrl}}" class="button">View Message</a>
+  
+  <div class="card">
+    <p>Please note: Never share sensitive information like passwords or payment details via messages.</p>
+  </div>
+  
+  <p>Best regards,<br>The {{appName}} Team</p>
+{{/base}} 
