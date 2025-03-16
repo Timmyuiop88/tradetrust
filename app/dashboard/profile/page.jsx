@@ -51,6 +51,8 @@ import { UserReviews } from "./user-reviews";
 import { useSession } from "next-auth/react";
 import { CompactPlanIndicator } from "@/app/components/CompactPlanIndicator";
 import { FollowersCount } from "@/app/components/followers-count";
+import NotificationSettings from "@/app/dashboard/settings/notifications";
+import { NotificationBell } from "@/app/components/notification-bell";
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -299,6 +301,21 @@ export default function ProfilePage() {
       {/* Profile Header */}
       <Card className="mb-6">
         <CardContent className="pt-6">
+          <div className="flex justify-between items-start mb-4">
+            <h2 className="text-2xl font-bold">Your Profile</h2>
+            <div className="flex items-center gap-2">
+              <NotificationBell />
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-2"
+                onClick={() => router.push("/dashboard/settings")}
+              >
+                <Settings className="h-4 w-4" />
+                Edit Profile
+              </Button>
+            </div>
+          </div>
           <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
             <Avatar className="h-24 w-24 p-5 border-2 border-primary">
               <AvatarImage src={user.image} alt={user.name || "User"} />
@@ -350,15 +367,6 @@ export default function ProfilePage() {
                 </Badge>
               </div>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              className="flex items-center gap-2"
-              onClick={() => router.push("/dashboard/settings")}
-            >
-              <Settings className="h-4 w-4" />
-              Edit Profile
-            </Button>
           </div>
         </CardContent>
       </Card>
@@ -479,6 +487,9 @@ export default function ProfilePage() {
                 </div>
               </div>
             </CardContent>
+            <CardFooter>
+              <NotificationSettings />
+            </CardFooter>
           </Card>
 
           {/* Seller Stats (if user has listings) */}

@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 import { addMinutes } from 'date-fns'
 import { SubscriptionService } from '@/lib/services/subscriptionService'
+import { PushNotificationService } from '@/lib/services/pushNotificationService'
 
 export async function POST(request) {
   try {
@@ -115,6 +116,11 @@ export async function POST(request) {
       
       return { order, listing }
     })
+    
+    await PushNotificationService.notifyOrderUpdate(
+      { ...result.order, listing: result.listing },
+      'ORDER_CREATED'
+    )
     
     return NextResponse.json({
       success: true,

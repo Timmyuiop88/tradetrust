@@ -45,6 +45,8 @@ model User {
 
   followers Follow[] @relation("UserFollowers")
   following Follow[] @relation("UserFollowing")
+
+  PushSubscription PushSubscription[]
 }
 
 model Kyc {
@@ -413,7 +415,20 @@ model Follow {
   @@index([followingId])
 }
 
-
+// Add this model to your schema
+model PushSubscription {
+  id           String   @id @default(cuid())
+  userId       String
+  endpoint     String
+  subscription String   @db.Text
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  user User @relation(fields: [userId], references: [id])
+  
+  @@unique([userId, endpoint])
+  @@index([userId])
+}
 
 enum Role {
   USER

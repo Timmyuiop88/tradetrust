@@ -5,17 +5,18 @@ import { useParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { FollowButton } from "@/app/components/follow-button";
 import { FollowersCount } from "@/app/components/followers-count";
-import { Card, CardHeader, CardTitle, CardContent } from "@/app/components/card";
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/app/components/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/app/components/avatar";
 import { Badge } from "@/app/components/badge";
 import { Button } from "@/app/components/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/tabs";
-import { Loader2, User, Mail, Calendar, Shield, CheckCircle, ArrowLeft, Star, Clock, AlertTriangle } from "lucide-react";
+import { Loader2, User, Mail, Calendar, Shield, CheckCircle, ArrowLeft, Star, Clock, AlertTriangle, ExternalLink } from "lucide-react";
 import { format } from "date-fns";
 import { UserListings } from "@/app/components/user-listings";
 import { UserReviews } from "../user-reviews";
 import { cn } from "@/lib/utils";
 import { CompletionRate } from "@/app/components/completion-rate";
+import Link from "next/link";
 
 export default function UserProfilePage() {
   const params = useParams();
@@ -219,7 +220,7 @@ export default function UserProfilePage() {
       </Tabs>
 
       <CompletionRate userId={userId} />
-      
+
       <UserReviews userId={userId} />
 
       
