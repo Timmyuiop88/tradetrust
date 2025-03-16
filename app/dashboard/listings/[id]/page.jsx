@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
 import { 
@@ -68,16 +68,19 @@ const formatFollowers = (value) => {
 function useSimilarListings(listingId, platformId, categoryId) {
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
+  const fetchedRef = useRef(false);
 
   useEffect(() => {
-    if (!platformId || !categoryId) return;
+    if (!platformId || !categoryId || fetchedRef.current) return;
 
     const fetchSimilarListings = async () => {
       try {
+        setLoading(true);
         const response = await fetch(`/api/listings/similar?platformId=${platformId}&categoryId=${categoryId}&excludeId=${listingId}&limit=3`);
         if (response.ok) {
           const data = await response.json();
           setListings(data);
+          fetchedRef.current = true;
         }
       } catch (error) {
         console.error("Error fetching similar listings:", error);
@@ -109,10 +112,10 @@ export default function ListingDetailsPage() {
   const [currentBalance, setCurrentBalance] = useState(0)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
-
-  // Add this hook to fetch seller completion rate
-  const { stats: sellerStats, isLoading: isLoadingSellerStats, isSeller } = 
-    useCompletionRate(listing?.seller?.id);
+  const [sellerStats, setSellerStats] = useState(null)
+  const [isLoadingSellerStats, setIsLoadingSellerStats] = useState(true)
+  const [isSeller, setIsSeller] = useState(false)
+  const fetchedStatsRef = useRef(false);
 
   // Fetch listing data
   useEffect(() => {
@@ -152,6 +155,44 @@ export default function ListingDetailsPage() {
       fetchListing()
     }
   }, [id, session])
+
+  // Fetch seller stats once when listing is loaded
+  useEffect(() => {
+    if (!listing?.seller?.id || fetchedStatsRef.current) return;
+    
+    const fetchSellerStats = async () => {
+      try {
+        setIsLoadingSellerStats(true);
+        const response = await fetch(`/api/users/${listing.seller.id}/completion-rate`);
+        
+        if (!response.ok) {
+          throw new Error("Failed to fetch completion rate");
+        }
+        
+        const data = await response.json();
+        setSellerStats(data);
+        
+        // Determine if user is a seller based on data
+        const sellerStatus = data ? 
+          (data.totalOrders > 0 || (data.totalListings !== undefined && data.totalListings > 0)) 
+          : false;
+        
+        setIsSeller(sellerStatus);
+        fetchedStatsRef.current = true;
+      } catch (error) {
+        console.error("Error fetching seller stats:", error);
+      } finally {
+        setIsLoadingSellerStats(false);
+      }
+    };
+    
+    // Use a small timeout to prevent immediate fetch that might cause twitching
+    const timer = setTimeout(() => {
+      fetchSellerStats();
+    }, 100);
+    
+    return () => clearTimeout(timer);
+  }, [listing?.seller?.id]);
 
   // Update sticky header state
   useEffect(() => {
@@ -845,25 +886,25 @@ export default function ListingDetailsPage() {
                     </div>
                   ) : sellerStats && isSeller ? (
                     <div className="flex flex-col gap-1">
-                    <div className="flex items-center gap-1.5">
-                      {sellerStats.averageRating ? (
-                        <div className="flex items-center">
-                          <StarRating rating={sellerStats.averageRating} />
-                          <span className="ml-1 text-xs text-muted-foreground">
-                            ({sellerStats.averageRating.toFixed(1)})
-                          </span>
-                        </div>
-                      ) : (
-                        <span className="font-medium">New Seller</span>
-                      )}
+                      <div className="flex items-center gap-1.5">
+                        {sellerStats.averageRating ? (
+                          <div className="flex items-center">
+                            <StarRating rating={sellerStats.averageRating} />
+                            <span className="ml-1 text-xs text-muted-foreground">
+                              ({sellerStats.averageRating.toFixed(1)})
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="font-medium">New Seller</span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        {getCompletionRateIcon(sellerStats.completionRate)}
+                        <span className={cn("text-xs", getCompletionRateColor(sellerStats.completionRate))}>
+                          {sellerStats.completionRate}% Completion
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-1.5">
-                    {getCompletionRateIcon(sellerStats.completionRate)}
-                    <span className={cn("text-xs", getCompletionRateColor(sellerStats.completionRate))}>
-                      {sellerStats.completionRate}% Completion
-                    </span>
-                  </div>
-                  </div>
                   ) : (
                     <div className="flex items-center gap-1.5">
                       <Star className="h-4 w-4 text-yellow-500" />

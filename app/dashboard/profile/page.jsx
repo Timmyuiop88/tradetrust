@@ -357,7 +357,7 @@ export default function ProfilePage() {
 
               <div className="flex flex-wrap gap-2 mt-2 justify-center md:justify-start">
                 <Badge
-                  className={`${isKycVerified ? "bg-green-500" : "bg-red-500"}`}
+              
                   variant={isKycVerified ? "default" : "danger"}
                 >
                   {isKycVerified ? "KYC Verified" : "KYC Incomplete"}

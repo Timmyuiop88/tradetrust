@@ -1,0 +1,63 @@
+{{#> base}}
+  <div class="email-container">
+    <div class="email-header">
+      <h1>Order Cancelled</h1>
+    </div>
+    
+    <div class="email-content">
+      <p>Hello {{firstName}},</p>
+      
+      <p>We're writing to inform you that your order has been cancelled.</p>
+      
+      <div class="order-details">
+        <h2>Order Details</h2>
+        <table>
+          <tr>
+            <td><strong>Order ID:</strong></td>
+            <td>{{orderId}}</td>
+          </tr>
+          <tr>
+            <td><strong>Item:</strong></td>
+            <td>{{itemName}}</td>
+          </tr>
+          <tr>
+            <td><strong>Amount:</strong></td>
+            <td>${{amount}}</td>
+          </tr>
+          <tr>
+            <td><strong>Status:</strong></td>
+            <td><span class="status-badge cancelled">Cancelled</span></td>
+          </tr>
+          <tr>
+            <td><strong>Cancellation Date:</strong></td>
+            <td>{{formatDate cancelDate}}</td>
+          </tr>
+        </table>
+      </div>
+      
+      {{#if cancelReason}}
+      <div class="message-box">
+        <p><strong>Reason for cancellation:</strong> {{cancelReason}}</p>
+      </div>
+      {{/if}}
+      
+      <div class="refund-info">
+        <h3>Refund Information</h3>
+        <p>A full refund of ${{amount}} has been processed and added back to your buying balance.</p>
+        <p>You can use these funds for other purchases on our platform.</p>
+      </div>
+      
+      <div class="next-steps">
+        <h3>What's Next?</h3>
+        <p>You can browse other available listings on our platform or contact our support team if you have any questions.</p>
+        <div class="button-container">
+          <a href="{{orderUrl}}" class="button">View Order Details</a>
+        </div>
+      </div>
+      
+      <p>Thank you for your understanding.</p>
+      
+      <p>Best regards,<br>The {{appName}} Team</p>
+    </div>
+  </div>
+{{/base}} 

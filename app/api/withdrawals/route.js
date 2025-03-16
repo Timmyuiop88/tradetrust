@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { prisma } from '@/lib/prisma';
+import { sendWithdrawalConfirmation } from '@/lib/services/notificationService';
 
 // GET - Fetch all withdrawal requests for the current user
 export async function GET(request) {
@@ -143,7 +144,7 @@ export async function POST(request) {
           amount: -amount, // Negative amount for withdrawal
           fee,
           status: 'PENDING',
-          description: `Withdrawal request via ${payoutSetting.method}`,
+          description: `Withdrawal request via ${payoutSetting.method || 'bank transfer'}`,
           withdrawalRequestId: withdrawalRequest.id,
         },
       });
@@ -160,6 +161,29 @@ export async function POST(request) {
       
       return { withdrawalRequest, transaction };
     });
+    
+    // Send withdrawal confirmation email
+    try {
+      // Get user details for the email
+      const user = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { id: true, email: true, firstName: true }
+      });
+      
+      // Estimate arrival time (e.g., 3-5 business days)
+      const estimatedArrival = '3-5 business days';
+      
+      await sendWithdrawalConfirmation(
+        session.user.id, 
+        result.transaction.id, 
+        estimatedArrival
+      );
+      
+      console.log('Withdrawal confirmation email sent successfully');
+    } catch (emailError) {
+      console.error('Error sending withdrawal confirmation email:', emailError);
+      // Don't fail the request if email sending fails
+    }
     
     return NextResponse.json(result);
   } catch (error) {

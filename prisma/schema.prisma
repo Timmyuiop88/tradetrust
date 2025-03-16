@@ -131,6 +131,9 @@ model Order {
   updatedAt        DateTime      @updatedAt
   credentials      Json?
   completedAt      DateTime?
+  cancelledAt      DateTime?
+  cancelledReason  String?
+  cancelledBy      String?
   chatMessages     ChatMessage[]
   dispute          Dispute?
   buyer            User          @relation("BuyerOrders", fields: [buyerId], references: [id])
@@ -454,6 +457,7 @@ enum OrderStatus {
   COMPLETED
   CANCELLED
   DISPUTED
+  SELLER_DECLINED
 }
 
 enum AccountPlatform {

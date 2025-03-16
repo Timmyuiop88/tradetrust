@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 import { decrypt } from '@/lib/encryption'
+import crypto from 'crypto'
 
 export async function GET(request, { params }) {
   try {
@@ -12,14 +13,21 @@ export async function GET(request, { params }) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
     
-    // Properly await params
-    const orderId = params.id
+    // Get the orderId from params
+    const { id: orderId } = await Promise.resolve(params)
     
     if (!orderId) {
       return NextResponse.json({ error: 'Order ID is required' }, { status: 400 })
     }
     
-    // Include platform in the query
+    // Check for If-None-Match header for ETag support
+    const ifNoneMatch = request.headers.get('If-None-Match')
+    
+    // Parse the URL to get query parameters
+    const url = new URL(request.url)
+    const includeChatMessages = url.searchParams.get('includeChatMessages') === 'true'
+    
+    // Include platform in the query, but limit chatMessages to reduce payload size
     const order = await prisma.order.findUnique({
       where: { id: orderId },
       include: {
@@ -41,7 +49,17 @@ export async function GET(request, { params }) {
           }
         },
         dispute: true,
-        chatMessages: true
+        // Only include chat messages if explicitly requested
+        chatMessages: includeChatMessages ? {
+          orderBy: { createdAt: 'desc' },
+          take: 10, // Limit to the 10 most recent messages
+          select: {
+            id: true,
+            content: true,
+            createdAt: true,
+            senderId: true
+          }
+        } : false
       }
     })
     
@@ -72,7 +90,32 @@ export async function GET(request, { params }) {
       }
     }
     
-    return NextResponse.json(orderWithSafeAccess)
+    // Generate an ETag based on the order data and updatedAt timestamp
+    const orderHash = crypto.createHash('md5')
+      .update(JSON.stringify(orderWithSafeAccess) + order.updatedAt.getTime())
+      .digest('hex')
+    const etag = `"${orderHash}"`
+    
+    // If the ETag matches, return 304 Not Modified
+    if (ifNoneMatch === etag) {
+      return new Response(null, {
+        status: 304,
+        headers: {
+          'ETag': etag,
+          'Cache-Control': 'private, max-age=5'
+        }
+      })
+    }
+    
+    // Return the response with caching headers
+    return new Response(JSON.stringify(orderWithSafeAccess), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        'ETag': etag,
+        'Cache-Control': 'private, max-age=5'
+      }
+    })
   } catch (error) {
     console.error('Error fetching order:', error)
     return NextResponse.json(
