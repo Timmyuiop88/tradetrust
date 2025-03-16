@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 import { addMinutes } from 'date-fns'
 import { encrypt } from '@/lib/encryption'
+import { PushNotificationService } from '@/lib/services/pushNotificationService'
 
 export async function POST(request, { params }) {
   try {
@@ -19,9 +20,16 @@ export async function POST(request, { params }) {
       return NextResponse.json({ error: 'Order ID is required' }, { status: 400 })
     }
     
-    // Get the order
+    // Get the order with listing and platform details for notification
     const order = await prisma.order.findUnique({
-      where: { id: orderId }
+      where: { id: orderId },
+      include: {
+        listing: {
+          include: {
+            platform: true
+          }
+        }
+      }
     })
     
     if (!order) {
@@ -76,6 +84,12 @@ export async function POST(request, { params }) {
         credentials: encryptedCredentials
       }
     })
+    
+    // Send push notification to buyer
+    await PushNotificationService.notifyOrderUpdate(
+      order, // Pass the order with included listing and platform
+      'SELLER_PROVIDED_DETAILS'
+    )
     
     return NextResponse.json({
       success: true,

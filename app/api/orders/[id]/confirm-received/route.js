@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 import { SubscriptionService } from '@/lib/services/subscriptionService'
+import { PushNotificationService } from '@/lib/services/pushNotificationService'
 
 export async function POST(request, { params }) {
   try {
@@ -74,7 +75,7 @@ export async function POST(request, { params }) {
     }
     
     // Get seller's commission rate from subscription
-    const commissionRate = order.listing.seller?.subscription?.plan?.commissionRate || 0.1;
+    const commissionRate = order.listing.seller?.Subscription?.plan?.commissionRate || 0.1;
     
     // Execute transaction in a transaction to ensure atomicity
     const result = await prisma.$transaction(async (tx) => {
@@ -124,7 +125,6 @@ export async function POST(request, { params }) {
       })
       
       // Update the buyer's purchase transaction to include the fee
-      // Use the transaction ID we retrieved earlier
       await tx.transaction.update({
         where: { 
           id: purchaseTransaction.id // Use the unique ID
@@ -136,6 +136,12 @@ export async function POST(request, { params }) {
       
       return { updatedOrder, updatedBalance }
     })
+    
+    // Send push notifications to both buyer and seller
+    await PushNotificationService.notifyOrderUpdate(
+      order,
+      'BUYER_CONFIRMED'
+    )
     
     return NextResponse.json({
       success: true,
