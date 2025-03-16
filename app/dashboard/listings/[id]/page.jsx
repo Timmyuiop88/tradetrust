@@ -274,86 +274,203 @@ export default function ListingDetailsPage() {
 
   if (loading) {
     return (
-      <div className="max-w-4xl mx-auto py-8 px-4">
-        {/* Skeleton for the header section */}
-        <div className="mb-6">
-          <div className="h-8 w-3/4 bg-gray-200 dark:bg-gray-700 rounded-md animate-pulse mb-2"></div>
-          <div className="h-4 w-1/2 bg-gray-200 dark:bg-gray-700 rounded-md animate-pulse"></div>
-        </div>
-        
-        {/* Skeleton for the main content card */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
-          <div className="p-6">
-            {/* Listing header skeleton */}
-            <div className="flex flex-col md:flex-row justify-between mb-6">
-              <div className="w-full md:w-2/3">
-                <div className="h-7 w-3/4 bg-gray-200 dark:bg-gray-700 rounded-md animate-pulse mb-3"></div>
-                <div className="h-4 w-1/2 bg-gray-200 dark:bg-gray-700 rounded-md animate-pulse"></div>
-              </div>
-              <div className="mt-4 md:mt-0">
-                <div className="h-10 w-32 bg-gray-200 dark:bg-gray-700 rounded-md animate-pulse"></div>
+      <>
+        {/* Sticky header skeleton */}
+        <div className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b">
+          <div className="container flex items-center justify-between h-16 px-4">
+            <div className="flex items-center gap-3">
+              <div className="h-9 w-9 rounded-lg bg-gray-200 dark:bg-gray-700 animate-pulse"></div>
+              <div className="flex flex-col gap-1">
+                <div className="h-4 w-32 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                <div className="h-3 w-24 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
               </div>
             </div>
-            
-            {/* Listing details skeleton */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-              <div>
-                {/* Left column details */}
-                <div className="space-y-4">
-                  {[...Array(4)].map((_, i) => (
-                    <div key={i} className="space-y-2">
-                      <div className="h-4 w-24 bg-gray-200 dark:bg-gray-700 rounded-md animate-pulse"></div>
-                      <div className="h-5 w-40 bg-gray-200 dark:bg-gray-700 rounded-md animate-pulse"></div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div>
-                {/* Right column details */}
-                <div className="space-y-4">
-                  {[...Array(4)].map((_, i) => (
-                    <div key={i} className="space-y-2">
-                      <div className="h-4 w-24 bg-gray-200 dark:bg-gray-700 rounded-md animate-pulse"></div>
-                      <div className="h-5 w-40 bg-gray-200 dark:bg-gray-700 rounded-md animate-pulse"></div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-            
-            {/* Description skeleton */}
-            <div className="mb-6">
-              <div className="h-4 w-32 bg-gray-200 dark:bg-gray-700 rounded-md animate-pulse mb-3"></div>
-              <div className="space-y-2">
-                <div className="h-4 w-full bg-gray-200 dark:bg-gray-700 rounded-md animate-pulse"></div>
-                <div className="h-4 w-full bg-gray-200 dark:bg-gray-700 rounded-md animate-pulse"></div>
-                <div className="h-4 w-3/4 bg-gray-200 dark:bg-gray-700 rounded-md animate-pulse"></div>
-              </div>
-            </div>
-            
-            {/* Action buttons skeleton */}
-            <div className="flex flex-col sm:flex-row gap-3 mt-6">
-              <div className="h-10 w-full sm:w-1/3 bg-primary/20 rounded-md animate-pulse"></div>
-              <div className="h-10 w-full sm:w-1/3 bg-gray-200 dark:bg-gray-700 rounded-md animate-pulse"></div>
+            <div className="flex items-center gap-2">
+              <div className="h-5 w-16 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+              <div className="h-9 w-24 bg-primary/20 rounded animate-pulse"></div>
             </div>
           </div>
         </div>
-        
-        {/* Skeleton for the seller info card */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-          <div className="p-6">
-            <div className="h-6 w-32 bg-gray-200 dark:bg-gray-700 rounded-md animate-pulse mb-4"></div>
-            <div className="flex items-center gap-4 mb-4">
-              <div className="h-12 w-12 rounded-full bg-gray-200 dark:bg-gray-700 animate-pulse"></div>
-              <div>
-                <div className="h-5 w-40 bg-gray-200 dark:bg-gray-700 rounded-md animate-pulse mb-2"></div>
-                <div className="h-4 w-24 bg-gray-200 dark:bg-gray-700 rounded-md animate-pulse"></div>
-              </div>
+
+        <div className="container max-w-7xl mx-auto px-1 py-6 pt-8 md:py-8">
+          {/* Back button skeleton */}
+          <div className="mb-4">
+            <div className="h-9 w-20 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
+            {/* Main content area - Left side */}
+            <div className="lg:col-span-2 space-y-6">
+              {/* Media Gallery Skeleton */}
+              <Card className="overflow-hidden border-none shadow-none">
+                <div className="aspect-video bg-gray-200 dark:bg-gray-700 rounded-lg animate-pulse relative">
+                  {/* Action buttons overlay */}
+                  <div className="absolute top-3 right-3 flex gap-2">
+                    <div className="h-9 w-9 rounded-full bg-gray-100 dark:bg-gray-600 animate-pulse"></div>
+                    <div className="h-9 w-9 rounded-full bg-gray-100 dark:bg-gray-600 animate-pulse"></div>
+                  </div>
+                </div>
+                {/* Thumbnail strip */}
+                <div className="flex gap-2 mt-3 overflow-x-auto pb-2 px-1">
+                  {[...Array(4)].map((_, i) => (
+                    <div
+                      key={i}
+                      className="relative rounded-md overflow-hidden h-16 w-24 flex-shrink-0 bg-gray-200 dark:bg-gray-700 animate-pulse"
+                    ></div>
+                  ))}
+                </div>
+              </Card>
+
+              {/* Account Details Card Skeleton */}
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-full bg-gray-200 dark:bg-gray-700 animate-pulse"></div>
+                      <div>
+                        <div className="h-6 w-48 bg-gray-200 dark:bg-gray-700 rounded animate-pulse mb-2"></div>
+                        <div className="h-4 w-32 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                      </div>
+                    </div>
+                    <div className="h-8 w-24 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {/* Tabs Skeleton */}
+                  <div className="grid grid-cols-3 gap-2 mb-6">
+                    {[...Array(3)].map((_, i) => (
+                      <div key={i} className="h-10 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                    ))}
+                  </div>
+                  
+                  {/* Stats Grid Skeleton */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                    {[...Array(4)].map((_, i) => (
+                      <div key={i} className="bg-muted/40 p-3 rounded-lg">
+                        <div className="h-4 w-20 bg-gray-200 dark:bg-gray-700 rounded animate-pulse mb-2"></div>
+                        <div className="h-6 w-16 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Description Skeleton */}
+                  <div className="space-y-2 mb-6">
+                    <div className="h-5 w-32 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                    <div className="space-y-2">
+                      <div className="h-4 w-full bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                      <div className="h-4 w-full bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                      <div className="h-4 w-2/3 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                    </div>
+                  </div>
+
+                  {/* Features Grid Skeleton */}
+                  <div>
+                    <div className="h-5 w-24 bg-gray-200 dark:bg-gray-700 rounded animate-pulse mb-4"></div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {[...Array(6)].map((_, i) => (
+                        <div key={i} className="flex items-center gap-2">
+                          <div className="h-4 w-4 rounded-full bg-gray-200 dark:bg-gray-700 animate-pulse"></div>
+                          <div className="h-4 w-32 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
-            <div className="h-10 w-full bg-gray-200 dark:bg-gray-700 rounded-md animate-pulse mt-4"></div>
+
+            {/* Sidebar - Right side */}
+            <div className="space-y-6">
+              {/* Purchase Card Skeleton */}
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="space-y-4">
+                    <div className="h-10 w-32 bg-gray-200 dark:bg-gray-700 rounded animate-pulse mx-auto"></div>
+                    
+                    {/* Buttons */}
+                    <div className="space-y-2">
+                      <div className="h-11 w-full bg-primary/20 rounded animate-pulse"></div>
+                      <div className="h-11 w-full bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                    </div>
+
+                    {/* Security Info */}
+                    <div className="flex items-center justify-center gap-2">
+                      <div className="h-4 w-4 rounded bg-gray-200 dark:bg-gray-700 animate-pulse"></div>
+                      <div className="h-4 w-40 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                    </div>
+
+                    {/* Buyer Protection Box */}
+                    <div className="bg-muted/50 rounded-lg p-3">
+                      <div className="flex items-start gap-2">
+                        <div className="h-4 w-4 rounded bg-gray-200 dark:bg-gray-700 animate-pulse mt-0.5"></div>
+                        <div className="space-y-2">
+                          <div className="h-4 w-24 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                          <div className="h-3 w-full bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Seller Information Card Skeleton */}
+              <Card>
+                <CardHeader>
+                  <div className="h-6 w-32 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* Seller Profile */}
+                  <div className="flex items-center space-x-3">
+                    <div className="h-10 w-10 rounded-full bg-gray-200 dark:bg-gray-700 animate-pulse"></div>
+                    <div className="space-y-2">
+                      <div className="h-5 w-32 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                      <div className="h-4 w-40 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                      <div className="h-4 w-36 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                    </div>
+                  </div>
+
+                  {/* Stats Grid */}
+                  <div className="grid grid-cols-2 gap-3">
+                    {[...Array(2)].map((_, i) => (
+                      <div key={i} className="flex items-center gap-1.5">
+                        <div className="h-4 w-4 rounded bg-gray-200 dark:bg-gray-700 animate-pulse"></div>
+                        <div className="h-4 w-20 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex gap-2">
+                    <div className="h-10 w-full bg-primary/20 rounded animate-pulse"></div>
+                    <div className="h-10 w-full bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Similar Listings Card Skeleton */}
+              <Card>
+                <CardHeader>
+                  <div className="h-6 w-32 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {[...Array(3)].map((_, i) => (
+                      <div key={i} className="flex items-start gap-3 pb-4 border-b last:border-0 last:pb-0">
+                        <div className="h-12 w-12 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                        <div className="flex-1">
+                          <div className="h-4 w-3/4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse mb-2"></div>
+                          <div className="h-3 w-1/2 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                        </div>
+                        <div className="h-8 w-16 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </div>
         </div>
-      </div>
+      </>
     );
   }
 
