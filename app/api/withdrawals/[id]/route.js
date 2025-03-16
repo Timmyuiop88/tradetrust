@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { prisma } from '@/lib/prisma';
-import { sendWithdrawalConfirmation, sendNotificationEmail } from '@/lib/services/notificationService';
+import { sendWithdrawalConfirmation } from '@/lib/services/notificationService';
+import { sendNotificationEmail } from '@/lib/email/emailService';
 
 // GET - Fetch a specific withdrawal request
 export async function GET(request, { params }) {
