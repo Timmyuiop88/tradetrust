@@ -1,0 +1,13 @@
+{{#> base subject=subject}}
+  <h1>{{subject}}</h1>
+  <p>Hello {{firstName}},</p>
+  <p>{{message}}</p>
+  
+  {{#if actionUrl}}
+  <a href="{{actionUrl}}" class="button">{{actionText}}</a>
+  {{/if}}
+  
+  <div class="divider"></div>
+  
+  <p>Best regards,<br>The TradeTrust Team</p>
+{{/base}}

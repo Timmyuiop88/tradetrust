@@ -17,13 +17,21 @@ export const authOptions = {
           throw new Error('Invalid credentials')
         }
 
+        // Normalize email to lowercase
+        const normalizedEmail = credentials.email.toLowerCase();
+
         const user = await prisma.user.findUnique({
-          where: { email: credentials.email },
+          where: { email: normalizedEmail },
           include: { kyc: true }
         })
 
         if (!user || !(await compare(credentials.password, user.password))) {
           throw new Error('Invalid credentials')
+        }
+
+        // Check if email is verified
+        if (!user.isEmailVerified) {
+          throw new Error('Please verify your email before logging in. Check your inbox or request a new verification email.')
         }
 
         return {
@@ -90,6 +98,7 @@ export const authOptions = {
   },
   pages: {
     signIn: '/login',
+    error: '/login?error=true',
   },
   session: {
     strategy: 'jwt',

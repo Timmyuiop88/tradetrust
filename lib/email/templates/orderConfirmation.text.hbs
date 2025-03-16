@@ -1,0 +1,20 @@
+Order Confirmation
+
+Hello {{firstName}},
+
+Thank you for your order! Your order #{{orderId}} has been confirmed and is being processed.
+
+Order Details:
+- Order ID: {{orderId}}
+- Date: {{formatDate orderDate}}
+- Total Amount: {{formatCurrency amount}}
+
+You can view your order details by visiting:
+{{orderUrl}}
+
+If you have any questions about your order, please contact our support team.
+
+Best regards,
+The {{appName}} Team
+
+© {{formatDate (now) "YYYY"}} {{appName}}. All rights reserved.

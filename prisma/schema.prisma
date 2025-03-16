@@ -199,8 +199,10 @@ model VerificationToken {
   identifier String
   token      String   @unique
   expires    DateTime
+  type       String   @default("email") // email, password, etc.
 
-  @@unique([identifier, token])
+  @@id([identifier, type])
+  @@map("verification_tokens")
 }
 
 model Review {
