@@ -18,8 +18,10 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/app/components/pagination";
+import { useParams } from "next/navigation";
 
-export default function ReviewsPage({ params }) {
+export default function ReviewsPage({ }) {
+  const params = useParams();
   const userId = params.id;
   const router = useRouter();
   const searchParams = useSearchParams();

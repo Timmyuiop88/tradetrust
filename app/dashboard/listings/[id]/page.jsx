@@ -469,7 +469,7 @@ export default function ListingDetailsPage() {
               </Card>
             </div>
           </div>
-        </div>
+      </div>
       </>
     );
   }
@@ -856,8 +856,8 @@ export default function ListingDetailsPage() {
                       ) : (
                         <span className="font-medium">New Seller</span>
                       )}
-                    </div>
-                    <div className="flex items-center gap-1.5">
+                  </div>
+                  <div className="flex items-center gap-1.5">
                     {getCompletionRateIcon(sellerStats.completionRate)}
                     <span className={cn("text-xs", getCompletionRateColor(sellerStats.completionRate))}>
                       {sellerStats.completionRate}% Completion
