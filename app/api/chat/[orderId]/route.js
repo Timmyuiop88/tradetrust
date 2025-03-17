@@ -7,32 +7,38 @@ import { authOptions } from '@/app/api/auth/[...nextauth]/route';
  * GET /api/chat/[orderId]
  * Fetches messages for a specific order
  */
-export async function GET(req, { params }) {
+export async function GET(request, { params }) {
   try {
-    // Get session
     const session = await getServerSession(authOptions);
     
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
+    // Access the orderId directly from params
     const orderId = params.orderId;
-    
     if (!orderId) {
       return NextResponse.json({ error: 'Order ID is required' }, { status: 400 });
     }
     
-    // Get order with minimal data needed
+    // Get the order to check authorization
     const order = await prisma.order.findUnique({
       where: { id: orderId },
-      select: {
-        id: true,
-        status: true,
-        buyerId: true,
-        listing: {
+      include: {
+        buyer: {
           select: {
-            id: true, 
-            sellerId: true
+            id: true,
+            email: true,
+          }
+        },
+        listing: {
+          include: {
+            seller: {
+              select: {
+                id: true,
+                email: true,
+              }
+            }
           }
         }
       }
@@ -42,26 +48,26 @@ export async function GET(req, { params }) {
       return NextResponse.json({ error: 'Order not found' }, { status: 404 });
     }
     
-    // Check authorization
+    // Check if the user is authorized to view this order's messages
     const isBuyer = order.buyerId === session.user.id;
     const isSeller = order.listing.sellerId === session.user.id;
     const isAdmin = session.user.role === 'ADMIN' || session.user.role === 'MODERATOR';
     
     if (!isBuyer && !isSeller && !isAdmin) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+      return NextResponse.json({ error: 'You do not have access to this order' }, { status: 403 });
     }
     
-    // Get messages
+    // Get all messages for this order
     const messages = await prisma.chatMessage.findMany({
-      where: { orderId },
-      orderBy: { createdAt: 'asc' },
-      select: {
-        id: true,
-        content: true,
-        createdAt: true,
-        senderId: true,
-        recipientId: true,
-        isRead: true,
+      where: {
+        orderId: orderId,
+        OR: [
+          { isModOnly: false },
+          { isModOnly: true, senderId: session.user.id },
+          { isModOnly: true, recipientId: session.user.id, sender: { role: { in: ['ADMIN', 'MODERATOR'] } } }
+        ]
+      },
+      include: {
         sender: {
           select: {
             id: true,
@@ -69,24 +75,50 @@ export async function GET(req, { params }) {
             role: true
           }
         }
+      },
+      orderBy: {
+        createdAt: 'asc'
       }
     });
     
-    // Mark as read
-    if (messages.length > 0) {
-      await prisma.chatMessage.updateMany({
-        where: {
-          orderId,
-          recipientId: session.user.id,
-          isRead: false
-        },
-        data: { isRead: true }
-      });
-    }
+    // Check if there's an active dispute for this order
+    const dispute = await prisma.dispute.findFirst({
+      where: {
+        orderId: orderId
+      },
+      select: {
+        id: true,
+        status: true,
+        reason: true,
+        createdAt: true,
+        initiator: {
+          select: {
+            id: true,
+            email: true
+          }
+        }
+      }
+    });
     
-    return NextResponse.json({ messages, order });
+    // Mark messages as read if the current user is the recipient
+    await prisma.chatMessage.updateMany({
+      where: {
+        orderId: orderId,
+        recipientId: session.user.id,
+        isRead: false
+      },
+      data: {
+        isRead: true
+      }
+    });
+    
+    return NextResponse.json({
+      messages,
+      order,
+      dispute
+    });
   } catch (error) {
-    console.error('Error in chat API:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error('Error fetching messages:', error);
+    return NextResponse.json({ error: 'Failed to fetch messages' }, { status: 500 });
   }
 } 
