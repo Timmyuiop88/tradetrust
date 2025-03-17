@@ -5,7 +5,7 @@ const nextConfig = {
     '@auth/core'
   ],
   experimental: {
-    serverComponentsExternalPackages: ['@prisma/client'],
+    serverExternalPackages: ['@prisma/client'],
   },
   reactStrictMode: true,
   webpack: (config) => {

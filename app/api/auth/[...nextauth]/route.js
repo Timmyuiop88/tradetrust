@@ -5,6 +5,9 @@ import { authOptions } from '@/lib/auth';
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
+// Re-export authOptions for backward compatibility
+export { authOptions };
+
 // Create the handler with NextAuth
 const handler = NextAuth(authOptions);
 
