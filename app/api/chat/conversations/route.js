@@ -31,9 +31,8 @@ export async function GET(request) {
           }
         },
         listing: {
-          select: {
-            id: true,
-            price: true,
+          include: {
+            platform: true,
             seller: {
               select: {
                 id: true,
@@ -42,6 +41,7 @@ export async function GET(request) {
             }
           }
         },
+        // Get the latest message to show a preview
         chatMessages: {
           orderBy: {
             createdAt: 'desc'
@@ -67,8 +67,8 @@ export async function GET(request) {
       }
     });
     
-    // Count unread messages for each order
-    const conversationsWithUnreadCount = await Promise.all(
+    // Count unread messages for each conversation
+    const conversationsWithUnread = await Promise.all(
       orders.map(async (order) => {
         const unreadCount = await prisma.chatMessage.count({
           where: {
@@ -78,37 +78,16 @@ export async function GET(request) {
           }
         });
         
-        // Determine the other user (not the current user)
-        const otherUser = order.buyerId === session.user.id 
-          ? order.listing.seller 
-          : order.buyer;
-        
         return {
-          id: order.id,
-          status: order.status,
-          createdAt: order.createdAt,
-          updatedAt: order.updatedAt,
-          listing: {
-            id: order.listing.id,
-            title: order.listing.title,
-            price: order.listing.price,
-          },
-          otherUser,
-          lastMessage: order.chatMessages[0] || null,
-          messageCount: order._count.chatMessages,
-          unreadCount,
+          ...order,
+          unreadCount
         };
       })
     );
     
-    // Filter out orders with no messages
-    const conversations = conversationsWithUnreadCount.filter(
-      (conv) => conv.messageCount > 0
-    );
-    
-    return NextResponse.json({ conversations });
+    return NextResponse.json(conversationsWithUnread);
   } catch (error) {
     console.error('Error fetching conversations:', error);
-    return NextResponse.json({ error: 'Failed to fetch conversations' }, { status: 500 });
+    return NextResponse.json({ error: 'An error occurred while fetching conversations' }, { status: 500 });
   }
-} 
+}
