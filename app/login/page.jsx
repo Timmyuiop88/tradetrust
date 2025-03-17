@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { signIn } from "next-auth/react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { AuthCard } from "../components/auth/auth-card"
@@ -9,7 +9,8 @@ import { Button } from "../components/button"
 import Link from "next/link"
 import { Loader2, CheckCircle, AlertCircle, Mail } from "lucide-react"
 
-export default function LoginPage() {
+// Create a client component that uses the search params
+function LoginContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const verified = searchParams.get("verified") === "true"
@@ -155,5 +156,28 @@ export default function LoginPage() {
         </Link>
       </div>
     </AuthCard>
+  )
+}
+
+// Fallback component while login content is loading
+function LoginFallback() {
+  return (
+    <AuthCard
+      title="Welcome back"
+      description="Enter your email to sign in to your account"
+    >
+      <div className="flex justify-center py-8">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    </AuthCard>
+  )
+}
+
+// Main page component with Suspense boundary
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<LoginFallback />}>
+      <LoginContent />
+    </Suspense>
   )
 } 

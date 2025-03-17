@@ -1,8 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   experimental: {
-    // Fix the incorrect key name
-    serverComponentsExternalPackages: ['@prisma/client', '@auth/prisma-adapter'],
+    // Updated to use the correct key name
+    serverExternalPackages: ['@prisma/client', '@auth/prisma-adapter'],
   },
   webpack: (config) => {
     // Fix for handlebars warnings
