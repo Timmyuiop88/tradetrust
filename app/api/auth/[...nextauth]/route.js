@@ -1,4 +1,4 @@
-import NextAuth from 'next-auth/next';
+import NextAuth from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import { prisma } from '@/lib/prisma';
 import { compare } from 'bcryptjs';
@@ -103,12 +103,9 @@ export const authOptions = {
   session: {
     strategy: 'jwt',
   },
+  secret: process.env.NEXTAUTH_SECRET,
+  debug: process.env.NODE_ENV === 'development',
 };
 
-export async function GET(request) {
-  return await NextAuth(authOptions)(request);
-}
-
-export async function POST(request) {
-  return await NextAuth(authOptions)(request);
-}
+const handler = NextAuth(authOptions);
+export { handler as GET, handler as POST };
