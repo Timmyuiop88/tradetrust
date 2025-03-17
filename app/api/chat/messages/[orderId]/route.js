@@ -9,7 +9,7 @@ import { prisma } from '@/lib/prisma';
  * Query params:
  * - includeDisputes: boolean - Whether to include dispute messages
  */
-export async function GET(request, context) {
+export default async function GET(request, context) {
   try {
     const session = await getServerSession(authOptions);
     

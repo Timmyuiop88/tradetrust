@@ -11,7 +11,7 @@ import { authOptions } from '@/app/api/auth/[...nextauth]/route';
  * - orderId: string - The ID of the order this message is related to
  * - disputeId: string - The ID of the dispute (if applicable)
  */
-export async function POST(request) {
+export default async function POST(request) {
   try {
     const session = await getServerSession(authOptions);
     

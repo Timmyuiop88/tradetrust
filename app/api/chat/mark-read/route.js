@@ -9,7 +9,7 @@ import { prisma } from '@/lib/prisma';
  * Body:
  * - messageIds: string[] - Array of message IDs to mark as read
  */
-export async function POST(request) {
+export default async function POST(request) {
   try {
     const session = await getServerSession(authOptions);
     

@@ -7,7 +7,7 @@ import { prisma } from '@/lib/prisma';
  * GET /api/chat/conversations
  * Fetches all conversations (orders with messages) for the current user
  */
-export async function GET(request) {
+export default async function GET(request) {
   try {
     const session = await getServerSession(authOptions);
     
