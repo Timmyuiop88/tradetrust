@@ -1,72 +1,52 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
+import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
-import { prisma } from '@/lib/prisma';
+import { chatService } from '@/lib/services/chatService';
 
 /**
  * POST /api/chat/mark-read
- * Marks messages as read
+ * Marks messages as read for a specific order
  * Body:
- * - messageIds: string[] - Array of message IDs to mark as read
+ * - orderId: string - The ID of the order
  */
-export default async function POST(request) {
+export async function POST(request) {
   try {
     const session = await getServerSession(authOptions);
     
-    if (!session || !session.user) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-
+    
     const body = await request.json();
-    const { messageIds } = body;
-
-    if (!messageIds || !Array.isArray(messageIds) || messageIds.length === 0) {
-      return NextResponse.json({ error: 'Message IDs are required' }, { status: 400 });
+    const { orderId } = body;
+    
+    if (!orderId) {
+      return NextResponse.json({ error: 'Order ID is required' }, { status: 400 });
     }
-
-    // Verify that the user is the recipient of these messages
-    const messages = await prisma.chatMessage.findMany({
-      where: {
-        id: {
-          in: messageIds
-        }
-      },
-      select: {
-        id: true,
-        recipientId: true
-      }
-    });
-
-    // Filter out messages where the user is not the recipient
-    const validMessageIds = messages
-      .filter(msg => msg.recipientId === session.user.id)
-      .map(msg => msg.id);
-
-    if (validMessageIds.length === 0) {
-      return NextResponse.json({ error: 'No valid messages to mark as read' }, { status: 400 });
+    
+    try {
+      // Use the chat service to mark messages as read
+      const count = await chatService.markMessagesAsRead({
+        userId: session.user.id,
+        orderId
+      });
+      
+      return NextResponse.json({ 
+        success: true, 
+        count 
+      });
+    } catch (serviceError) {
+      console.error('Chat service error:', serviceError);
+      return NextResponse.json({ 
+        error: 'Failed to mark messages as read', 
+        message: serviceError.message 
+      }, { status: 500 });
     }
-
-    // Mark messages as read
-    await prisma.chatMessage.updateMany({
-      where: {
-        id: {
-          in: validMessageIds
-        }
-      },
-      data: {
-        isRead: true
-      }
-    });
-
-    return NextResponse.json({ 
-      success: true,
-      markedCount: validMessageIds.length
-    });
   } catch (error) {
     console.error('Error marking messages as read:', error);
     return NextResponse.json({ 
       error: 'Failed to mark messages as read', 
-      details: error.message 
+      message: error.message 
     }, { status: 500 });
   }
 } 

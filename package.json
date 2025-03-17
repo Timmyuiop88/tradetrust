@@ -16,7 +16,8 @@
     "test:email": "node lib/email/testEmail.js",
     "test:all-emails": "node lib/email/testAllTemplates.js",
     "create:custom-template": "node lib/email/createCustomTemplate.js",
-    "test:custom-email": "node lib/email/testCustomEmail.js"
+    "test:custom-email": "node lib/email/testCustomEmail.js",
+    "optimize:chat": "node scripts/apply-chat-migration.js"
   },
   "prisma": {
     "seed": "node prisma/seed.js"

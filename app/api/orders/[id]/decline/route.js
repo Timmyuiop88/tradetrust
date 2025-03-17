@@ -122,36 +122,19 @@ export async function POST(request, { params }) {
     // Send notifications
     try {
       // Send notification to buyer using the notification service
-      // This handles both push notification and email
       await sendOrderCancellation(
         order.buyerId, 
         order.id, 
         'The seller has declined this order.'
-      );
-
-      // Update order status in real-time for both buyer and seller
+      )
+      
+      // Send push notification about the order status change
       await PushNotificationService.notifyOrderUpdate(
-        { 
-          ...result.order, 
-          listing: result.listing,
-          buyer: order.buyer // Include buyer info for notifications
-        },
+        { ...result.order, listing: result.listing },
         'ORDER_CANCELLED'
-      );
-
-      // Send immediate push notification to buyer about the refund
-      await PushNotificationService.sendNotification(
-        order.buyerId,
-        'Order Cancelled - Refund Processed',
-        `Your order #${order.id.substring(0, 8)} has been cancelled by the seller. A refund of $${order.price.toFixed(2)} has been added to your buying balance.`,
-        {
-          orderId: order.id,
-          type: 'order_cancelled',
-          refundAmount: order.price
-        }
-      );
+      )
     } catch (notificationError) {
-      console.error('Error sending notifications:', notificationError);
+      console.error('Error sending notifications:', notificationError)
       // Don't fail the request if notifications fail
     }
     

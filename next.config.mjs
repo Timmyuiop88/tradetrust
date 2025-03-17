@@ -11,6 +11,7 @@ const nextConfig = {
     };
     return config;
   },
+ 
   eslint: {
     // Disable ESLint during build since we have an error with it
     ignoreDuringBuilds: true,

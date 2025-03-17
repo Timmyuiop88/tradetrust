@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { chatService } from '@/lib/services/chatService';
 
 /**
  * GET /api/chat/[orderId]
@@ -23,86 +23,44 @@ export async function GET(req, { params }) {
       return NextResponse.json({ error: 'Order ID is required' }, { status: 400 });
     }
     
-    // Get order with minimal data needed
-    const order = await prisma.order.findUnique({
-      where: { id: orderId },
-      select: {
-        id: true,
-        status: true,
-        buyerId: true,
-        listing: {
-          select: {
-            id: true, 
-            sellerId: true
-          }
-        }
-      }
-    });
+    // Parse URL to get query parameters
+    const url = new URL(req.url);
+    const markAsRead = url.searchParams.get('markAsRead') !== 'false'; // Default to true
     
-    if (!order) {
-      return NextResponse.json({ error: 'Order not found' }, { status: 404 });
-    }
-    
-    // Check authorization
-    const isBuyer = order.buyerId === session.user.id;
-    const isSeller = order.listing.sellerId === session.user.id;
-    const isAdmin = session.user.role === 'ADMIN' || session.user.role === 'MODERATOR';
-    
-    if (!isBuyer && !isSeller && !isAdmin) {
-      return NextResponse.json({ error: 'Unauthorized access to order' }, { status: 403 });
-    }
-    
-    // Get messages
-    const messages = await prisma.chatMessage.findMany({
-      where: { 
+    try {
+      // Use the chat service to get messages
+      const result = await chatService.getOrderMessages({
         orderId,
-        OR: [
-          { isModOnly: false },
-          { isModOnly: true, senderId: session.user.id },
-          { isModOnly: true, recipientId: session.user.id }
-        ]
-      },
-      orderBy: { createdAt: 'asc' },
-      include: {
-        sender: {
-          select: {
-            id: true,
-            email: true,
-            firstName: true,
-            lastName: true,
-            role: true
-          }
+        userId: session.user.id,
+        markAsRead
+      });
+      
+      // Add cache control headers for better performance
+      return new Response(JSON.stringify(result), {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'private, max-age=0, s-maxage=0, stale-while-revalidate=5'
         }
+      });
+    } catch (serviceError) {
+      console.error('Chat service error:', serviceError);
+      
+      if (serviceError.message === 'Order not found') {
+        return NextResponse.json({ error: 'Order not found' }, { status: 404 });
       }
-    });
-    
-    // Get dispute if it exists
-    const dispute = await prisma.dispute.findFirst({
-      where: { orderId },
-      select: {
-        id: true,
-        status: true,
-        reason: true
+      
+      if (serviceError.message === 'Unauthorized access to order') {
+        return NextResponse.json({ error: 'You do not have permission to view this order' }, { status: 403 });
       }
-    });
-    
-    // Mark messages as read
-    await prisma.chatMessage.updateMany({
-      where: {
-        orderId,
-        recipientId: session.user.id,
-        isRead: false
-      },
-      data: { isRead: true }
-    });
-    
-    return NextResponse.json({
-      messages,
-      order,
-      dispute
-    });
+      
+      throw serviceError; // Re-throw for the outer catch block
+    }
   } catch (error) {
     console.error('Error in chat API:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ 
+      error: 'Internal server error', 
+      message: error.message 
+    }, { status: 500 });
   }
 } 
