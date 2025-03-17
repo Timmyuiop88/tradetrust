@@ -15,7 +15,7 @@ export async function GET(request, { params }) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
-    // Access the orderId from the params object - make sure to await it
+    // Access the orderId directly from params
     const orderId = params.orderId;
     
     if (!orderId) {
