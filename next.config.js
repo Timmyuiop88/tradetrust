@@ -1,9 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   transpilePackages: ['next-auth'],
-  experimental: {
+  /* experimental: {
     esmExternals: true
-  },
+  }, */
   reactStrictMode: true,
   webpack: (config) => {
     config.resolve.fallback = { 
