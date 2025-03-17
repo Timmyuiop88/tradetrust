@@ -1,13 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Loader2, CheckCircle, XCircle, ShieldCheck, ArrowLeft } from "lucide-react";
 import { Button } from "../components/button";
 import { AuthCard } from "../components/auth/auth-card";
 
-export default function VerifyEmailPage() {
+// Component that uses the search params
+function VerifyEmailContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
@@ -107,5 +108,28 @@ export default function VerifyEmailPage() {
         )}
       </div>
     </AuthCard>
+  );
+}
+
+// Fallback component to show while loading
+function VerifyEmailFallback() {
+  return (
+    <AuthCard
+      title="Email Verification"
+      description="Loading verification..."
+    >
+      <div className="flex justify-center py-8">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    </AuthCard>
+  );
+}
+
+// Main page component with Suspense boundary
+export default function VerifyEmailPage() {
+  return (
+    <Suspense fallback={<VerifyEmailFallback />}>
+      <VerifyEmailContent />
+    </Suspense>
   );
 } 

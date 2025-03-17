@@ -1,13 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Mail, ArrowLeft, CheckCircle, Loader2, AlertTriangle } from "lucide-react";
 import { Button } from "../components/button";
 import { AuthCard } from "../components/auth/auth-card";
 
-export default function VerificationPendingPage() {
+// Component that uses the search params
+function VerificationPendingContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const email = searchParams.get("email") || "";
@@ -170,5 +171,28 @@ export default function VerificationPendingPage() {
         </div>
       </div>
     </AuthCard>
+  );
+}
+
+// Fallback component to show while loading
+function VerificationPendingFallback() {
+  return (
+    <AuthCard
+      title="Verification Pending"
+      description="Please wait..."
+    >
+      <div className="flex justify-center py-8">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    </AuthCard>
+  );
+}
+
+// Main page component with Suspense boundary
+export default function VerificationPendingPage() {
+  return (
+    <Suspense fallback={<VerificationPendingFallback />}>
+      <VerificationPendingContent />
+    </Suspense>
   );
 } 

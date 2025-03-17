@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useFollow } from "@/app/hooks/useFollow";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardHeader, CardTitle, CardContent } from "@/app/components/card";
@@ -13,7 +13,8 @@ import { useSession } from "next-auth/react";
 import { Badge } from "@/app/components/badge";
 import { useParams } from "next/navigation";
 
-export default function FollowersPage() {
+// Component that uses search params
+function FollowersPageContent() {
   const params = useParams();
   const userId = params.id;
   const router = useRouter();
@@ -266,5 +267,32 @@ export default function FollowersPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+// Fallback loading component
+function FollowersPageFallback() {
+  return (
+    <div className="max-w-4xl mx-auto py-8 px-4">
+      <Card>
+        <CardHeader>
+          <CardTitle>Connections</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex justify-center py-12">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// Main component with Suspense boundary
+export default function FollowersPage() {
+  return (
+    <Suspense fallback={<FollowersPageFallback />}>
+      <FollowersPageContent />
+    </Suspense>
   );
 } 
