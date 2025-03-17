@@ -1,7 +1,10 @@
-import NextAuth from 'next-auth';
+import NextAuth from 'next-auth/next';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import { prisma } from '@/lib/prisma';
 import { compare } from 'bcryptjs';
+
+// Add dynamic export to force dynamic rendering
+export const dynamic = 'force-dynamic';
 
 export const authOptions = {
   providers: [
@@ -97,14 +100,15 @@ export const authOptions = {
       return true;
     }
   },
-  pages: {
-    signIn: '/login',
-    error: '/login?error=true',
-  },
   session: {
     strategy: 'jwt',
   },
 };
 
-const handler = NextAuth(authOptions);
-export { handler as GET, handler as POST };
+export async function GET(request) {
+  return await NextAuth(authOptions)(request);
+}
+
+export async function POST(request) {
+  return await NextAuth(authOptions)(request);
+}
