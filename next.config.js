@@ -1,46 +1,27 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  transpilePackages: [
-    'next-auth',
-    '@auth/core'
-  ],
   experimental: {
-    serverExternalPackages: ['@prisma/client'],
+    // Fix the incorrect key name
+    serverComponentsExternalPackages: ['@prisma/client', '@auth/prisma-adapter'],
   },
-  reactStrictMode: true,
   webpack: (config) => {
-    config.resolve.fallback = { 
+    // Fix for handlebars warnings
+    config.resolve.fallback = {
       ...config.resolve.fallback,
       fs: false,
+      path: false,
+      os: false,
     };
     return config;
   },
-
   eslint: {
-    // Disable ESLint during build since we have an error with it
     ignoreDuringBuilds: true,
   },
   typescript: {
-    // Disable TypeScript during build for similar reasons
     ignoreBuildErrors: true,
   },
-    // ... other config options ...
-    images: {
-        domains: ['files.edgestore.dev'],
-    },
-    headers: async () => {
-      return [
-        {
-          source: '/:path*',
-          headers: [
-            {
-              key: 'Permissions-Policy',
-              value: 'camera=self' // Allow camera access
-            }
-          ]
-        }
-      ]
-    }
-};
+  // Add output option for better Vercel compatibility
+  output: 'standalone',
+}
 
-export default nextConfig; 
+module.exports = nextConfig;
