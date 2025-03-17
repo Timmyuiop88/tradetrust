@@ -7,7 +7,7 @@ import { authOptions } from '@/app/api/auth/[...nextauth]/route';
  * GET /api/chat/[orderId]
  * Fetches messages for a specific order
  */
-export default async function GET(req, { params }) {
+export async function GET(req, { params }) {
   try {
     // Get session
     const session = await getServerSession(authOptions);
@@ -23,30 +23,17 @@ export default async function GET(req, { params }) {
       return NextResponse.json({ error: 'Order ID is required' }, { status: 400 });
     }
     
-    // Get order with complete data needed by the chat page
+    // Get order with minimal data needed
     const order = await prisma.order.findUnique({
       where: { id: orderId },
-      include: {
-        buyer: {
-          select: {
-            id: true,
-            email: true,
-            firstName: true,
-            lastName: true,
-          
-          }
-        },
+      select: {
+        id: true,
+        status: true,
+        buyerId: true,
         listing: {
-          include: {
-            seller: {
-              select: {
-                id: true,
-                email: true,
-                firstName: true,
-                lastName: true,
-                
-              }
-            }
+          select: {
+            id: true, 
+            sellerId: true
           }
         }
       }
@@ -57,8 +44,8 @@ export default async function GET(req, { params }) {
     }
     
     // Check authorization
-    const isBuyer = order.buyer.id === session.user.id;
-    const isSeller = order.listing.seller.id === session.user.id;
+    const isBuyer = order.buyerId === session.user.id;
+    const isSeller = order.listing.sellerId === session.user.id;
     const isAdmin = session.user.role === 'ADMIN' || session.user.role === 'MODERATOR';
     
     if (!isBuyer && !isSeller && !isAdmin) {
