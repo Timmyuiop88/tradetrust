@@ -1,9 +1,12 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  transpilePackages: ['next-auth'],
-  /* experimental: {
-    esmExternals: true
-  }, */
+  transpilePackages: [
+    'next-auth',
+    '@auth/core'
+  ],
+  experimental: {
+    serverComponentsExternalPackages: ['@prisma/client'],
+  },
   reactStrictMode: true,
   webpack: (config) => {
     config.resolve.fallback = { 
