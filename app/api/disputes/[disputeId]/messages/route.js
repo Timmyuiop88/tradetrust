@@ -15,7 +15,7 @@ export async function GET(request, context) {
       );
     }
 
-    const { disputeId } = await Promise.resolve(context.params);
+    const { disputeId } = context.params;
 
     // Get the dispute to check permissions
     const dispute = await prisma.dispute.findUnique({
@@ -102,7 +102,7 @@ export async function POST(request, context) {
       );
     }
 
-    const { disputeId } = await Promise.resolve(context.params);
+    const { disputeId } = context.params;
     const body = await request.json();
     const { content, isModOnly = false, attachments = [] } = body;
 

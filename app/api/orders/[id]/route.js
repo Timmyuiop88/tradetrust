@@ -14,7 +14,7 @@ export async function GET(request, { params }) {
     }
     
     // Get the orderId from params
-    const { id: orderId } = await Promise.resolve(params)
+    const { id: orderId } = params
     
     if (!orderId) {
       return NextResponse.json({ error: 'Order ID is required' }, { status: 400 })

@@ -13,7 +13,7 @@ export async function GET(request, context) {
     
     // Properly await the params object
     const { params } = context;
-    const orderId = await Promise.resolve(params.id);
+    const orderId = params.id;
     
     if (!orderId) {
       return NextResponse.json({ error: 'Order ID is required' }, { status: 400 });
