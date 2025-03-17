@@ -5,6 +5,7 @@ import { compare } from 'bcryptjs';
 
 // Add dynamic export to force dynamic rendering
 export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
 export const authOptions = {
   providers: [
@@ -107,5 +108,4 @@ export const authOptions = {
   debug: process.env.NODE_ENV === 'development',
 };
 
-const handler = NextAuth(authOptions);
-export { handler as GET, handler as POST };
+export default NextAuth(authOptions);
