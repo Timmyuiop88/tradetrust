@@ -196,6 +196,28 @@ export default function NotificationSettings() {
     <Card>
       <CardHeader className="pb-3">
         <CardTitle className="text-lg font-medium">Order Notifications</CardTitle>
+        {subscription ? (
+            <div className="flex items-center gap-2 text-sm text-green-500">
+              <Bell className="h-4 w-4" />
+              <span>Enabled</span>
+            </div>
+          ) : (
+            <Button 
+              onClick={handleSubscribe} 
+              variant="outline" 
+              size="sm"
+              disabled={isSubscribing}
+            >
+              {isSubscribing ? (
+                <>
+                  <span className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                  Enabling...
+                </>
+              ) : (
+                <>Enable Notifications</>
+              )}
+            </Button>
+          )}
         <CardDescription>
           Get real-time alerts about your orders and account activity
         </CardDescription>
