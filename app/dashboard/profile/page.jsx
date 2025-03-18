@@ -44,6 +44,7 @@ import {
   Clock,
   Wallet2,
   Users,
+  AlertTriangle, Info, Moon, Sun 
 } from "lucide-react";
 import { format } from "date-fns";
 import { AddBalanceSheet } from "@/app/components/add-balance-sheet";
@@ -53,7 +54,7 @@ import { CompactPlanIndicator } from "@/app/components/CompactPlanIndicator";
 import { FollowersCount } from "@/app/components/followers-count";
 import NotificationSettings from "@/app/dashboard/settings/notifications";
 import { NotificationBell } from "@/app/components/notification-bell";
-
+import { useTheme } from "next-themes";
 export default function ProfilePage() {
   const router = useRouter();
   const {
@@ -71,7 +72,7 @@ export default function ProfilePage() {
   const [activityLoading, setActivityLoading] = useState(true);
   const { data: session } = useSession();
   const userId = session?.user?.id;
-
+  const { theme, setTheme } = useTheme()
   // Define formatDate function at the top level
   const formatDate = (dateString) => {
     if (!dateString) return "N/A";
@@ -304,7 +305,17 @@ export default function ProfilePage() {
           <div className="flex justify-between items-start mb-4">
             <h2 className="text-2xl font-bold">Your Profile</h2>
             <div className="flex items-center gap-2">
-            
+            <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            className="gap-1"
+            aria-label="Toggle theme"
+          >
+            <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+            <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+          </Button>
+
               <Button
                 variant="outline"
                 size="sm"

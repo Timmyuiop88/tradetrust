@@ -12,7 +12,7 @@ import { Separator } from "@/app/components/separator"
 import { 
   Clock, Copy, MessageSquare, AlertTriangle, CheckCircle, 
   ShieldCheck, Info, ArrowLeft, Lock, X, Loader2, Shield,
-  RefreshCw
+  RefreshCw, Eye, EyeOff
 } from "lucide-react"
 import { toast } from "sonner"
 import { formatDistance, isPast } from "date-fns"
@@ -337,6 +337,11 @@ export default function OrderDetailPage() {
     // Navigate to the chat page with the order ID
     router.push(`/chat/${params.id}`);
   }, [router, params.id]);
+  
+  // Add the missing function
+  const toggleCredentialVisibility = () => {
+    setShowCredentials(prev => !prev);
+  }
   
   if (showLoading) {
     return (

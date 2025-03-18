@@ -9,7 +9,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "../c
 import { AddBalanceSheet } from "../components/add-balance-sheet"
 import { NotificationsSheet } from "../components/notifications-sheet"
 import { BalanceDisplay } from "@/app/components/balance-display"
-
+import Image from "next/image"
 const navigation = [
   { name: 'Home', href: '/dashboard', icon: Home },
   { name: 'Orders', href: '/dashboard/orders', icon: ShoppingBag },
@@ -41,7 +41,7 @@ export default function DashboardLayout({ children }) {
       <header className="fixed top-0 left-0 right-0 z-50 border-b bg-background/95 backdrop-blur">
         <div className="container flex h-14 items-center justify-between">
           <Link href="/dashboard" className="flex items-center space-x-2">
-            <ShieldCheck className="h-8 w-8 text-primary" />
+            <Image src="/images/logo.png" alt="TrustTrade Logo" width={28} height={28} />
             <span className="font-bold text-xl truncate">TrustTrade</span>
           </Link>
           <div className="flex items-center space-x-4">
