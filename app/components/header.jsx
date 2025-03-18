@@ -4,7 +4,7 @@ import { Button } from "./button"
 import { Moon, Sun, ShieldCheck } from "lucide-react"
 import { useTheme } from "next-themes"
 import { MobileNav } from "./mobile-nav"
-
+import Image from "next/image"
 export function Header() {
   const { theme, setTheme } = useTheme()
 
@@ -12,7 +12,7 @@ export function Header() {
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center justify-between">
         <Link href="/" className="flex items-center space-x-3">
-          <ShieldCheck className="h-8 w-8 text-primary" />
+         <Image src="/images/logo.png" alt="TrustTrade" width={28} height={28} />
           <span className="font-bold text-xl">TrustTrade</span>
         </Link>
         <nav className="hidden md:flex items-center space-x-8">

@@ -304,7 +304,7 @@ export default function ProfilePage() {
           <div className="flex justify-between items-start mb-4">
             <h2 className="text-2xl font-bold">Your Profile</h2>
             <div className="flex items-center gap-2">
-              <NotificationBell />
+            
               <Button
                 variant="outline"
                 size="sm"
@@ -312,7 +312,7 @@ export default function ProfilePage() {
                 onClick={() => router.push("/dashboard/settings")}
               >
                 <Settings className="h-4 w-4" />
-                Edit Profile
+              
               </Button>
             </div>
           </div>

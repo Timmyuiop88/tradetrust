@@ -1,10 +1,10 @@
 "use client"
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { usePushNotifications } from '@/lib/hooks/usePushNotifications'
 import { Switch } from '@/app/components/switch'
 import { Button } from '@/app/components/button'
-import { Bell, BellOff, AlertTriangle, Info } from 'lucide-react'
+import { Bell, BellOff, AlertTriangle, Info, ArrowLeft, Share, PlusSquare, Home } from 'lucide-react'
 import {
   Card,
   CardContent,
@@ -13,10 +13,20 @@ import {
   CardHeader,
   CardTitle,
 } from "@/app/components/card"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/tabs"
+import Image from 'next/image'
 
 export default function NotificationSettings() {
   const { isSupported, permission, subscription, subscribe } = usePushNotifications()
   const [isSubscribing, setIsSubscribing] = useState(false)
+  const [isIOS, setIsIOS] = useState(false)
+  const [showIOSGuide, setShowIOSGuide] = useState(false)
+  
+  useEffect(() => {
+    // Check if user is on iOS device
+    const userAgent = window.navigator.userAgent.toLowerCase()
+    setIsIOS(/iphone|ipad|ipod/.test(userAgent))
+  }, [])
   
   const handleSubscribe = async () => {
     setIsSubscribing(true)
@@ -25,6 +35,102 @@ export default function NotificationSettings() {
     } finally {
       setIsSubscribing(false)
     }
+  }
+  
+  // iOS-specific PWA installation guide
+  if (showIOSGuide) {
+    return (
+      <Card className="border-primary/20">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="gap-1" 
+              onClick={() => setShowIOSGuide(false)}
+            >
+              <ArrowLeft className="h-4 w-4" /> Back
+            </Button>
+            <CardTitle className="text-lg font-medium text-center">
+              Add to Home Screen
+            </CardTitle>
+            <div className="w-[70px]"></div> {/* Spacer for balance */}
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <p className="text-center text-sm text-muted-foreground">
+            Follow these steps to install TrustTrade as an app on your home screen and enable notifications
+          </p>
+          
+          <div className="space-y-8">
+            {/* Step 1 */}
+            <div className="flex flex-col items-center">
+              <div className="rounded-full bg-primary/10 p-3 mb-3">
+                <Share className="h-6 w-6 text-primary" />
+              </div>
+              <h3 className="font-medium mb-2">Step 1: Tap the Share button</h3>
+              <div className="bg-muted/30 rounded-lg p-4 w-full max-w-[280px] flex flex-col items-center">
+                <Image 
+                  src="/images/ios-share.png" 
+                  width={200} 
+                  height={120} 
+                  alt="iOS share button location"
+                  className="rounded-md mb-2"
+                />
+                <p className="text-xs text-center text-muted-foreground">
+                  Tap the share icon in Safari's bottom menu bar
+                </p>
+              </div>
+            </div>
+            
+            {/* Step 2 */}
+            <div className="flex flex-col items-center">
+              <div className="rounded-full bg-primary/10 p-3 mb-3">
+                <PlusSquare className="h-6 w-6 text-primary" />
+              </div>
+              <h3 className="font-medium mb-2">Step 2: Add to Home Screen</h3>
+              <div className="bg-muted/30 rounded-lg p-4 w-full max-w-[280px] flex flex-col items-center">
+                <Image 
+                  src="/images/ios-add-home.png" 
+                  width={200} 
+                  height={150} 
+                  alt="Add to Home Screen option" 
+                  className="rounded-md mb-2"
+                />
+                <p className="text-xs text-center text-muted-foreground">
+                  Scroll down and tap "Add to Home Screen"
+                </p>
+              </div>
+            </div>
+            
+            {/* Step 3 */}
+            <div className="flex flex-col items-center">
+              <div className="rounded-full bg-primary/10 p-3 mb-3">
+                <Home className="h-6 w-6 text-primary" />
+              </div>
+              <h3 className="font-medium mb-2">Step 3: Confirm and Launch</h3>
+              <div className="bg-muted/30 rounded-lg p-4 w-full max-w-[280px] flex flex-col items-center">
+                <Image 
+                  src="/images/ios-confirm.png" 
+                  width={200} 
+                  height={150} 
+                  alt="Confirm adding to home screen" 
+                  className="rounded-md mb-2"
+                />
+                <p className="text-xs text-center text-muted-foreground">
+                  Tap "Add" in the top right, then open the app from your home screen
+                </p>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+        <CardFooter className="flex justify-center border-t pt-4">
+          <p className="text-xs text-center text-muted-foreground max-w-[90%]">
+            Opening TrustTrade from your home screen will provide a full-screen app experience and enable push notifications
+          </p>
+        </CardFooter>
+      </Card>
+    )
   }
   
   if (!isSupported) {
@@ -36,11 +142,27 @@ export default function NotificationSettings() {
             Notifications Not Supported
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground">
-            Push notifications are not supported in your current browser. 
-            Try using a modern browser like Chrome, Firefox, or Edge.
-          </p>
+        <CardContent className="space-y-4">
+          {isIOS ? (
+            <>
+              <p className="text-sm text-muted-foreground">
+                Push notifications require installing TrustTrade as an app on your iOS device.
+              </p>
+              <Button 
+                variant="outline" 
+                className="w-full flex items-center justify-center gap-2"
+                onClick={() => setShowIOSGuide(true)}
+              >
+                <Info className="h-4 w-4" />
+                View iOS Installation Guide
+              </Button>
+            </>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Push notifications are not supported in your current browser. 
+              Try using a modern browser like Chrome, Firefox, or Edge.
+            </p>
+          )}
         </CardContent>
       </Card>
     )
@@ -73,31 +195,7 @@ export default function NotificationSettings() {
   return (
     <Card>
       <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-lg font-medium">Order Notifications</CardTitle>
-          {subscription ? (
-            <div className="flex items-center gap-2 text-sm text-green-500">
-              <Bell className="h-4 w-4" />
-              <span>Enabled</span>
-            </div>
-          ) : (
-            <Button 
-              onClick={handleSubscribe} 
-              variant="outline" 
-              size="sm"
-              disabled={isSubscribing}
-            >
-              {isSubscribing ? (
-                <>
-                  <span className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                  Enabling...
-                </>
-              ) : (
-                <>Enable Notifications</>
-              )}
-            </Button>
-          )}
-        </div>
+        <CardTitle className="text-lg font-medium">Order Notifications</CardTitle>
         <CardDescription>
           Get real-time alerts about your orders and account activity
         </CardDescription>
