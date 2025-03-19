@@ -7,6 +7,7 @@ import { useKycSubmit } from "@/app/hooks/useKyc"
 import { Button } from "@/app/components/button"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "../../../../components/card"
 import { Camera, AlertCircle } from "lucide-react"
+import { cn } from "@/app/lib/utils"
 
 export default function FaceVerificationPage() {
   const [capturedImage, setCapturedImage] = useState(null)
@@ -74,14 +75,40 @@ export default function FaceVerificationPage() {
 
     if (!video || !photo) return
 
-    const width = 1280
-    const height = video.videoHeight / (video.videoWidth / width)
-
-    photo.width = width
-    photo.height = height
+    // Get dimensions with a 1:1 aspect ratio for a perfect circle
+    const size = Math.min(video.videoWidth, video.videoHeight)
+    const offsetX = (video.videoWidth - size) / 2
+    const offsetY = (video.videoHeight - size) / 2
+    
+    // Set canvas to be square
+    photo.width = size
+    photo.height = size
 
     const ctx = photo.getContext('2d')
-    ctx.drawImage(video, 0, 0, width, height)
+    
+    // First, draw the cropped square portion of the video
+    ctx.drawImage(
+      video, 
+      offsetX, offsetY, size, size, // Source rectangle
+      0, 0, size, size // Destination rectangle
+    )
+    
+    // Then create a clipping mask for circular shape
+    ctx.globalCompositeOperation = 'destination-in'
+    ctx.beginPath()
+    // Create a perfect circle centered in the canvas
+    const radius = size / 2
+    ctx.arc(radius, radius, radius, 0, Math.PI * 2)
+    ctx.fill()
+    
+    // Reset composite operation
+    ctx.globalCompositeOperation = 'source-over'
+    
+    // Add a subtle border around the circle
+    ctx.strokeStyle = '#3b82f6' // primary blue color
+    ctx.lineWidth = 3
+    ctx.stroke()
+    
     setHasPhoto(true)
 
     // Convert canvas to blob
@@ -163,10 +190,38 @@ export default function FaceVerificationPage() {
         img.onload = () => {
           const canvas = photoRef.current
           if (canvas) {
-            canvas.width = img.width
-            canvas.height = img.height
+            // Make canvas square for perfect circle
+            const size = Math.min(img.width, img.height)
+            const offsetX = (img.width - size) / 2
+            const offsetY = (img.height - size) / 2
+            
+            canvas.width = size
+            canvas.height = size
+            
             const ctx = canvas.getContext('2d')
-            ctx.drawImage(img, 0, 0)
+            
+            // Draw the square portion of the image
+            ctx.drawImage(
+              img, 
+              offsetX, offsetY, size, size, // Source rectangle
+              0, 0, size, size // Destination rectangle
+            )
+            
+            // Create circular clipping mask
+            ctx.globalCompositeOperation = 'destination-in'
+            ctx.beginPath()
+            const radius = size / 2
+            ctx.arc(radius, radius, radius, 0, Math.PI * 2)
+            ctx.fill()
+            
+            // Reset composite operation
+            ctx.globalCompositeOperation = 'source-over'
+            
+            // Add a subtle border
+            ctx.strokeStyle = '#3b82f6' // primary blue color
+            ctx.lineWidth = 3
+            ctx.stroke()
+            
             canvas.toBlob((blob) => {
               setCapturedImage(blob)
               setHasPhoto(true)
@@ -201,61 +256,75 @@ export default function FaceVerificationPage() {
         <CardHeader>
           <CardTitle>Face Verification</CardTitle>
           <CardDescription>
-            Please take a clear photo of your face
+            Please center your face in the frame and take a clear photo
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className={`camera ${hasPhoto ? 'hidden' : ''}`}>
-            <video 
-              ref={videoRef} 
-              autoPlay 
-              playsInline 
-              muted 
-              className="w-full aspect-video object-cover rounded-lg"
-            ></video>
-            {streamActive && (
-              <Button 
-                onClick={takePhoto}
-                className="mt-4"
-              >
-                <Camera className="mr-2 h-4 w-4" />
-                Capture Photo
-              </Button>
-            )}
-            
-            {!streamActive && !hasPhoto && (
-              <div className="mt-4">
-                <p className="text-sm text-muted-foreground mb-2">
-                  If camera doesn't start automatically, you can upload a photo instead:
-                </p>
-                <input 
-                  type="file" 
-                  accept="image/*"
-                  capture
-                  onChange={handleFileUpload}
-                  className="block w-full text-sm text-gray-500
-                    file:mr-4 file:py-2 file:px-4
-                    file:rounded-md file:border-0
-                    file:text-sm file:font-semibold
-                    file:bg-primary file:text-white
-                    hover:file:bg-primary/90"
-                />
+          <div className="flex justify-center">
+            <div className={`camera ${hasPhoto ? 'hidden' : ''} relative`}>
+              {/* Video preview with overlayed circular guide */}
+              <div className="relative w-[320px] h-[320px]">
+                <video 
+                  ref={videoRef} 
+                  autoPlay 
+                  playsInline 
+                  muted 
+                  className="w-full h-full object-cover rounded-lg"
+                ></video>
+                {/* Overlay a guide circle */}
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <div className="w-[85%] h-[85%] rounded-full border-2 border-primary border-dashed opacity-70"></div>
+                </div>
               </div>
-            )}
+              
+              {streamActive && (
+                <Button 
+                  onClick={takePhoto}
+                  className="mt-4"
+                >
+                  <Camera className="mr-2 h-4 w-4" />
+                  Capture Photo
+                </Button>
+              )}
+              
+              {!streamActive && !hasPhoto && (
+                <div className="mt-4">
+                  <p className="text-sm text-muted-foreground mb-2">
+                    If camera doesn't start automatically, you can upload a photo instead:
+                  </p>
+                  <input 
+                    type="file" 
+                    accept="image/*"
+                    capture
+                    onChange={handleFileUpload}
+                    className="block w-full text-sm text-gray-500
+                      file:mr-4 file:py-2 file:px-4
+                      file:rounded-md file:border-0
+                      file:text-sm file:font-semibold
+                      file:bg-primary file:text-white
+                      hover:file:bg-primary/90"
+                  />
+                </div>
+              )}
+            </div>
           </div>
 
-          <div className={`photo ${!hasPhoto ? 'hidden' : ''}`}>
-            <canvas ref={photoRef} className="w-full rounded-lg"></canvas>
-            <div className="flex gap-4 mt-4">
-              <Button variant="outline" onClick={closePhoto}>
-                Retake
-              </Button>
-              <Button 
-                onClick={handleSubmit}
-                disabled={uploading || isSubmitting}
-              >
-                {uploading ? `Uploading ${uploadProgress}%` : "Submit"}
-              </Button>
+          <div className={cn("photo flex justify-center", !hasPhoto ? 'hidden' : '')}>
+            <div className="w-[320px]">
+              <div className="canvas-container flex justify-center">
+                <canvas ref={photoRef} className="max-w-full"></canvas>
+              </div>
+              <div className="flex gap-4 mt-4 justify-center">
+                <Button variant="outline" onClick={closePhoto}>
+                  Retake
+                </Button>
+                <Button 
+                  onClick={handleSubmit}
+                  disabled={uploading || isSubmitting}
+                >
+                  {uploading ? `Uploading ${uploadProgress}%` : "Submit"}
+                </Button>
+              </div>
             </div>
           </div>
 

@@ -1,3 +1,5 @@
+
+
 import "@fontsource/rubik/300.css"
 import "@fontsource/rubik/400.css"
 import "@fontsource/rubik/500.css"
@@ -5,6 +7,14 @@ import "@fontsource/rubik/600.css"
 import "@fontsource/rubik/700.css"
 import "./globals.css"
 import { Providers } from "./providers"
+import { Toaster } from "react-hot-toast"
+import { ThemeProvider } from "@/app/components/theme-provider"
+import { CookieConsent } from "./components/cookie-consent"
+
+export const metadata = {
+  title: "TrustTrade - Safe Social Media Account Trading",
+  description: "Buy and sell social media accounts safely with TrustTrade's secure escrow platform",
+}
 
 export default function RootLayout({ children }) {
   return (
@@ -14,8 +24,19 @@ export default function RootLayout({ children }) {
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
       </head>
-      <body className="font-rubik antialiased">
-        <Providers>{children}</Providers>
+      <body className="font-rubik">
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <Providers>
+            {children}
+            <Toaster position="bottom-right" />
+            <CookieConsent />
+          </Providers>
+        </ThemeProvider>
       </body>
     </html>
   )
