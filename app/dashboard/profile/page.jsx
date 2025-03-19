@@ -499,7 +499,7 @@ export default function ProfilePage() {
               </div>
             </CardContent>
             <CardFooter>
-              <NotificationSettings />
+              <NotificationSettings  className="w-full"/>
             </CardFooter>
           </Card>
 

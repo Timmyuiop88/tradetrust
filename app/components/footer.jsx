@@ -3,8 +3,11 @@
 import Link from "next/link"
 import { Instagram, Twitter, Send } from "lucide-react"
 import { ShieldCheck } from "lucide-react"
+import { CookieSettings } from "./cookie-settings"
 
 export function Footer() {
+  const currentYear = new Date().getFullYear()
+
   return (
     <footer className="border-t bg-card">
       <div className="container py-12">
@@ -25,13 +28,13 @@ export function Footer() {
               <Link href="/about" className="text-sm text-muted-foreground hover:text-primary transition-colors">
                 About
               </Link>
-              <Link href="/pricing" className="text-sm text-muted-foreground hover:text-primary transition-colors">
-                Pricing
+              <Link href="/dashboard" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                Browse Accounts
               </Link>
               <Link href="/how-it-works" className="text-sm text-muted-foreground hover:text-primary transition-colors">
                 How it Works
               </Link>
-              <Link href="/become-merchant" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+              <Link href="/dashboard/sell" className="text-sm text-muted-foreground hover:text-primary transition-colors">
                 Start Selling
               </Link>
             </div>
@@ -56,15 +59,16 @@ export function Footer() {
 
         <div className="flex justify-between items-center mt-8 pt-8 border-t">
           <p className="text-sm text-muted-foreground">
-            © {new Date().getFullYear()} TrustTrade. All rights reserved.
+            © {currentYear} TrustTrade. All rights reserved.
           </p>
           <div className="flex space-x-6">
-            <Link href="/privacy" className="text-sm text-muted-foreground hover:text-primary">
+            <Link href="/legal" className="text-sm text-muted-foreground hover:text-primary">
               Privacy
             </Link>
-            <Link href="/terms" className="text-sm text-muted-foreground hover:text-primary">
+            <Link href="/legal" className="text-sm text-muted-foreground hover:text-primary">
               Terms
             </Link>
+            <CookieSettings />
           </div>
         </div>
       </div>
