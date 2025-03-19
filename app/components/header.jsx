@@ -43,7 +43,7 @@ export function Header() {
         {/* Logo and Brand */}
         <div className="flex items-center">
           <Link href="/" className="flex items-center space-x-2">
-            <ShieldCheck className="h-7 w-7 text-primary" />
+           <Image src="/images/logo.png" alt="TrustTrade" width={28} height={28} />
             <span className="font-bold text-lg sm:text-xl">TrustTrade</span>
           </Link>
         </div>
