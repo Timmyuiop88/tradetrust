@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/auth';
 import prisma from '@/app/lib/prisma';
 
 export async function GET(request, context) {
@@ -13,7 +13,7 @@ export async function GET(request, context) {
     
     // Properly await the params object
     const { params } = context;
-    const orderId = await Promise.resolve(params.id);
+    const orderId = params.id;
     
     if (!orderId) {
       return NextResponse.json({ error: 'Order ID is required' }, { status: 400 });

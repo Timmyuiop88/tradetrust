@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Lock, ArrowLeft, CheckCircle, XCircle, Loader2 } from "lucide-react";
@@ -10,7 +10,8 @@ import { AuthInput } from "../components/auth/auth-input";
 
 const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
 
-export default function ResetPasswordPage() {
+// Create a client component that uses the search params
+function ResetPasswordContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
@@ -160,5 +161,28 @@ export default function ResetPasswordPage() {
         </form>
       )}
     </AuthCard>
+  );
+}
+
+// Fallback component to show while loading
+function ResetPasswordFallback() {
+  return (
+    <AuthCard
+      title="Reset Password"
+      description="Create a new password for your account"
+    >
+      <div className="flex justify-center py-8">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    </AuthCard>
+  );
+}
+
+// Main page component with Suspense boundary
+export default function ResetPasswordPage() {
+  return (
+    <Suspense fallback={<ResetPasswordFallback />}>
+      <ResetPasswordContent />
+    </Suspense>
   );
 } 

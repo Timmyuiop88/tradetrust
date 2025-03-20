@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
-import { authOptions } from '@/app/api/auth/[...nextauth]/route'
+import { authOptions } from '@/lib/auth'
+import { sendDepositConfirmation } from '@/lib/services/notificationService'
 
 export async function POST(request) {
   try {
@@ -52,13 +53,22 @@ export async function POST(request) {
             balanceId: balance.id,
             amount,
             type: 'DEPOSIT',
-            description: 'Funds added to buying balance',
+            description: `Funds added to buying balance via ${paymentMethod || 'card'}`,
             status: 'COMPLETED'
           }
         })
         
         return { balance: updatedBalance, transaction }
       })
+      
+      // Send deposit confirmation email
+      try {
+        await sendDepositConfirmation(session.user.id, result.transaction.id);
+        console.log('Deposit confirmation email sent successfully');
+      } catch (emailError) {
+        console.error('Error sending deposit confirmation email:', emailError);
+        // Don't fail the request if email sending fails
+      }
       
       return NextResponse.json(result)
     } catch (error) {
@@ -78,7 +88,7 @@ export async function POST(request) {
             id: 'mock-transaction',
             amount,
             type: 'DEPOSIT',
-            description: 'Funds added to buying balance',
+            description: `Funds added to buying balance via ${paymentMethod || 'card'}`,
             createdAt: new Date(),
             status: 'COMPLETED'
           }

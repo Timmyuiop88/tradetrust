@@ -11,7 +11,8 @@ import { Badge } from "@/app/components/badge"
 import { Separator } from "@/app/components/separator"
 import { 
   Clock, Copy, MessageSquare, AlertTriangle, CheckCircle, 
-  ShieldCheck, Info, ArrowLeft, Lock, X, Loader2, Shield
+  ShieldCheck, Info, ArrowLeft, Lock, X, Loader2, Shield,
+  RefreshCw, Eye, EyeOff
 } from "lucide-react"
 import { toast } from "sonner"
 import { formatDistance, isPast } from "date-fns"
@@ -21,12 +22,97 @@ import { Label } from "@/app/components/label"
 import { Textarea } from "@/app/components/textarea"
 import { ReviewForm } from "@/app/components/review-form"
 import prisma from "@/lib/prisma"
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/app/components/dialog"
+import { cn } from "@/lib/utils"
+
+// Fetch function for the order
+const fetchOrder = async (orderId) => {
+  const response = await fetch(`/api/orders/${orderId}`, {
+    headers: {
+      'Cache-Control': 'no-cache',
+      'Pragma': 'no-cache'
+    }
+  });
+  if (!response.ok) {
+    throw new Error('Failed to fetch order');
+  }
+  return response.json();
+};
+
+// Helper function to determine if we should poll based on order status
+const shouldPoll = (status) => {
+  // Only poll if the order is in an active state
+  return ![
+    'COMPLETED',
+    'CANCELLED',
+    'DISPUTED'
+  ].includes(status);
+};
+
+// API functions
+const releaseCredentials = async ({ orderId, credentials }) => {
+  const response = await fetch(`/api/orders/${orderId}/release-credentials`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(credentials),
+  });
+  if (!response.ok) {
+    throw new Error('Failed to release credentials');
+  }
+  return response.json();
+};
+
+const confirmReceipt = async (orderId) => {
+  const response = await fetch(`/api/orders/${orderId}/confirm-received`, {
+    method: 'POST',
+  });
+  if (!response.ok) {
+    throw new Error('Failed to confirm receipt');
+  }
+  return response.json();
+};
+
+const declineOrder = async (orderId) => {
+  const response = await fetch(`/api/orders/${orderId}/decline`, {
+    method: 'POST',
+  });
+  if (!response.ok) {
+    throw new Error('Failed to decline order');
+  }
+  return response.json();
+};
+
+// Add dispute API function
+const openDispute = async ({ orderId, reason, description }) => {
+  const response = await fetch('/api/disputes', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ orderId, reason, description }),
+  });
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error || 'Failed to open dispute');
+  }
+  return response.json();
+};
+
+// Add dispute details fetch function
+const fetchDisputeDetails = async (orderId) => {
+  const response = await fetch(`/api/orders/${orderId}/dispute`);
+  if (!response.ok) {
+    throw new Error('Failed to fetch dispute details');
+  }
+  return response.json();
+};
 
 export default function OrderDetailPage() {
   const router = useRouter()
   const params = useParams()
   const { data: session } = useSession()
-  const [order, setOrder] = useState(null)
+  const queryClient = useQueryClient()
   const [loading, setLoading] = useState(true)
   const [releasing, setReleasing] = useState(false)
   const [confirming, setConfirming] = useState(false)
@@ -36,14 +122,49 @@ export default function OrderDetailPage() {
     additionalInfo: ''
   })
   const [showCredentials, setShowCredentials] = useState(false)
-  const initialLoadComplete = useRef(false)
   const [showDisputeModal, setShowDisputeModal] = useState(false)
   const [disputeReason, setDisputeReason] = useState('')
   const [disputeDescription, setDisputeDescription] = useState('')
   const [isSubmittingDispute, setIsSubmittingDispute] = useState(false)
-  const [disputeDetails, setDisputeDetails] = useState(null)
   const [showReviewForm, setShowReviewForm] = useState(false)
   const [hasReviewed, setHasReviewed] = useState(false)
+  const [declining, setDeclining] = useState(false)
+  const [showDeclineConfirmation, setShowDeclineConfirmation] = useState(false)
+  const [statusChangeLoading, setStatusChangeLoading] = useState(false)
+  const [lastAction, setLastAction] = useState(null)
+  const [isPolling, setIsPolling] = useState(false)
+  const [lastFetchTime, setLastFetchTime] = useState(0)
+  const pollingTimeoutRef = useRef(null)
+  const [etag, setEtag] = useState(null)
+  
+  // Main order query with proper configuration
+  const { 
+    data: order,
+    isLoading,
+    isError,
+    error,
+    refetch,
+    isFetching
+  } = useQuery({
+    queryKey: ['order', params.id],
+    queryFn: () => fetchOrder(params.id),
+    refetchInterval: (data) => {
+      if (!data) return false;
+      return shouldPoll(data.status) ? 5000 : false;
+    },
+    refetchOnWindowFocus: true,
+    staleTime: 1000,
+    retry: 3,
+    retryDelay: 1000,
+  })
+  
+  // Fetch dispute details if order is disputed
+  const { data: disputeData } = useQuery({
+    queryKey: ['dispute', params.id],
+    queryFn: () => fetchDisputeDetails(params.id),
+    enabled: order?.status === 'DISPUTED',
+    staleTime: 30000,
+  })
   
   // Get the countdown timer for seller deadline
   const { minutes, seconds, isExpired: isSellerDeadlineExpired } = 
@@ -53,250 +174,176 @@ export default function OrderDetailPage() {
   const { minutes: buyerMinutes, seconds: buyerSeconds, isExpired: isBuyerDeadlineExpired } = 
     useCountdown(order?.buyerDeadline)
   
-  const fetchOrder = useCallback(async (showLoading = false) => {
-    if (!params.id) return
-    
-    try {
-      if (showLoading) setLoading(true)
-      const response = await fetch(`/api/orders/${params.id}`)
-      
-      if (response.ok) {
-        const data = await response.json()
-        setOrder(data)
-        
-        // If the order has a dispute, fetch the dispute details
-        if (data.status === 'DISPUTED') {
-          try {
-            const disputeResponse = await fetch(`/api/orders/${params.id}/dispute`)
-            if (disputeResponse.ok) {
-              const disputeData = await disputeResponse.json()
-              setDisputeDetails(disputeData.dispute)
-            } else {
-              // Handle error but don't show to user - just log it
-              console.error('Error fetching dispute details:', await disputeResponse.json())
-            }
-          } catch (err) {
-            console.error('Error fetching dispute details:', err)
-            // Don't show this error to the user, just log it
-          }
-        }
-      } else {
-        const error = await response.json()
-        toast.error(error.error || 'Failed to load order')
-        router.push('/dashboard/orders')
-      }
-    } catch (error) {
-      console.error('Error fetching order:', error)
-      if (initialLoadComplete.current) {
-        toast.error('Something went wrong. Please try again.')
-      }
-    } finally {
-      if (showLoading) setLoading(false)
-      initialLoadComplete.current = true
+  // Mutations
+  const releaseMutation = useMutation({
+    mutationFn: releaseCredentials,
+    onSuccess: () => {
+      queryClient.invalidateQueries(['order', params.id]);
+      toast.success('Account credentials released');
+      setCredentials({ email: '', password: '', additionalInfo: '' });
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Failed to release credentials');
     }
-  }, [params.id, router])
-  
-  useEffect(() => {
-    fetchOrder(true)
-    
-    // Poll for updates every 15 seconds
-    const interval = setInterval(() => fetchOrder(false), 15000)
-    return () => clearInterval(interval)
-  }, [fetchOrder])
-  
-  // Check if the order is completed and if the user has already reviewed
-  useEffect(() => {
-    if (order && order.status === 'COMPLETED' && !hasReviewed && session?.user?.id === order.buyerId) {
-      // Check if the user has already reviewed this order
-      const checkReview = async () => {
-        try {
-          const response = await fetch(`/api/reviews?userId=${order.listing.sellerId}`);
-          if (response.ok) {
-            const data = await response.json();
-            const hasReviewed = data.reviews.some(review => 
-              review.listing.id === order.listingId && review.reviewer.id === session.user.id
-            );
-            
-            setHasReviewed(hasReviewed);
-            setShowReviewForm(!hasReviewed);
-          }
-        } catch (error) {
-          console.error("Error checking review status:", error);
-        }
-      };
-      
-      checkReview();
+  });
+
+  const confirmMutation = useMutation({
+    mutationFn: confirmReceipt,
+    onSuccess: () => {
+      queryClient.invalidateQueries(['order', params.id]);
+      toast.success('Receipt confirmed and payment released to seller');
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Failed to confirm receipt');
     }
-  }, [order, session]);
-  
-  const handleCopyOrderId = () => {
-    navigator.clipboard.writeText(order.id)
-    toast.success('Order ID copied to clipboard')
-  }
-  
-  const handleReleaseCredentials = async () => {
-    if (!order) return
-    
-    try {
-      setReleasing(true)
-      const response = await fetch(`/api/orders/${order.id}/release-credentials`, {
-        method: 'POST'
-      })
-      
-      if (response.ok) {
-        toast.success('Account credentials released')
-        fetchOrder(false)
-      } else {
-        const error = await response.json()
-        toast.error(error.error || 'Failed to release credentials')
-      }
-    } catch (error) {
-      console.error('Error releasing credentials:', error)
-      toast.error('Something went wrong. Please try again.')
-    } finally {
-      setReleasing(false)
+  });
+
+  const declineMutation = useMutation({
+    mutationFn: declineOrder,
+    onSuccess: () => {
+      queryClient.invalidateQueries(['order', params.id]);
+      toast.success('Order declined successfully');
+      setShowDeclineConfirmation(false);
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Failed to decline order');
     }
-  }
+  });
   
-  const handleConfirmReceived = async () => {
-    if (!confirm('Are you sure you want to confirm receipt? This will release the payment to the seller and cannot be undone.')) {
-      return
+  // Add dispute mutation
+  const disputeMutation = useMutation({
+    mutationFn: openDispute,
+    onSuccess: (data) => {
+      queryClient.invalidateQueries(['order', params.id]);
+      toast.success('Dispute opened successfully');
+      setShowDisputeModal(false);
+      router.push(`/disputes/${data.dispute.id}`);
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Failed to open dispute');
     }
-    
-    try {
-      setConfirming(true)
-      const response = await fetch(`/api/orders/${order.id}/confirm-received`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      })
-      
-      if (response.ok) {
-        toast.success('Receipt confirmed and payment released to seller')
-        fetchOrder(false)
-      } else {
-        const error = await response.json()
-        toast.error(error.error || 'Failed to confirm receipt')
-      }
-    } catch (error) {
-      console.error('Error confirming receipt:', error)
-      toast.error('Something went wrong. Please try again.')
-    } finally {
-      setConfirming(false)
+  });
+
+  // Track if this is a manual refresh
+  const [isManualRefresh, setIsManualRefresh] = useState(false);
+
+  // Handle manual refresh
+  const handleManualRefresh = useCallback(async () => {
+    setIsManualRefresh(true);
+    await refetch();
+    setIsManualRefresh(false);
+  }, [refetch]);
+
+  // Show loading state only during initial load or manual refresh
+  const showLoading = isLoading || (isFetching && isManualRefresh);
+  
+  // Update review check to use React Query
+  const { data: reviewData } = useQuery({
+    queryKey: ['review', params.id],
+    queryFn: async () => {
+      const response = await fetch(`/api/reviews?userId=${order?.listing?.sellerId}`);
+      if (!response.ok) throw new Error('Failed to fetch review data');
+      return response.json();
+    },
+    enabled: !!order && order.status === 'COMPLETED' && session?.user?.id === order.buyerId,
+    onSuccess: (data) => {
+      const hasReviewed = data.reviews.some(review => 
+        review.listing.id === order.listingId && review.reviewer.id === session.user.id
+      );
+      setHasReviewed(hasReviewed);
+      setShowReviewForm(!hasReviewed);
     }
-  }
+  });
   
-  const handleContactSupport = () => {
-    router.push('/support')
-  }
+  const handleCopyOrderId = useCallback(() => {
+    navigator.clipboard.writeText(params.id);
+    toast.success('Order ID copied to clipboard');
+  }, [params.id]);
   
-  const handleOpenChat = () => {
-      // Navigate to the chat page
-      router.push(`/chat/${order.id}`);
-  }
-  
-  const handleCredentialSubmit = async (e) => {
-    e.preventDefault()
+  const handleReleaseCredentials = useCallback(async (e) => {
+    e?.preventDefault();
     
-    // Enhanced validation
+    // Validation
     if (!credentials.email.trim()) {
-      toast.error('Account email/username is required')
-      return
-    }
-    
-    if (!credentials.password.trim()) {
-      toast.error('Account password is required')
-      return
-    }
-    
-    try {
-      setReleasing(true)
-      const response = await fetch(`/api/orders/${order.id}/release-credentials`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          email: credentials.email.trim(),
-          password: credentials.password.trim(),
-          additionalInfo: credentials.additionalInfo.trim() || null
-        })
-      })
-      
-      if (response.ok) {
-        toast.success('Account credentials released')
-        fetchOrder(false)
-      } else {
-        const error = await response.json()
-        toast.error(error.error || 'Failed to release credentials')
-      }
-    } catch (error) {
-      console.error('Error releasing credentials:', error)
-      toast.error('Something went wrong. Please try again.')
-    } finally {
-      setReleasing(false)
-    }
-  }
-  
-  const toggleCredentialVisibility = () => {
-    setShowCredentials(prev => !prev)
-  }
-  
-  const handleOpenDispute = async (e) => {
-    e.preventDefault();
-    
-    if (!disputeReason || !disputeDescription.trim()) {
+      toast.error('Account email/username is required');
       return;
     }
     
-    try {
-      setIsSubmittingDispute(true);
-      
-      const response = await fetch('/api/disputes', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          orderId: order.id,
-          reason: disputeReason,
-          description: disputeDescription,
-        }),
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to open dispute');
-      }
-      
-      // Close modal and refresh order data
-      setShowDisputeModal(false);
-      fetchOrder(true);
-      
-      // Show success message
-      toast({
-        title: "Dispute opened",
-        description: "Your dispute has been successfully opened. A moderator will review it shortly.",
-      });
-      
-      // Redirect to the dispute page
-      const data = await response.json();
-      router.push(`/disputes/${data.dispute.id}`);
-    } catch (err) {
-      console.error('Error opening dispute:', err);
-      
-      toast({
-        variant: "destructive",
-        title: "Failed to open dispute",
-        description: err.message,
-      });
-    } finally {
-      setIsSubmittingDispute(false);
+    if (!credentials.password.trim()) {
+      toast.error('Account password is required');
+      return;
     }
-  };
+    
+    releaseMutation.mutate({ 
+      orderId: params.id,
+      credentials: {
+        email: credentials.email.trim(),
+        password: credentials.password.trim(),
+        additionalInfo: credentials.additionalInfo.trim() || null
+      }
+    });
+  }, [params.id, credentials, releaseMutation]);
   
-  if (loading) {
+  const handleConfirmReceived = useCallback(async () => {
+    if (!confirm('Are you sure you want to confirm receipt? This will release the payment to the seller and cannot be undone.')) {
+      return;
+    }
+    confirmMutation.mutate(params.id);
+  }, [params.id, confirmMutation]);
+  
+  const handleDeclineOrder = useCallback(async () => {
+    declineMutation.mutate(params.id);
+  }, [params.id, declineMutation]);
+  
+  // Add CSS classes for status change animation
+  const getStatusChangeClass = () => {
+    if (statusChangeLoading) {
+      return 'animate-pulse transition-opacity duration-500'
+    }
+    return 'transition-all duration-300'
+  }
+  
+  // Add a loading indicator component
+  const LoadingIndicator = () => {
+    // Only show loading indicator during manual refresh
+    if (!isManualRefresh) return null;
+    
+    return (
+      <div className="fixed bottom-4 right-4 bg-primary text-primary-foreground px-3 py-2 rounded-md shadow-md flex items-center gap-2 z-50 animate-in fade-in duration-300">
+        <RefreshCw className="h-4 w-4 animate-spin" />
+        <span className="text-sm font-medium">Updating...</span>
+      </div>
+    )
+  }
+  
+  // Add dispute handler
+  const handleOpenDispute = useCallback(async (e) => {
+    e.preventDefault();
+    
+    if (!disputeReason || !disputeDescription.trim()) {
+      toast.error('Please provide both a reason and description for the dispute');
+      return;
+    }
+    
+    disputeMutation.mutate({
+      orderId: params.id,
+      reason: disputeReason,
+      description: disputeDescription.trim()
+    });
+  }, [params.id, disputeReason, disputeDescription, disputeMutation]);
+
+  // Add handleOpenChat function
+  const handleOpenChat = useCallback(() => {
+    // Navigate to the chat page with the order ID
+    router.push(`/chat/${params.id}`);
+  }, [router, params.id]);
+  
+  // Add the missing function
+  const toggleCredentialVisibility = () => {
+    setShowCredentials(prev => !prev);
+  }
+  
+  if (showLoading) {
     return (
       <div className="container max-w-4xl p-0">
         <div className="flex items-center mb-6">
@@ -326,6 +373,32 @@ export default function OrderDetailPage() {
           <CardFooter>
             <div className="h-10 bg-muted rounded w-full"></div>
           </CardFooter>
+        </Card>
+      </div>
+    )
+  }
+  
+  if (isError) {
+    return (
+      <div className="container max-w-4xl py-0">
+        <div className="flex items-center mb-6">
+          <Button variant="ghost" size="icon" onClick={() => router.back()}>
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <h1 className="text-2xl font-bold ml-2">Error Loading Order</h1>
+        </div>
+        
+        <Card>
+          <CardContent className="pt-6 pb-6 text-center">
+            <div className="mx-auto h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-4">
+              <AlertTriangle className="h-6 w-6 text-muted-foreground" />
+            </div>
+            <h3 className="text-lg font-medium mb-2">Error Loading Order</h3>
+            <p className="text-muted-foreground mb-4">
+              {error.message}
+            </p>
+            <Button onClick={() => refetch()}>Try Again</Button>
+          </CardContent>
         </Card>
       </div>
     )
@@ -383,16 +456,37 @@ export default function OrderDetailPage() {
   
   return (
     <div className="container max-w-4xl p-0">
-      <div className="flex items-center mb-6">
-        <Button variant="ghost" size="icon" onClick={() => router.back()}>
-          <ArrowLeft className="h-5 w-5" />
+      {/* Loading indicator */}
+      <LoadingIndicator />
+      
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center">
+          <Button variant="ghost" size="icon" onClick={() => router.back()}>
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <h1 className="text-2xl font-bold ml-2">
+            {isBuyer ? 'Purchase' : 'Sale'} Details
+          </h1>
+        </div>
+        
+        {/* Add refresh button */}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={handleManualRefresh}
+          disabled={isFetching && isManualRefresh}
+        >
+          <RefreshCw className={cn(
+            "h-4 w-4",
+            (isFetching && isManualRefresh) && "animate-spin"
+          )} />
         </Button>
-        <h1 className="text-2xl font-bold ml-2">
-          {isBuyer ? 'Purchase' : 'Sale'} Details
-        </h1>
       </div>
       
-      <Card>
+      <Card className={cn(
+        "transition-all duration-300",
+        (isFetching && isManualRefresh) && "opacity-50"
+      )}>
         <CardHeader className="pb-4">
           <div className="flex items-center justify-between">
             <div>
@@ -412,7 +506,7 @@ export default function OrderDetailPage() {
         <CardContent className="space-y-6">
           {/* Timer Section */}
           {(order.status === 'WAITING_FOR_SELLER' || order.status === 'WAITING_FOR_BUYER') && (
-            <div className="bg-muted/50 rounded-lg p-4">
+            <div className="bg-muted/50 rounded-lg p-4 transition-all duration-300 ease-in-out">
               <div className="flex items-start gap-3">
                 <div className="h-10 w-10 rounded-full bg-amber-100 flex items-center justify-center">
                   <Clock className="h-5 w-5 text-amber-600" />
@@ -484,7 +578,7 @@ export default function OrderDetailPage() {
               <div className="absolute left-3.5 top-0 bottom-0 w-0.5 bg-muted-foreground/20" />
               
               <div className="relative pl-8 pb-6">
-                <div className={`absolute left-0 h-7 w-7 rounded-full flex items-center justify-center ${orderStep >= 1 ? 'bg-primary' : 'bg-muted-foreground/20'}`}>
+                <div className={`absolute left-0 h-7 w-7 rounded-full flex items-center justify-center transition-all duration-500 ${orderStep >= 1 ? 'bg-primary' : 'bg-muted-foreground/20'}`}>
                   <span className="text-xs text-white font-medium">1</span>
                 </div>
                 <h4 className="font-medium">Order Created</h4>
@@ -494,7 +588,7 @@ export default function OrderDetailPage() {
               </div>
               
               <div className="relative pl-8 pb-6">
-                <div className={`absolute left-0 h-7 w-7 rounded-full flex items-center justify-center ${orderStep >= 2 ? 'bg-primary' : 'bg-muted-foreground/20'}`}>
+                <div className={`absolute left-0 h-7 w-7 rounded-full flex items-center justify-center transition-all duration-500 ${orderStep >= 2 ? 'bg-primary' : 'bg-muted-foreground/20'} ${lastAction === 'release_credentials' && statusChangeLoading ? 'animate-pulse' : ''}`}>
                   <span className="text-xs text-white font-medium">2</span>
                 </div>
                 <h4 className="font-medium">Account Details Provided</h4>
@@ -510,7 +604,7 @@ export default function OrderDetailPage() {
               </div>
               
               <div className="relative pl-8">
-                <div className={`absolute left-0 h-7 w-7 rounded-full flex items-center justify-center ${orderStep >= 3 ? 'bg-primary' : 'bg-muted-foreground/20'}`}>
+                <div className={`absolute left-0 h-7 w-7 rounded-full flex items-center justify-center transition-all duration-500 ${orderStep >= 3 ? 'bg-primary' : 'bg-muted-foreground/20'} ${lastAction === 'confirm_received' && statusChangeLoading ? 'animate-pulse' : ''}`}>
                   <span className="text-xs text-white font-medium">3</span>
                 </div>
                 <h4 className="font-medium">Transaction Completed</h4>
@@ -563,9 +657,9 @@ export default function OrderDetailPage() {
           
           {/* Seller Credential Form */}
           {isSeller && order.status === 'WAITING_FOR_SELLER' && (
-            <div className="mt-6 border border-border rounded-lg p-4">
+            <div id="credential-form" className="mt-6 border border-border rounded-lg p-4">
               <h3 className="font-medium text-lg mb-3">Release Account Credentials</h3>
-              <form onSubmit={handleCredentialSubmit} className="space-y-4">
+              <form onSubmit={handleReleaseCredentials} className="space-y-4">
                 <div>
                   <Label htmlFor="email">Account Email/Username</Label>
                   <Input 
@@ -603,9 +697,16 @@ export default function OrderDetailPage() {
                 <Button 
                   type="submit" 
                   className="w-full"
-                  disabled={releasing}
+                  disabled={releasing || statusChangeLoading}
                 >
-                  {releasing ? 'Releasing...' : 'Release Account Details'}
+                  {releasing ? (
+                    <span className="flex items-center">
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      Releasing...
+                    </span>
+                  ) : (
+                    'Release Account Details'
+                  )}
                 </Button>
               </form>
             </div>
@@ -689,19 +790,54 @@ export default function OrderDetailPage() {
         </CardContent>
         
         <CardFooter className="flex flex-col gap-3">
-        
+          
+          {/* Seller Actions */}
+          {isSeller && order.status === 'WAITING_FOR_SELLER' && (
+            <div className="flex flex-col gap-3 w-full">
+              <div className="flex gap-3">
+                <Button 
+                  className="flex-1" 
+                  onClick={() => setShowDeclineConfirmation(true)}
+                  variant="outline"
+                  disabled={declineMutation.isPending}
+                >
+                  {declineMutation.isPending ? (
+                    <span className="flex items-center">
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      Processing...
+                    </span>
+                  ) : (
+                    'Decline Order'
+                  )}
+                </Button>
+                <Button 
+                  className="flex-1" 
+                  onClick={() => document.getElementById('credential-form').scrollIntoView({ behavior: 'smooth' })}
+                  disabled={releaseMutation.isPending}
+                >
+                  Release Credentials
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground text-center">
+                Declining the order will refund the buyer and make your listing available again.
+              </p>
+            </div>
+          )}
           
           {/* Buyer Actions */}
           {isBuyer && order.status === 'WAITING_FOR_BUYER' && (
             <Button 
               className="w-full" 
               onClick={handleConfirmReceived}
-              disabled={confirming}
+              disabled={confirmMutation.isPending}
             >
-              {confirming ? (
-                <>Processing...</>
+              {confirmMutation.isPending ? (
+                <span className="flex items-center justify-center">
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Processing...
+                </span>
               ) : (
-                <>Confirm Receipt & Release Payment</>
+                'Confirm Receipt & Release Payment'
               )}
             </Button>
           )}
@@ -717,6 +853,19 @@ export default function OrderDetailPage() {
             </div>
           )}
           
+          {/* Cancelled State */}
+          {order.status === 'CANCELLED' && (
+            <div className="w-full bg-red-50 border border-red-200 rounded-lg p-4 text-center">
+              <X className="h-6 w-6 text-red-600 mx-auto mb-2" />
+              <h3 className="font-medium text-red-800">Order Cancelled</h3>
+              <p className="text-sm text-red-700 mt-1">
+                {order.cancelledReason === 'SELLER_DECLINED' 
+                  ? 'This order was declined by the seller. Your payment has been refunded.'
+                  : 'This order has been cancelled.'}
+              </p>
+            </div>
+          )}
+          
           {/* Disputed State - View Dispute Button */}
           {order.status === 'DISPUTED' && (
             <div className="space-y-4">
@@ -728,10 +877,10 @@ export default function OrderDetailPage() {
                     <p className="text-sm text-red-700 mt-1">
                       This order is currently under dispute. Please check the dispute details for more information.
                     </p>
-                    {disputeDetails && (
+                    {disputeData?.dispute && (
                       <p className="text-xs text-red-700 mt-2">
-                        Reason: {formatDisputeReason(disputeDetails.reason)} • 
-                        Opened: {new Date(disputeDetails.createdAt).toLocaleDateString()}
+                        Reason: {formatDisputeReason(disputeData.dispute.reason)} • 
+                        Opened: {new Date(disputeData.dispute.createdAt).toLocaleDateString()}
                       </p>
                     )}
                   </div>
@@ -741,25 +890,8 @@ export default function OrderDetailPage() {
               <Button 
                 className="w-full flex items-center justify-center" 
                 onClick={() => {
-                  if (disputeDetails) {
-                    router.push(`/disputes/${disputeDetails.id}`);
-                  } else {
-                    // If dispute details aren't loaded yet, try to fetch them again
-                    toast.info("Loading dispute details...");
-                    fetch(`/api/orders/${params.id}/dispute`)
-                      .then(res => res.json())
-                      .then(data => {
-                        if (data.dispute) {
-                          setDisputeDetails(data.dispute);
-                          router.push(`/disputes/${data.dispute.id}`);
-                        } else {
-                          toast.error("Couldn't load dispute details. Please try again.");
-                        }
-                      })
-                      .catch(err => {
-                        console.error("Error fetching dispute:", err);
-                        toast.error("Couldn't load dispute details. Please try again.");
-                      });
+                  if (disputeData?.dispute) {
+                    router.push(`/disputes/${disputeData.dispute.id}`);
                   }
                 }}
               >
@@ -786,26 +918,23 @@ export default function OrderDetailPage() {
       
       {/* Dispute Modal */}
       {showDisputeModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-background rounded-lg shadow-lg max-w-md w-full p-6 relative">
-            <button
-              onClick={() => setShowDisputeModal(false)}
-              className="absolute top-4 right-4 text-muted-foreground hover:text-foreground"
-            >
-              <X className="h-5 w-5" />
-            </button>
+        <Dialog open={showDisputeModal} onOpenChange={setShowDisputeModal}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Open Dispute</DialogTitle>
+              <DialogDescription>
+                Please provide details about your issue. A moderator will review your case.
+              </DialogDescription>
+            </DialogHeader>
             
-            <h2 className="text-xl font-semibold mb-4">Open a Dispute</h2>
-            
-            <form onSubmit={handleOpenDispute}>
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-1">
-                  Reason for Dispute
-                </label>
+            <form onSubmit={handleOpenDispute} className="space-y-4">
+              <div>
+                <Label htmlFor="disputeReason">Reason</Label>
                 <select
+                  id="disputeReason"
                   value={disputeReason}
                   onChange={(e) => setDisputeReason(e.target.value)}
-                  className="w-full px-3 py-2 border border-input rounded-md bg-background text-sm"
+                  className="w-full px-3 py-2 border border-input rounded-md bg-background"
                   required
                 >
                   <option value="">Select a reason...</option>
@@ -818,52 +947,54 @@ export default function OrderDetailPage() {
                 </select>
               </div>
               
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-1">
-                  Description
-                </label>
-                <textarea
+              <div>
+                <Label htmlFor="disputeDescription">Description</Label>
+                <Textarea
+                  id="disputeDescription"
                   value={disputeDescription}
                   onChange={(e) => setDisputeDescription(e.target.value)}
                   placeholder="Please provide details about your issue..."
-                  className="w-full px-3 py-2 border border-input rounded-md bg-background text-sm min-h-[120px]"
                   required
+                  rows={4}
                 />
               </div>
               
-              <div className="flex justify-end space-x-2">
-                <button
+              <div className="flex justify-end gap-2">
+                <Button
                   type="button"
+                  variant="outline"
                   onClick={() => setShowDisputeModal(false)}
-                  className="px-4 py-2 border border-input rounded-md text-sm font-medium bg-background hover:bg-muted"
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
                   type="submit"
-                  className="px-4 py-2 rounded-md text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90"
-                  disabled={isSubmittingDispute}
+                  disabled={disputeMutation.isPending}
                 >
-                  {isSubmittingDispute ? (
+                  {disputeMutation.isPending ? (
                     <span className="flex items-center">
                       <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                      Submitting...
+                      Opening Dispute...
                     </span>
                   ) : (
                     'Open Dispute'
                   )}
-                </button>
+                </Button>
               </div>
             </form>
-          </div>
-        </div>
+          </DialogContent>
+        </Dialog>
       )}
       
       {/* Review Form Dialog */}
       {showReviewForm && order && (
         <ReviewForm 
           order={order} 
-          onClose={() => setShowReviewForm(false)} 
+          onClose={() => setShowReviewForm(false)}
+          onSuccess={() => {
+            setShowReviewForm(false);
+            setHasReviewed(true);
+          }}
         />
       )}
       
@@ -880,6 +1011,51 @@ export default function OrderDetailPage() {
             Leave a Review
           </Button>
         </div>
+      )}
+      
+      {/* Decline Confirmation Dialog */}
+      {showDeclineConfirmation && (
+        <Dialog open={showDeclineConfirmation} onOpenChange={setShowDeclineConfirmation}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Decline Order</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to decline this order? This action cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4">
+              <ul className="list-disc pl-5 space-y-2 text-sm text-muted-foreground">
+                <li>The buyer will be refunded</li>
+                <li>Your listing will be available again</li>
+                <li>This order will be cancelled permanently</li>
+              </ul>
+              
+              <div className="flex justify-end gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowDeclineConfirmation(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={handleDeclineOrder}
+                  disabled={declineMutation.isPending}
+                >
+                  {declineMutation.isPending ? (
+                    <span className="flex items-center">
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      Declining...
+                    </span>
+                  ) : (
+                    'Decline Order'
+                  )}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   )

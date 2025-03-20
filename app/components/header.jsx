@@ -7,7 +7,7 @@ import { useTheme } from "next-themes"
 import { MobileNav } from "./mobile-nav"
 import { cn } from "@/app/lib/utils"
 import { usePathname } from "next/navigation"
-
+import Image from "next/image"
 export function Header() {
   const { theme, setTheme } = useTheme()
   const [scrolled, setScrolled] = useState(false)
@@ -43,7 +43,7 @@ export function Header() {
         {/* Logo and Brand */}
         <div className="flex items-center">
           <Link href="/" className="flex items-center space-x-2">
-            <ShieldCheck className="h-7 w-7 text-primary" />
+           <Image src="/images/logo.png" alt="TrustTrade" width={28} height={28} />
             <span className="font-bold text-lg sm:text-xl">TrustTrade</span>
           </Link>
         </div>
@@ -134,9 +134,13 @@ export function Header() {
           
           {/* Mobile Nav */}
           <div className="flex items-center lg:hidden">
-            <MobileNav />
+      
+        <div className="flex items-center space-x-4 ">
+          
+          <MobileNav />
           </div>
         </div>
+      </div>
       </div>
     </header>
   )

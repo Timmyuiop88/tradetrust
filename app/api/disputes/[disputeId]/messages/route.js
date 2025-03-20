@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/auth';
 import prisma from '@/app/lib/prisma';
 
 // GET - Fetch messages for a dispute
@@ -15,7 +15,7 @@ export async function GET(request, context) {
       );
     }
 
-    const { disputeId } = await Promise.resolve(context.params);
+    const { disputeId } = context.params;
 
     // Get the dispute to check permissions
     const dispute = await prisma.dispute.findUnique({
@@ -102,7 +102,7 @@ export async function POST(request, context) {
       );
     }
 
-    const { disputeId } = await Promise.resolve(context.params);
+    const { disputeId } = context.params;
     const body = await request.json();
     const { content, isModOnly = false, attachments = [] } = body;
 

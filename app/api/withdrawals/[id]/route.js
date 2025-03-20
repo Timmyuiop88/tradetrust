@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { sendWithdrawalConfirmation } from '@/lib/services/notificationService';
+import { sendNotificationEmail } from '@/lib/email/emailService';
 
 // GET - Fetch a specific withdrawal request
 export async function GET(request, { params }) {
@@ -104,6 +106,13 @@ export async function PATCH(request, { params }) {
             type: 'WITHDRAWAL',
           },
         },
+        user: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+          },
+        },
       },
     });
     
@@ -128,6 +137,7 @@ export async function PATCH(request, { params }) {
             select: {
               id: true,
               email: true,
+              firstName: true,
             },
           },
           payoutSetting: true,
@@ -143,13 +153,14 @@ export async function PATCH(request, { params }) {
       });
       
       // Update the associated transaction status
+      let updatedTransaction = null;
       if (currentWithdrawal.transactions.length > 0) {
         const transactionStatus = 
           status === 'COMPLETED' ? 'COMPLETED' :
           status === 'REJECTED' || status === 'CANCELLED' ? 'CANCELLED' :
           'PENDING';
         
-        await prisma.transaction.update({
+        updatedTransaction = await prisma.transaction.update({
           where: { id: currentWithdrawal.transactions[0].id },
           data: { status: transactionStatus },
         });
@@ -158,7 +169,7 @@ export async function PATCH(request, { params }) {
         if (status === 'REJECTED' || status === 'CANCELLED') {
           await prisma.balance.updateMany({
             where: { userId: currentWithdrawal.userId },
-            data: { amount: { increment: currentWithdrawal.amount } },
+            data: { sellingBalance: { increment: currentWithdrawal.amount } },
           });
           
           // Create a refund transaction
@@ -175,10 +186,46 @@ export async function PATCH(request, { params }) {
         }
       }
       
-      return withdrawal;
+      return { withdrawal, updatedTransaction };
     });
     
-    return NextResponse.json(updatedWithdrawal);
+    // Send email notification based on status change
+    try {
+      const user = currentWithdrawal.user;
+      
+      if (status === 'COMPLETED') {
+        // Send withdrawal completion email
+        const estimatedArrival = trackingInfo || '1-2 business days';
+        await sendWithdrawalConfirmation(
+          user.id, 
+          updatedWithdrawal.updatedTransaction.id, 
+          estimatedArrival
+        );
+      } else if (status === 'REJECTED' || status === 'CANCELLED') {
+        // Send cancellation notification
+        await sendNotificationEmail(user, {
+          subject: `Withdrawal Request ${status === 'REJECTED' ? 'Rejected' : 'Cancelled'}`,
+          message: `Your withdrawal request for $${currentWithdrawal.amount.toFixed(2)} has been ${status.toLowerCase()}. ${notes || ''}`,
+          actionUrl: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/transactions`,
+          actionText: 'View Details'
+        });
+      } else {
+        // Send status update notification
+        await sendNotificationEmail(user, {
+          subject: 'Withdrawal Request Update',
+          message: `Your withdrawal request for $${currentWithdrawal.amount.toFixed(2)} has been updated to ${status.toLowerCase()}. ${notes || ''}`,
+          actionUrl: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/transactions`,
+          actionText: 'View Details'
+        });
+      }
+      
+      console.log(`Withdrawal ${status.toLowerCase()} email sent successfully`);
+    } catch (emailError) {
+      console.error('Error sending withdrawal status email:', emailError);
+      // Don't fail the request if email sending fails
+    }
+    
+    return NextResponse.json(updatedWithdrawal.withdrawal);
   } catch (error) {
     console.error('Error updating withdrawal request:', error);
     return NextResponse.json(

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
 /**
@@ -9,7 +9,7 @@ import { prisma } from '@/lib/prisma';
  * Query params:
  * - includeDisputes: boolean - Whether to include dispute messages
  */
-export async function GET(request, context) {
+export default async function GET(request, context) {
   try {
     const session = await getServerSession(authOptions);
     
@@ -176,6 +176,6 @@ export async function GET(request, context) {
     });
   } catch (error) {
     console.error('Error fetching messages:', error);
-    return NextResponse.json({ error: 'Failed to fetch messages' }, { status: 500 });
+    return NextResponse.json({ error: 'An error occurred while fetching messages' }, { status: 500 });
   }
 } 

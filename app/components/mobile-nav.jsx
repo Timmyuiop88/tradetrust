@@ -3,11 +3,14 @@
 import { useState } from "react"
 import Link from "next/link"
 import { Button } from "./button"
-import { Sheet, SheetContent, SheetTrigger } from "./sheet"
-import { Menu, X, User, ShieldCheck, Sun, Moon, LayoutGrid, Info, HelpCircle, ShoppingBag } from "lucide-react"
+import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "./sheet"
+import { Menu, X, User, ShieldCheck, Sun, Moon, LayoutGrid, Info, HelpCircle, ShoppingBag, Home, Settings, LogOut, User2, Bell, Wallet } from "lucide-react"
 import { useTheme } from "next-themes"
 import { cn } from "@/app/lib/utils"
 import { usePathname } from "next/navigation"
+
+import { useSession, signOut } from "next-auth/react"
+import { useRouter } from "next/navigation"
 
 export function MobileNav() {
   const [open, setOpen] = useState(false)
@@ -25,6 +28,30 @@ export function MobileNav() {
     return false
   }
   
+
+  const { data: session } = useSession()
+  const router = useRouter()
+
+  const handleSignOut = async () => {
+    await signOut({ redirect: false })
+    router.push('/')
+  }
+
+  const mainNavItems = [
+    { name: 'Home', href: '/', icon: Home },
+    { name: 'Browse', href: '/browse', icon: ShoppingBag },
+    { name: 'How it Works', href: '/how-it-works', icon: HelpCircle },
+  ]
+
+  const accountNavItems = [
+    { name: 'Explore', href: '/dashboard', icon: Home },
+    { name: 'Orders', href: '/dashboard/orders', icon: ShoppingBag },
+    
+    { name: 'Profile', href: '/dashboard/profile', icon: User2 },
+  
+    { name: 'Settings', href: '/dashboard/settings', icon: Settings },
+  ]
+
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
@@ -35,6 +62,7 @@ export function MobileNav() {
           aria-label="Open mobile menu"
         >
           <Menu className="h-5 w-5" />
+          <span className="sr-only">Toggle menu</span>
         </Button>
       </SheetTrigger>
       <SheetContent side="right" className="w-[280px] p-0">

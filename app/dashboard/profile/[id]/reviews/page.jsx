@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useReviews } from "@/app/hooks/useReviews";
 import { Button } from "@/app/components/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/tabs";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, Loader2 } from "lucide-react";
 import { ReviewsDisplay } from "@/app/components/reviews-display";
 import Link from "next/link";
 import {
@@ -20,7 +20,8 @@ import {
 } from "@/app/components/pagination";
 import { useParams } from "next/navigation";
 
-export default function ReviewsPage({ }) {
+// Component that uses search params
+function ReviewsPageContent() {
   const params = useParams();
   const userId = params.id;
   const router = useRouter();
@@ -110,52 +111,75 @@ export default function ReviewsPage({ }) {
       </div>
       
           
-          <ReviewsDisplay userId={userId} compact={false} />
-          
-          {pagination.totalPages > 1 && (
-            <div className="mt-6">
-              <Pagination>
-                <PaginationContent>
-                  {currentPage > 1 && (
-                    <PaginationItem>
-                      <PaginationPrevious 
-                        onClick={() => setCurrentPage(currentPage - 1)}
-                      />
+      <ReviewsDisplay userId={userId} compact={false} />
+      
+      {pagination.totalPages > 1 && (
+        <div className="mt-6">
+          <Pagination>
+            <PaginationContent>
+              {currentPage > 1 && (
+                <PaginationItem>
+                  <PaginationPrevious 
+                    onClick={() => setCurrentPage(currentPage - 1)}
+                  />
+                </PaginationItem>
+              )}
+              
+              {getPageNumbers().map((page, i) => {
+                if (page === "ellipsis-start" || page === "ellipsis-end") {
+                  return (
+                    <PaginationItem key={page}>
+                      <PaginationEllipsis />
                     </PaginationItem>
-                  )}
-                  
-                  {getPageNumbers().map((page, i) => {
-                    if (page === "ellipsis-start" || page === "ellipsis-end") {
-                      return (
-                        <PaginationItem key={page}>
-                          <PaginationEllipsis />
-                        </PaginationItem>
-                      );
-                    }
-                    
-                    return (
-                      <PaginationItem key={page}>
-                        <PaginationLink
-                          isActive={page === currentPage}
-                          onClick={() => setCurrentPage(page)}
-                        >
-                          {page}
-                        </PaginationLink>
-                      </PaginationItem>
-                    );
-                  })}
-                  
-                  {currentPage < pagination.totalPages && (
-                    <PaginationItem>
-                      <PaginationNext 
-                        onClick={() => setCurrentPage(currentPage + 1)}
-                      />
-                    </PaginationItem>
-                  )}
-                </PaginationContent>
-              </Pagination>
-            </div>
-          )}
+                  );
+                }
+                
+                return (
+                  <PaginationItem key={page}>
+                    <PaginationLink
+                      isActive={page === currentPage}
+                      onClick={() => setCurrentPage(page)}
+                    >
+                      {page}
+                    </PaginationLink>
+                  </PaginationItem>
+                );
+              })}
+              
+              {currentPage < pagination.totalPages && (
+                <PaginationItem>
+                  <PaginationNext 
+                    onClick={() => setCurrentPage(currentPage + 1)}
+                  />
+                </PaginationItem>
+              )}
+            </PaginationContent>
+          </Pagination>
+        </div>
+      )}
     </div>
+  );
+}
+
+// Fallback loading component
+function ReviewsPageFallback() {
+  return (
+    <div className="container mx-auto py-6 space-y-6">
+      <div className="flex items-center">
+        <h1 className="text-2xl font-bold">User Reviews</h1>
+      </div>
+      <div className="flex justify-center py-12">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    </div>
+  );
+}
+
+// Main component with Suspense boundary
+export default function ReviewsPage() {
+  return (
+    <Suspense fallback={<ReviewsPageFallback />}>
+      <ReviewsPageContent />
+    </Suspense>
   );
 } 
