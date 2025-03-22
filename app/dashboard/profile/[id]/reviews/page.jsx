@@ -6,7 +6,7 @@ import { useReviews } from "@/app/hooks/useReviews";
 import { Button } from "@/app/components/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/tabs";
-import { ChevronLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import { ReviewsDisplay } from "@/app/components/reviews-display";
 import Link from "next/link";
 import {
@@ -107,6 +107,7 @@ function ReviewsPageContent() {
   return (
     <div className="container mx-auto py-6 space-y-6">
       <div className="flex items-center">
+        <ArrowLeft onClick={() => router.back()} className="h-4 w-4 mr-2" />
         <h1 className="text-2xl font-bold">User Reviews</h1>
       </div>
       

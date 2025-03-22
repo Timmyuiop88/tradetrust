@@ -49,7 +49,7 @@ import {
 import { format } from "date-fns";
 import { AddBalanceSheet } from "@/app/components/add-balance-sheet";
 import { UserReviews } from "./user-reviews";
-import { useSession } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
 import { CompactPlanIndicator } from "@/app/components/CompactPlanIndicator";
 import { FollowersCount } from "@/app/components/followers-count";
 import NotificationSettings from "@/app/dashboard/settings/notifications";
@@ -92,6 +92,11 @@ export default function ProfilePage() {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     }).format(amount || 0);
+  };
+
+  const handleLogout = () => {
+    signOut();
+    router.push("/login");
   };
 
   // Fetch user balance data
@@ -329,7 +334,7 @@ export default function ProfilePage() {
           </div>
           <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
             <Avatar className="h-24 w-24 p-5 border-2 border-primary">
-              <AvatarImage src={user.image} alt={user.name || "User"} />
+              <AvatarImage src={user.image} alt={user.firstName || "User"} />
               <AvatarFallback>
                 <svg
                   viewBox="0 0 24 24"
@@ -357,9 +362,7 @@ export default function ProfilePage() {
             </Avatar>
             <div className="flex-1 text-center md:text-left">
               <h1 className="text-2xl font-bold">
-                {user.firstName && user.lastName
-                  ? `${user.firstName} ${user.lastName}`
-                  : user.kyc?.fullName || "User"}
+                {user.name || "User"}
               </h1>
               <p className="text-muted-foreground">{user.email}</p>
 
@@ -457,10 +460,11 @@ export default function ProfilePage() {
         value={activeTab}
         onValueChange={setActiveTab}
       >
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="kyc">KYC Verification</TabsTrigger>
-          <TabsTrigger value="activity">Activity</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="overview" className="text-[10px]">Overview</TabsTrigger>
+          <TabsTrigger value="kyc" className="text-[10px]">KYC Verification</TabsTrigger>
+          <TabsTrigger value="activity" className="text-[10px]">Activity</TabsTrigger>
+          <TabsTrigger value="logout" className="text-[10px]">Logout</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
@@ -991,6 +995,20 @@ export default function ProfilePage() {
                   </Button>
                 </div>
               )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="logout">
+        <Card>
+            <CardHeader>
+              <CardTitle>Logout</CardTitle>
+              <CardDescription>
+                Are you sure you want to logout?
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button onClick={handleLogout}>Yes, logout</Button>
             </CardContent>
           </Card>
         </TabsContent>

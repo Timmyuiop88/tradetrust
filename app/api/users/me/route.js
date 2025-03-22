@@ -70,6 +70,8 @@ export async function GET() {
       id: user.id,
       email: user.email,
       role: user.role,
+      firstName: user.firstName,
+      lastName: user.lastName,
       isEmailVerified: user.isEmailVerified,
       isKycVerified: user.isKycVerified,
       createdAt: user.createdAt ? user.createdAt.toISOString() : null,
@@ -106,5 +108,71 @@ export async function GET() {
   } catch (error) {
     console.error('API: User profile error:', error)
     return NextResponse.json({ error: 'Failed to fetch user profile' }, { status: 500 })
+  }
+}
+
+export async function PATCH(req) {
+  try {
+    const session = await getServerSession(authOptions)
+    
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const data = await req.json()
+    
+    // Extract the fields we want to update
+    const { name, firstName, lastName } = data
+    
+    // Prepare update object
+    const updateData = {}
+    
+    // Handle updating the user's name in different formats
+    if (name) {
+      // If a full name is provided, use it for the name field
+      updateData.name = name
+    } else if (firstName || lastName) {
+      // If firstName or lastName are provided individually
+      if (firstName) updateData.firstName = firstName
+      if (lastName) updateData.lastName = lastName
+      
+      // Get current user to ensure we have both parts for the name field
+      const currentUser = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { firstName: true, lastName: true, name: true }
+      })
+      
+      // Construct the full name field from the parts
+      const newFirstName = firstName || currentUser.firstName || ''
+      const newLastName = lastName || currentUser.lastName || ''
+      
+      // Update the name field as well (keeping it in sync)
+      updateData.name = `${newFirstName} ${newLastName}`.trim()
+    }
+    
+    // Only proceed if we have data to update
+    if (Object.keys(updateData).length === 0) {
+      return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 })
+    }
+    
+    // Update the user
+    const updatedUser = await prisma.user.update({
+      where: { id: session.user.id },
+      data: updateData,
+      select: {
+        id: true,
+        name: true,
+        firstName: true,
+        lastName: true,
+      }
+    })
+    
+    return NextResponse.json({
+      message: 'Profile updated successfully',
+      user: updatedUser
+    })
+  } catch (error) {
+    console.error('API: Update user profile error:', error)
+    return NextResponse.json({ error: 'Failed to update user profile' }, { status: 500 })
   }
 } 
