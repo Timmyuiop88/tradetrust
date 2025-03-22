@@ -90,23 +90,7 @@ export function PricingDetails({ data, onUpdate }) {
         />
       </div>
       
-      <div className="space-y-2">
-        <label className="text-sm font-medium flex items-center gap-1">
-          <CreditCard className="h-4 w-4 text-gray-500" />
-          Payment Method
-        </label>
-        <div className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
-          <p className="text-sm">
-            Buyers will pay through our secure payment system. You'll receive funds once the buyer confirms the account transfer is complete.
-          </p>
-          <div className="mt-3 flex items-center gap-2">
-            <img src="/images/payment/visa.svg" alt="Visa" className="h-6" />
-            <img src="/images/payment/mastercard.svg" alt="Mastercard" className="h-6" />
-            <img src="/images/payment/paypal.svg" alt="PayPal" className="h-6" />
-            <img src="/images/payment/crypto.svg" alt="Crypto" className="h-6" />
-          </div>
-        </div>
-      </div>
+     
     </div>
   )
 } 

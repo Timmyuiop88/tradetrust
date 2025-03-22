@@ -39,7 +39,10 @@ export async function POST(request) {
       data: {
         ...data,
         sellerId: session.user.id,
-        searchRanking
+        searchRanking,
+        // Ensure optional fields are properly handled
+        previewLink: data.previewLink || null,
+        accountCountry: data.accountCountry || null
       }
     })
 

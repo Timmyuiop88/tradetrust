@@ -18,6 +18,11 @@ export function useListings(filters = {}) {
       queryParams.append("platform", filters.platform);
     }
     
+    // Add category filter if provided
+    if (filters.category) {
+      queryParams.append("category", filters.category);
+    }
+    
     // Add search filter if provided
     if (filters.search) {
       queryParams.append("search", filters.search);

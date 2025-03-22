@@ -4,6 +4,9 @@ const nextConfig = {
     // Updated to use the correct key name
     serverExternalPackages: ['@prisma/client', '@auth/prisma-adapter'],
   },
+  images: {
+    domains: ['files.edgestore.dev'],
+},
   webpack: (config) => {
     // Fix for handlebars warnings
     config.resolve.fallback = {

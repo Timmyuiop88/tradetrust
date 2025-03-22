@@ -13,15 +13,16 @@ import { Input } from "@/app/components/input"
 import { Label } from "@/app/components/label"
 import { RadioGroup, RadioGroupItem } from "@/app/components/radio-group"
 import { CreditCard, Wallet, DollarSign, Loader2 } from "lucide-react"
-import { toast } from "sonner"
-import { useRouter } from "next/navigation"
+import { toast } from "@/app/components/custom-toast"
+import { useBalance, formatCurrency } from "@/app/hooks/useBalance"
 
 export function AddBalanceSheet({ children }) {
   const [open, setOpen] = useState(false)
   const [amount, setAmount] = useState('')
   const [paymentMethod, setPaymentMethod] = useState('card')
-  const [loading, setLoading] = useState(false)
-  const router = useRouter()
+  
+  const { useDepositFunds } = useBalance()
+  const { mutate: depositFunds, isPending: isDepositing } = useDepositFunds()
   
   const handleAddFunds = async () => {
     if (!amount || parseFloat(amount) <= 0) {
@@ -29,37 +30,19 @@ export function AddBalanceSheet({ children }) {
       return
     }
     
-    setLoading(true)
-    
-    try {
-      const response = await fetch('/api/user/balance/deposit', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          amount: parseFloat(amount),
-          paymentMethod
-        })
-      })
-      
-      if (!response.ok) {
-        throw new Error('Failed to add funds')
+    depositFunds(
+      {
+        amount: parseFloat(amount),
+        paymentMethod
+      }, 
+      {
+        onSuccess: () => {
+          toast.success(`Successfully added ${formatCurrency(parseFloat(amount))} to your balance`)
+          setOpen(false)
+          setAmount('')
+        }
       }
-      
-      const data = await response.json()
-      
-      toast.success(`Successfully added $${parseFloat(amount).toFixed(2)} to your balance`)
-      setOpen(false)
-      setAmount('')
-      
-      // Refresh the page to show updated balance
-      router.refresh()
-    } catch (error) {
-      toast.error(error.message || "Something went wrong")
-    } finally {
-      setLoading(false)
-    }
+    )
   }
   
   const handleAmountSelect = (value) => {
@@ -145,10 +128,10 @@ export function AddBalanceSheet({ children }) {
         <div className="mt-6">
           <Button 
             onClick={handleAddFunds} 
-            disabled={!amount || parseFloat(amount) <= 0 || loading}
+            disabled={!amount || parseFloat(amount) <= 0 || isDepositing}
             className="w-full"
           >
-            {loading ? (
+            {isDepositing ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Processing...

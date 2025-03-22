@@ -38,6 +38,8 @@ import { cn } from "@/app/lib/utils"
 import { AddBalanceSheet } from "@/app/components/add-balance-sheet"
 import { useCompletionRate } from "@/app/hooks/useCompletionRate"
 import { StarRating } from "@/app/components/star-rating"
+import Image from "next/image"
+import { DetailedListingView } from './detailed-listing-view'
 
 // Platform icons mapping
 const platformIcons = {
@@ -313,219 +315,104 @@ export default function ListingDetailsPage() {
     return <AlertTriangle className="h-4 w-4" />;
   };
 
+  // Add this function to determine if listing is a gift card
+  const isDigitalProduct = () => {
+    return listing?.category?.name === 'Giftcards' || 
+           listing?.category?.name === 'Account' ||
+           (listing?.platform?.name === 'Amazon' && listing?.description?.toLowerCase().includes('gift card')) ||
+           listing?.category?.name === 'Digital Services';
+  }
+
   if (loading) {
     return (
-      <>
-        {/* Sticky header skeleton */}
-        <div className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b">
-          <div className="container flex items-center justify-between h-16 px-4">
-            <div className="flex items-center gap-3">
-              <div className="h-9 w-9 rounded-lg bg-gray-200 dark:bg-gray-700 animate-pulse"></div>
-              <div className="flex flex-col gap-1">
-                <div className="h-4 w-32 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
-                <div className="h-3 w-24 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="h-5 w-16 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
-              <div className="h-9 w-24 bg-primary/20 rounded animate-pulse"></div>
-            </div>
-          </div>
+      <div className="flex items-center justify-center min-h-[50vh]">
+        <div className="text-center">
+          <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading listing details...</p>
         </div>
-
-        <div className="container max-w-7xl mx-auto px-1 py-6 pt-8 md:py-8">
-          {/* Back button skeleton */}
-          <div className="mb-4">
-            <div className="h-9 w-20 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
-            {/* Main content area - Left side */}
-            <div className="lg:col-span-2 space-y-6">
-              {/* Media Gallery Skeleton */}
-              <Card className="overflow-hidden border-none shadow-none">
-                <div className="aspect-video bg-gray-200 dark:bg-gray-700 rounded-lg animate-pulse relative">
-                  {/* Action buttons overlay */}
-                  <div className="absolute top-3 right-3 flex gap-2">
-                    <div className="h-9 w-9 rounded-full bg-gray-100 dark:bg-gray-600 animate-pulse"></div>
-                    <div className="h-9 w-9 rounded-full bg-gray-100 dark:bg-gray-600 animate-pulse"></div>
-                  </div>
-                </div>
-                {/* Thumbnail strip */}
-                <div className="flex gap-2 mt-3 overflow-x-auto pb-2 px-1">
-                  {[...Array(4)].map((_, i) => (
-                    <div
-                      key={i}
-                      className="relative rounded-md overflow-hidden h-16 w-24 flex-shrink-0 bg-gray-200 dark:bg-gray-700 animate-pulse"
-                    ></div>
-                  ))}
-                </div>
-              </Card>
-
-              {/* Account Details Card Skeleton */}
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-full bg-gray-200 dark:bg-gray-700 animate-pulse"></div>
-                      <div>
-                        <div className="h-6 w-48 bg-gray-200 dark:bg-gray-700 rounded animate-pulse mb-2"></div>
-                        <div className="h-4 w-32 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
-                      </div>
-                    </div>
-                    <div className="h-8 w-24 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  {/* Tabs Skeleton */}
-                  <div className="grid grid-cols-3 gap-2 mb-6">
-                    {[...Array(3)].map((_, i) => (
-                      <div key={i} className="h-10 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
-                    ))}
-                  </div>
-                  
-                  {/* Stats Grid Skeleton */}
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                    {[...Array(4)].map((_, i) => (
-                      <div key={i} className="bg-muted/40 p-3 rounded-lg">
-                        <div className="h-4 w-20 bg-gray-200 dark:bg-gray-700 rounded animate-pulse mb-2"></div>
-                        <div className="h-6 w-16 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Description Skeleton */}
-                  <div className="space-y-2 mb-6">
-                    <div className="h-5 w-32 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
-                    <div className="space-y-2">
-                      <div className="h-4 w-full bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
-                      <div className="h-4 w-full bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
-                      <div className="h-4 w-2/3 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
-                    </div>
-                  </div>
-
-                  {/* Features Grid Skeleton */}
-                  <div>
-                    <div className="h-5 w-24 bg-gray-200 dark:bg-gray-700 rounded animate-pulse mb-4"></div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      {[...Array(6)].map((_, i) => (
-                        <div key={i} className="flex items-center gap-2">
-                          <div className="h-4 w-4 rounded-full bg-gray-200 dark:bg-gray-700 animate-pulse"></div>
-                          <div className="h-4 w-32 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Sidebar - Right side */}
-            <div className="space-y-6">
-              {/* Purchase Card Skeleton */}
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="space-y-4">
-                    <div className="h-10 w-32 bg-gray-200 dark:bg-gray-700 rounded animate-pulse mx-auto"></div>
-                    
-                    {/* Buttons */}
-                    <div className="space-y-2">
-                      <div className="h-11 w-full bg-primary/20 rounded animate-pulse"></div>
-                      <div className="h-11 w-full bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
-                    </div>
-
-                    {/* Security Info */}
-                    <div className="flex items-center justify-center gap-2">
-                      <div className="h-4 w-4 rounded bg-gray-200 dark:bg-gray-700 animate-pulse"></div>
-                      <div className="h-4 w-40 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
-                    </div>
-
-                    {/* Buyer Protection Box */}
-                    <div className="bg-muted/50 rounded-lg p-3">
-                      <div className="flex items-start gap-2">
-                        <div className="h-4 w-4 rounded bg-gray-200 dark:bg-gray-700 animate-pulse mt-0.5"></div>
-                        <div className="space-y-2">
-                          <div className="h-4 w-24 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
-                          <div className="h-3 w-full bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Seller Information Card Skeleton */}
-              <Card>
-                <CardHeader>
-                  <div className="h-6 w-32 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {/* Seller Profile */}
-                  <div className="flex items-center space-x-3">
-                    <div className="h-10 w-10 rounded-full bg-gray-200 dark:bg-gray-700 animate-pulse"></div>
-                    <div className="space-y-2">
-                      <div className="h-5 w-32 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
-                      <div className="h-4 w-40 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
-                      <div className="h-4 w-36 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
-                    </div>
-                  </div>
-
-                  {/* Stats Grid */}
-                  <div className="grid grid-cols-2 gap-3">
-                    {[...Array(2)].map((_, i) => (
-                      <div key={i} className="flex items-center gap-1.5">
-                        <div className="h-4 w-4 rounded bg-gray-200 dark:bg-gray-700 animate-pulse"></div>
-                        <div className="h-4 w-20 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Action Buttons */}
-                  <div className="flex gap-2">
-                    <div className="h-10 w-full bg-primary/20 rounded animate-pulse"></div>
-                    <div className="h-10 w-full bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Similar Listings Card Skeleton */}
-              <Card>
-                <CardHeader>
-                  <div className="h-6 w-32 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {[...Array(3)].map((_, i) => (
-                      <div key={i} className="flex items-start gap-3 pb-4 border-b last:border-0 last:pb-0">
-                        <div className="h-12 w-12 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
-                        <div className="flex-1">
-                          <div className="h-4 w-3/4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse mb-2"></div>
-                          <div className="h-3 w-1/2 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
-                        </div>
-                        <div className="h-8 w-16 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
       </div>
-      </>
-    );
+    )
   }
 
   if (error || !listing) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
-        <AlertCircle className="h-12 w-12 text-destructive mb-4" />
-        <h2 className="text-2xl font-bold mb-2">Listing Not Found</h2>
-        <p className="text-muted-foreground mb-6">The listing you're looking for doesn't exist or has been removed.</p>
-        <Button onClick={() => router.push('/dashboard')}>
-          Back to Dashboard
-        </Button>
+      <div className="flex items-center justify-center min-h-[50vh]">
+        <div className="text-center max-w-md p-6">
+          <AlertCircle className="h-10 w-10 text-destructive mx-auto mb-4" />
+          <h2 className="text-xl font-bold mb-2">Listing Not Found</h2>
+          <p className="text-muted-foreground mb-6">{error || "The listing you're looking for doesn't exist or has been removed."}</p>
+          <Button onClick={() => router.push('/dashboard')}>
+            Browse Listings
+          </Button>
+        </div>
       </div>
-    );
+    )
+  }
+
+  // Determine if this is a digital product and should use the specialized view
+  if (isDigitalProduct()) {
+    return (
+      <div className="max-w-6xl mx-auto px-4 py-6 space-y-8">
+        <div className="mb-4">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => router.back()}
+            className="mb-4"
+          >
+            <ChevronLeft className="h-4 w-4 mr-1" />
+            Back
+          </Button>
+        </div>
+        
+        <DetailedListingView 
+          listing={listing} 
+          onBuyNow={handleBuyNow} 
+          isSubmitting={isSubmitting}
+          sellerStats={sellerStats}
+        />
+        
+        {/* Similar listings section */}
+        {!loadingSimilar && similarListings?.length > 0 && (
+          <div className="mt-12 space-y-4">
+            <h2 className="text-xl font-bold">Similar Listings</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {similarListings.map(item => (
+                <div 
+                  key={item.id} 
+                  className="cursor-pointer" 
+                  onClick={() => router.push(`/dashboard/listings/${item.id}`)}
+                >
+                  {/* Render a simplified card for similar listings */}
+                  <Card className="h-full transition-all hover:shadow-md">
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        {item.platform?.icon && (
+                          <Image
+                            src={item.platform.icon}
+                            alt={item.platform.name}
+                            width={24}
+                            height={24}
+                          />
+                        )}
+                        <span className="font-medium">{item.platform?.name} {item.category?.name === 'Giftcards' ? 'Gift Card' : ''}</span>
+                      </div>
+                      <p className="line-clamp-2 text-sm text-muted-foreground mb-2">{item.description}</p>
+                      <div className="flex justify-between items-center">
+                        <Badge variant="outline">{item.category?.name}</Badge>
+                        <p className="font-bold text-primary">
+                          {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(item.price)}
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    )
   }
 
   // Determine platform icon

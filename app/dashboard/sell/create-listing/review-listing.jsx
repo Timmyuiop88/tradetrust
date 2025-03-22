@@ -1,8 +1,9 @@
 "use client"
 
-import { CheckCircle, AlertCircle } from "lucide-react"
+import { CheckCircle, AlertCircle, Calendar, Hash, User, Clock, BarChart, Globe, Link as LinkIcon } from "lucide-react"
 import { usePlatforms } from "../../../hooks/usePlatforms"
 import { useCategories } from "../../../hooks/useCategories"
+import { countries } from "../../../lib/data/countries"
 
 // Format numbers for display
 const formatFollowers = (value) => {
@@ -31,19 +32,23 @@ export function ReviewListing({ data }) {
   const { data: platforms } = usePlatforms()
   const { data: categories } = useCategories()
   
-  // Find platform and category names
-  const platformName = platforms?.find(p => p.id === data.platform)?.name || data.platform
-  const categoryName = categories?.find(c => c.id === data.category)?.name || data.category
+  // Find platform and category details
+  const platform = platforms?.find(p => p.id === data.platform) || { name: data.platform, icon: null }
+  const category = categories?.find(c => c.id === data.category) || { name: data.category }
+  
+  // Find country name if available
+  const country = data.accountCountry ? 
+    countries.find(c => c.value === data.accountCountry)?.label || data.accountCountry : null
   
   // Check if all required fields are filled
   const isComplete = 
     data.platform && 
     data.category && 
-    data.followers && 
     data.description && 
     data.media.length > 0 && 
     data.price && 
-    data.transferMethod
+    data.transferMethod && 
+    (category.name !== "Account" || (data.followers && data.engagement))
   
   // Format price with commas
   const formattedPrice = data.price 
@@ -52,6 +57,9 @@ export function ReviewListing({ data }) {
         currency: 'USD'
       })
     : '$0.00'
+
+  // Check if this is an account category listing
+  const isAccountCategory = category.name === "Account";
 
   return (
     <div className="space-y-6">
@@ -73,36 +81,129 @@ export function ReviewListing({ data }) {
       )}
       
       <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-6 space-y-6">
-        {/* Account Details */}
+        {/* Platform & Category */}
         <div>
-          <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">Account Details</h4>
+          <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">Listing Type</h4>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <p className="text-xs text-gray-500 dark:text-gray-400">Platform</p>
-              <p className="font-medium capitalize">{platformName || "Not specified"}</p>
+              <div className="flex items-center gap-2 mt-1">
+                {platform.icon ? (
+                  <div className="relative w-6 h-6 rounded-full overflow-hidden">
+                    <img 
+                      src={platform.icon} 
+                      alt={`${platform.name} icon`}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                ) : null}
+                <p className="font-medium capitalize">{platform.name || "Not specified"}</p>
+              </div>
             </div>
             <div>
               <p className="text-xs text-gray-500 dark:text-gray-400">Category</p>
-              <p className="font-medium">{categoryName || "Not specified"}</p>
+              <p className="font-medium mt-1">{category.name || "Not specified"}</p>
             </div>
-            <div>
-              <p className="text-xs text-gray-500 dark:text-gray-400">Followers</p>
-              <p className="font-medium">{formatFollowers(data.followers)}</p>
-            </div>
-            <div>
-              <p className="text-xs text-gray-500 dark:text-gray-400">Engagement</p>
-              <p className="font-medium">{formatEngagement(data.engagement)}</p>
-            </div>
-          </div>
-          <div className="mt-4">
-            <p className="text-xs text-gray-500 dark:text-gray-400">Description</p>
-            <p className="text-sm mt-1">{data.description || "No description provided"}</p>
           </div>
         </div>
         
+        {/* Links & External Info */}
+        {(data.previewLink || country) && (
+          <div>
+            <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">Additional Information</h4>
+            <div className="grid grid-cols-2 gap-4">
+              {data.previewLink && (
+                <div className="bg-white dark:bg-gray-900 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center gap-2 mb-1 text-blue-500">
+                    <LinkIcon className="h-4 w-4" />
+                    <p className="text-xs font-semibold uppercase">Preview Link</p>
+                  </div>
+                  <a 
+                    href={data.previewLink} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-sm text-blue-500 hover:underline break-all"
+                  >
+                    {data.previewLink}
+                  </a>
+                </div>
+              )}
+              
+              {country && (
+                <div className="bg-white dark:bg-gray-900 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center gap-2 mb-1 text-violet-500">
+                    <Globe className="h-4 w-4" />
+                    <p className="text-xs font-semibold uppercase">Account Country</p>
+                  </div>
+                  <p className="font-medium">{country}</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+        
+        {/* Description */}
+        <div>
+          <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">Description</h4>
+          <div className="bg-white dark:bg-gray-900 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
+            <p className="text-sm whitespace-pre-line">{data.description || "No description provided"}</p>
+          </div>
+        </div>
+        
+        {/* Account Details */}
+        {isAccountCategory && (
+          <div>
+            <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">Account Metrics</h4>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="bg-white dark:bg-gray-900 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+                <div className="flex items-center gap-2 mb-1 text-primary">
+                  <User className="h-4 w-4" />
+                  <p className="text-xs font-semibold uppercase">Followers</p>
+                </div>
+                <p className="font-medium text-lg">{formatFollowers(data.followers)}</p>
+              </div>
+              
+              <div className="bg-white dark:bg-gray-900 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+                <div className="flex items-center gap-2 mb-1 text-emerald-500">
+                  <BarChart className="h-4 w-4" />
+                  <p className="text-xs font-semibold uppercase">Engagement</p>
+                </div>
+                <p className="font-medium text-lg">{formatEngagement(data.engagement)}</p>
+              </div>
+              
+              {data.accountAge && (
+                <div className="bg-white dark:bg-gray-900 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center gap-2 mb-1 text-amber-500">
+                    <Clock className="h-4 w-4" />
+                    <p className="text-xs font-semibold uppercase">Account Age</p>
+                  </div>
+                  <p className="font-medium text-lg">{data.accountAge} months</p>
+                </div>
+              )}
+              
+              {data.posts && (
+                <div className="bg-white dark:bg-gray-900 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center gap-2 mb-1 text-blue-500">
+                    <Hash className="h-4 w-4" />
+                    <p className="text-xs font-semibold uppercase">Posts</p>
+                  </div>
+                  <p className="font-medium text-lg">{data.posts?.toLocaleString() || "0"}</p>
+                </div>
+              )}
+            </div>
+            
+            {data.username && (
+              <div className="mt-4">
+                <p className="text-xs text-gray-500 dark:text-gray-400">Username</p>
+                <p className="text-sm font-medium mt-1">{data.username}</p>
+              </div>
+            )}
+          </div>
+        )}
+        
         {/* Media */}
         <div>
-          <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">Media</h4>
+          <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">Media & Proof</h4>
           {data.media.length > 0 ? (
             <div className="grid grid-cols-4 gap-2">
               {data.media.slice(0, 4).map((item, index) => (
@@ -136,12 +237,17 @@ export function ReviewListing({ data }) {
         <div>
           <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">Pricing & Transfer</h4>
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <p className="text-xs text-gray-500 dark:text-gray-400">Price</p>
+            <div className="bg-white dark:bg-gray-900 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Listing Price</p>
               <p className="font-medium text-lg text-primary">{formattedPrice}</p>
+              {data.negotiable && (
+                <div className="text-xs text-emerald-600 dark:text-emerald-500 mt-1">
+                  Price is negotiable
+                </div>
+              )}
             </div>
-            <div>
-              <p className="text-xs text-gray-500 dark:text-gray-400">Transfer Method</p>
+            <div className="bg-white dark:bg-gray-900 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Transfer Method</p>
               <p className="font-medium">
                 {data.transferMethod === "email_password" ? "Email & Password Change" :
                  data.transferMethod === "full_account" ? "Full Account Takeover" :
@@ -151,6 +257,58 @@ export function ReviewListing({ data }) {
             </div>
           </div>
         </div>
+        
+        {/* Credentials Summary - Only show if they exist */}
+        {(data.credentials?.email || data.credentials?.username || data.credentials?.serialKey) && (
+          <div>
+            <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">Credentials</h4>
+            <div className="grid grid-cols-2 gap-4 bg-white dark:bg-gray-900 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
+              {data.credentials?.email && (
+                <div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Email</p>
+                  <p className="text-sm break-all">
+                    <span className="bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded">
+                      {data.credentials.email}
+                    </span>
+                  </p>
+                </div>
+              )}
+              
+              {data.credentials?.username && (
+                <div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Username</p>
+                  <p className="text-sm break-all">
+                    <span className="bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded">
+                      {data.credentials.username}
+                    </span>
+                  </p>
+                </div>
+              )}
+              
+              {data.credentials?.serialKey && (
+                <div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Key/Serial Number</p>
+                  <p className="text-sm break-all">
+                    <span className="bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded">
+                      {data.credentials.serialKey}
+                    </span>
+                  </p>
+                </div>
+              )}
+              
+              <div>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Password</p>
+                <p className="text-sm">
+                  {data.credentials?.password ? (
+                    <span className="bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded">
+                      ••••••••••
+                    </span>
+                  ) : "Not provided"}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
       
       {isComplete && (

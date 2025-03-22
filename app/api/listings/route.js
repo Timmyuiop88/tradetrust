@@ -1,3 +1,4 @@
+
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
@@ -5,26 +6,73 @@ import { authOptions } from '@/lib/auth'
 
 export async function GET(request) {
   try {
-    const { searchParams } = new URL(request.url)
-    const page = parseInt(searchParams.get('page') || '1')
-    const limit = parseInt(searchParams.get('limit') || '10')
-    const platform = searchParams.get('platform') || 'All'
-    const sortBy = searchParams.get('sortBy') || 'createdAt'
-    const order = searchParams.get('order') || 'desc'
-    const search = searchParams.get('search') || ''
+    const searchParams = new URL(request.url).searchParams
+    const page = parseInt(searchParams.get("page") || "1")
+    const limit = parseInt(searchParams.get("limit") || "12")
+    const platform = searchParams.get("platform")
+    const category = searchParams.get("category")
+    const sortBy = searchParams.get("sortBy") || "createdAt"
+    const order = searchParams.get("order") || "desc"
+    const search = searchParams.get("search")
     
+    // Skip calculation for pagination
     const skip = (page - 1) * limit
     
-    // Build the where clause
-    const where = {
-      status: 'AVAILABLE',
-      ...(platform !== 'All' && { platformId: platform }),
-      ...(search && {
-        OR: [
-          { title: { contains: search, mode: 'insensitive' } },
-          { description: { contains: search, mode: 'insensitive' } }
-        ]
-      })
+    // Build the where clause with filters
+    let where = {
+      status: "AVAILABLE"
+    }
+    
+    // Add platform filter if provided
+    if (platform) {
+      where.platform = {
+        name: platform
+      }
+    }
+    
+    // Add category filter if provided
+    if (category) {
+      where.category = {
+        name: category
+      }
+    }
+    
+    // Add search functionality across multiple fields
+    if (search) {
+      where.OR = [
+        // Search in description
+        {
+          description: {
+            contains: search,
+            mode: "insensitive"
+          }
+        },
+        // Search in username (if available)
+        {
+          username: {
+            contains: search,
+            mode: "insensitive"
+          }
+        },
+        // Search in platform name
+        {
+          platform: {
+            name: {
+              contains: search,
+              mode: "insensitive"
+            }
+          }
+        },
+        // Search in category name
+        {
+          category: {
+            name: {
+              contains: search,
+              mode: "insensitive"
+            }
+          }
+        }
+      ]
     }
     
     // Build the orderBy clause based on sortBy and order
@@ -38,7 +86,12 @@ export async function GET(request) {
       orderBy.push({ price: order })
     } else if (sortBy === 'createdAt') {
       orderBy.push({ createdAt: order })
+    } else if (sortBy === 'followers') {
+      orderBy.push({ followers: order })
     }
+
+    // First, count total matching records
+    const totalListings = await prisma.listing.count({ where })
     
     // Get listings with proper includes for subscription data
     const listings = await prisma.listing.findMany({
@@ -47,6 +100,7 @@ export async function GET(request) {
       skip,
       take: limit,
       include: {
+        category: true,
         platform: true,
         seller: {
           include: {
@@ -62,106 +116,145 @@ export async function GET(request) {
     
     // Post-process the listings to apply subscription-based ranking
     const processedListings = listings.map(listing => {
-      // Add a virtual field for featured status
-      const isFeatured = listing.featured || false
+      // Get the seller's subscription
+      const subscription = listing.seller?.Subscription?.[0]
       
-      // Get the seller's plan tier (default to FREE if not found)
-      const planTier = listing.seller?.subscription?.plan?.tier || 'FREE'
+      // Default subscription tier if not found
+      const tierLevel = {
+        "FREE": 0,
+        "BASIC": 1,
+        "PRO": 2,
+        "PREMIUM": 3
+      }
       
-      // Add plan tier info to the listing
+      // Add tier level to each listing for frontend usage
+      const subscriptionTier = subscription?.plan?.tier || "FREE"
+      
+      // Add featured status
+      const isFeatured = Boolean(subscription && subscriptionTier !== "FREE")
+      
       return {
         ...listing,
-        isFeatured,
-        sellerPlanTier: planTier
+        seller: {
+          ...listing.seller,
+          // Don't send subscription details to client
+          Subscription: undefined
+        },
+        // Add metadata for frontend
+        subscriptionTier,
+        subscriptionLevel: tierLevel[subscriptionTier] || 0,
+        isFeatured
       }
     })
     
-    // Sort the processed listings based on subscription tier and featured status
-    const sortedListings = processedListings.sort((a, b) => {
-      // First, sort by featured status
-      if (a.isFeatured && !b.isFeatured) return -1
-      if (!a.isFeatured && b.isFeatured) return 1
-      
-      // Then, sort by plan tier
-      const tierRanking = {
-        'PREMIUM': 3,
-        'PRO': 2,
-        'BASIC': 1,
-        'FREE': 0
-      }
-      
-      const aTierRank = tierRanking[a.sellerPlanTier] || 0
-      const bTierRank = tierRanking[b.sellerPlanTier] || 0
-      
-      if (aTierRank !== bTierRank) {
-        return bTierRank - aTierRank // Higher tier first
-      }
-      
-      // If same tier and featured status, use the original sorting
-      return 0
-    })
+    // Sort processedListings by subscription level if not already sorted by user
+    if (!sortBy || sortBy === 'createdAt') {
+      processedListings.sort((a, b) => {
+        // First by subscription level
+        if (b.subscriptionLevel !== a.subscriptionLevel) {
+          return b.subscriptionLevel - a.subscriptionLevel
+        }
+        
+        // Then by selected sort
+        if (sortBy === 'createdAt') {
+          const dateA = new Date(a.createdAt)
+          const dateB = new Date(b.createdAt)
+          return order === 'desc' ? dateB - dateA : dateA - dateB
+        }
+        
+        return 0
+      })
+    }
     
-    // Get total count for pagination
-    const total = await prisma.listing.count({ where })
+    // Calculate total pages
+    const totalPages = Math.ceil(totalListings / limit)
     
+    // Return response with pagination info
     return NextResponse.json({
-      listings: sortedListings,
+      listings: processedListings,
       pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit)
+        total: totalListings,
+        currentPage: page,
+        totalPages,
+        limit
       }
     })
   } catch (error) {
-    console.error('Error fetching listings:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch listings' },
-      { status: 500 }
-    )
+    console.error("Error fetching listings:", error)
+    return NextResponse.json({ error: "Failed to fetch listings" }, { status: 500 })
   }
 }
 
 export async function POST(request) {
   try {
-    // Get the authenticated user
     const session = await getServerSession(authOptions)
     
-    if (!session || !session.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
     
-    // Parse the request body
-    const data = await request.json()
+    const body = await request.json()
     
-    // Validate required fields
-    if (!data.platform || !data.category || !data.followers || !data.description || 
-        !data.media || data.media.length === 0 || !data.price || !data.transferMethod) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+    if (!body.platformId || !body.categoryId || !body.price || !body.description) {
+      return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
     }
     
-    // Create the listing
-    const listing = await prisma.listing.create({
-      data: {
+    // Get user's subscription
+    const subscription = await prisma.subscription.findFirst({
+      where: { userId: session.user.id, status: "ACTIVE" },
+      include: { plan: true }
+    })
+    
+    // Check if user can create more listings
+    const activeListingsCount = await prisma.listing.count({
+      where: { 
         sellerId: session.user.id,
-        platformId: data.platform,
-        categoryId: data.category,
-        username: data.username || 'Not provided',
-        price: parseFloat(data.price),
-        followers: parseInt(data.followers),
-        engagement: parseFloat(data.engagement || 0),
-        description: data.description,
-        accountAge: data.accountAge || 0,
-        posts: data.posts || 0,
-        mediaProof: data.media.map(item => item.url),
-        negotiable: data.negotiable || false,
-        transferMethod: data.transferMethod,
+        status: { in: ["AVAILABLE", "PENDING"] }
       }
     })
     
-    return NextResponse.json(listing)
+    const maxListings = {
+      "FREE": 1,
+      "BASIC": 5,
+      "PRO": 20,
+      "PREMIUM": 999999 // Unlimited
+    }
+    
+    const subscriptionTier = subscription?.plan?.tier || "FREE"
+    
+    if (activeListingsCount >= maxListings[subscriptionTier]) {
+      return NextResponse.json({
+        error: `You've reached the maximum number of active listings for your subscription tier (${maxListings[subscriptionTier]})`,
+        limitReached: true
+      }, { status: 403 })
+    }
+    
+    // Create listing
+    const listing = await prisma.listing.create({
+      data: {
+        platformId: body.platformId,
+        categoryId: body.categoryId,
+        price: parseFloat(body.price),
+        description: body.description,
+        username: body.username || null,
+        followers: parseInt(body.followers) || 0,
+        engagement: parseFloat(body.engagement) || 0,
+        accountAge: parseInt(body.accountAge) || 0,
+        posts: parseInt(body.posts) || 0,
+        sellerId: session.user.id,
+        verified: body.verified || false,
+        previewLink: body.previewLink || null,
+        transferMethod: body.transferMethod,
+        accountCountry: body.accountCountry || null,
+        negotiable: body.negotiable || false,
+        mediaProof: body.mediaProof || [],
+        credentials: body.credentials || null
+      }
+    })
+    
+    return NextResponse.json({ success: true, listing })
   } catch (error) {
-    console.error('Error creating listing:', error)
-    return NextResponse.json({ error: error.message || 'Failed to create listing' }, { status: 500 })
+    console.error("Error creating listing:", error)
+    return NextResponse.json({ error: "Failed to create listing" }, { status: 500 })
   }
 } 
