@@ -24,6 +24,8 @@ export async function GET(request, context) {
         isKycVerified: true,
         createdAt: true,
         role: true,
+        firstName: true,
+        lastName: true,
         // Don't include sensitive information
         // Add any other fields you want to expose
       }

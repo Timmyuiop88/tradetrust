@@ -11,7 +11,7 @@ import { usePathname } from "next/navigation"
 
 import { useSession, signOut } from "next-auth/react"
 import { useRouter } from "next/navigation"
-
+import Image from "next/image"
 export function MobileNav() {
   const [open, setOpen] = useState(false)
   const { theme, setTheme } = useTheme()
@@ -28,28 +28,16 @@ export function MobileNav() {
     return false
   }
   
-
   const { data: session } = useSession()
   const router = useRouter()
 
-  const handleSignOut = async () => {
-    await signOut({ redirect: false })
-    router.push('/')
-  }
-
-  const mainNavItems = [
+  // Public navigation items only - no auth required
+  const publicNavItems = [
     { name: 'Home', href: '/', icon: Home },
-    { name: 'Browse', href: '/browse', icon: ShoppingBag },
+    { name: 'About Us', href: '/about', icon: Info },
     { name: 'How it Works', href: '/how-it-works', icon: HelpCircle },
-  ]
-
-  const accountNavItems = [
-    { name: 'Explore', href: '/dashboard', icon: Home },
-    { name: 'Orders', href: '/dashboard/orders', icon: ShoppingBag },
-    
-    { name: 'Profile', href: '/dashboard/profile', icon: User2 },
-  
-    { name: 'Settings', href: '/dashboard/settings', icon: Settings },
+    { name: 'Browse', href: '/dashboard', icon: LayoutGrid },
+    { name: 'Become a Seller', href: '/dashboard/sell', icon: ShoppingBag },
   ]
 
   return (
@@ -65,7 +53,7 @@ export function MobileNav() {
           <span className="sr-only">Toggle menu</span>
         </Button>
       </SheetTrigger>
-      <SheetContent side="right" className="w-[280px] p-0">
+      <SheetContent side="right" className="w-[280px] p-0" aria-labelledby="navigation-title">
         <div className="flex flex-col h-full">
           {/* Header */}
           <div className="border-b py-4 px-6">
@@ -75,66 +63,46 @@ export function MobileNav() {
                 className="flex items-center space-x-2" 
                 onClick={() => setOpen(false)}
               >
-                <ShieldCheck className="h-6 w-6 text-primary" />
+                <Image src="/images/logo.png" alt="TrustTrade" width={20} height={20} />
                 <span className="font-bold">TrustTrade</span>
               </Link>
-              <Button variant="ghost" size="icon" onClick={() => setOpen(false)}>
-                <X className="h-5 w-5" />
-              </Button>
             </div>
           </div>
           
-          {/* Nav Links */}
+          {/* Hidden title for accessibility */}
+          <div className="sr-only">
+            <h2 id="navigation-title">Navigation Menu</h2>
+          </div>
+          
+          {/* Nav Links - Public Pages Only */}
           <nav className="flex-1 overflow-auto py-4">
             <div className="space-y-1 px-2">
-              <NavLink 
-                href="/dashboard" 
-                icon={LayoutGrid} 
-                onClick={() => setOpen(false)}
-                isActive={isActive("/dashboard")}
-              >
-                Browse Accounts
-              </NavLink>
-              <NavLink 
-                href="/about" 
-                icon={Info} 
-                onClick={() => setOpen(false)}
-                isActive={isActive("/about")}
-              >
-                About Us
-              </NavLink>
-              <NavLink 
-                href="/how-it-works" 
-                icon={HelpCircle} 
-                onClick={() => setOpen(false)}
-                isActive={isActive("/how-it-works")}
-              >
-                How it Works
-              </NavLink>
-              <NavLink 
-                href="/become-merchant" 
-                icon={ShoppingBag} 
-                onClick={() => setOpen(false)}
-                isActive={isActive("/become-merchant")}
-              >
-                Start Selling
-              </NavLink>
+              {publicNavItems.map((item, index) => (
+                <NavLink 
+                  key={index}
+                  href={item.href} 
+                  icon={item.icon} 
+                  onClick={() => setOpen(false)}
+                  isActive={isActive(item.href)}
+                >
+                  {item.name}
+                </NavLink>
+              ))}
             </div>
             
-            <div className="mt-6 px-3">
-              <div className="flex flex-col gap-2">
-                <Button asChild variant="outline" className="justify-start w-full">
-                  <Link href="/login" className="flex items-center" onClick={() => setOpen(false)}>
-                    <User className="mr-2 h-4 w-4" /> Sign In
-                  </Link>
-                </Button>
-                <Button asChild className="justify-start w-full">
-                  <Link href="/signup" className="flex items-center" onClick={() => setOpen(false)}>
-                    Get Started
-                  </Link>
-                </Button>
+            {/* Authentication buttons for non-authenticated users */}
+            {!session && (
+              <div className="mt-6 px-3">
+                <div className="flex flex-col gap-2">
+                  <Button asChild variant="outline" className="justify-start w-full" onClick={() => router.push('/login')}>
+                      <User className="mr-2 h-4 w-4" /> Sign In
+                  </Button>
+                  <Button asChild className="justify-start w-full" onClick={() => router.push('/signup')}>
+                      Get Started
+                  </Button>
+                </div>
               </div>
-            </div>
+            )}
           </nav>
           
           {/* Footer */}

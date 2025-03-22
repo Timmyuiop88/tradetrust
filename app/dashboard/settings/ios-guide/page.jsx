@@ -21,28 +21,18 @@ export default function IOSGuide() {
   return (
     <Card className="border-primary/20">
       <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center">
           <Button 
             variant="ghost" 
             size="sm" 
             className="gap-1" 
             onClick={() => router.back()}
           >
-            <ArrowLeft className="h-4 w-4" /> Back
+            <ArrowLeft className="h-4 w-4" />
           </Button>
           <CardTitle className="text-lg font-medium text-center">
             Add to Home Screen
           </CardTitle>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            className="gap-1"
-            aria-label="Toggle theme"
-          >
-            <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-            <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-          </Button>
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -59,7 +49,7 @@ export default function IOSGuide() {
             <h3 className="font-medium mb-2">Step 1: Tap the Share button</h3>
             <div className="bg-muted/30 rounded-lg p-4 w-full max-w-[280px] flex flex-col items-center">
               <Image 
-                src="/images/ios-share.png" 
+                src="/images/sharebutton.png" 
                 width={200} 
                 height={120} 
                 alt="iOS share button location"
@@ -79,7 +69,7 @@ export default function IOSGuide() {
             <h3 className="font-medium mb-2">Step 2: Add to Home Screen</h3>
             <div className="bg-muted/30 rounded-lg p-4 w-full max-w-[280px] flex flex-col items-center">
               <Image 
-                src="/images/ios-add-home.png" 
+                src="/images/add.png" 
                 width={200} 
                 height={150} 
                 alt="Add to Home Screen option" 
@@ -99,7 +89,7 @@ export default function IOSGuide() {
             <h3 className="font-medium mb-2">Step 3: Confirm and Launch</h3>
             <div className="bg-muted/30 rounded-lg p-4 w-full max-w-[280px] flex flex-col items-center">
               <Image 
-                src="/images/ios-confirm.png" 
+                src="/images/confirm.png" 
                 width={200} 
                 height={150} 
                 alt="Confirm adding to home screen" 

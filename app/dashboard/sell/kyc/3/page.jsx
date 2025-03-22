@@ -5,9 +5,11 @@ import { useRouter } from "next/navigation"
 import { useEdgeStore } from "@/app/lib/edgeStore"
 import { useKycSubmit } from "@/app/hooks/useKyc"
 import { Button } from "@/app/components/button"
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "../../../../components/card"
-import { Camera, AlertCircle } from "lucide-react"
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "../../../../components/card"
+import { Camera, AlertCircle, Loader2, ArrowLeft } from "lucide-react"
 import { cn } from "@/app/lib/utils"
+import { toast } from "react-hot-toast"
+import { useSession } from "next-auth/react"
 
 export default function FaceVerificationPage() {
   const [capturedImage, setCapturedImage] = useState(null)
@@ -21,6 +23,10 @@ export default function FaceVerificationPage() {
   const router = useRouter()
   const { edgestore } = useEdgeStore()
   const { mutate: submitKyc, isLoading: isSubmitting } = useKycSubmit()
+  const { data: session } = useSession()
+  
+  // Combined loading state to disable buttons
+  const isProcessing = uploading || isSubmitting
 
   const getVideo = async () => {
     try {
@@ -127,6 +133,8 @@ export default function FaceVerificationPage() {
   }
 
   const closePhoto = () => {
+    if (isProcessing) return; // Prevent retaking if already uploading or submitting
+    
     const photo = photoRef.current
     if (photo) {
       const ctx = photo.getContext('2d')
@@ -146,6 +154,9 @@ export default function FaceVerificationPage() {
       return
     }
 
+    // Prevent double submission
+    if (isProcessing) return;
+
     setUploading(true)
     setError(null)
 
@@ -154,34 +165,67 @@ export default function FaceVerificationPage() {
         type: "image/jpeg" 
       })
       
-      const res = await edgestore.publicFiles.upload({
-        file,
-        onProgressChange: (progress) => {
-          setUploadProgress(progress)
-        },
+      // First upload the image to EdgeStore
+      let uploadResult;
+      try {
+        uploadResult = await edgestore.publicFiles.upload({
+          file,
+          onProgressChange: (progress) => {
+            setUploadProgress(progress)
+          },
+        })
+      } catch (uploadErr) {
+        console.error("File upload error:", uploadErr);
+        setError("Failed to upload photo. Please try again.");
+        toast.error("Image upload failed");
+        setUploading(false);
+        return;
+      }
+
+      // Prepare KYC data with required fields - but only fields that exist in the KYC model
+      const kycData = {
+        // Face verification specific data
+        faceImageUrl: uploadResult.url,
+        idType: "face_photo",
+        
+        // Include user's full name from session but NOT email (email is not in KYC model)
+        fullName: session?.user?.name || ''
+      }
+
+      // Log the data being submitted (for debugging)
+      console.log('Submitting KYC data:', {
+        ...kycData,
+        userId: session?.user?.id,
       })
 
-      submitKyc({ 
-        faceImageUrl: res.url
-      }, {
-        onSuccess: () => {
+      // Submit to the KYC API
+      submitKyc(kycData, {
+        onSuccess: (data) => {
+          toast.success("Face verification submitted successfully")
           router.push('/dashboard/sell')
         },
         onError: (err) => {
-          setError("Failed to update KYC status")
-          console.error(err)
+          console.error("KYC submission error:", err)
+          setError(err.message || "Failed to update verification status")
+          toast.error(err.message || "Failed to update verification status")
+        },
+        onSettled: () => {
+          // Always reset uploading state regardless of success/failure
+          setUploading(false)
         }
       })
     } catch (err) {
-      setError("Failed to upload verification photo")
-      console.error(err)
-    } finally {
+      console.error("Unexpected error during submission:", err)
+      setError("An unexpected error occurred. Please try again.")
+      toast.error("Verification failed")
       setUploading(false)
     }
   }
 
   // Alternative method using file input if camera fails
   const handleFileUpload = (e) => {
+    if (isProcessing) return; // Prevent file upload during submission
+    
     const file = e.target.files?.[0]
     if (file && file.type.startsWith('image/')) {
       const reader = new FileReader()
@@ -234,6 +278,11 @@ export default function FaceVerificationPage() {
     }
   }
 
+  const handleGoBack = () => {
+    if (isProcessing) return; // Prevent navigation during submission
+    router.back()
+  }
+
   useEffect(() => {
     // Delay camera initialization to ensure component is fully mounted
     const timer = setTimeout(() => {
@@ -263,7 +312,7 @@ export default function FaceVerificationPage() {
           <div className="flex justify-center">
             <div className={`camera ${hasPhoto ? 'hidden' : ''} relative`}>
               {/* Video preview with overlayed circular guide */}
-              <div className="relative w-[320px] h-[320px]">
+              <div className="relative w-[320px] h-[320px] sm:w-[380px] sm:h-[380px]">
                 <video 
                   ref={videoRef} 
                   autoPlay 
@@ -280,7 +329,7 @@ export default function FaceVerificationPage() {
               {streamActive && (
                 <Button 
                   onClick={takePhoto}
-                  className="mt-4"
+                  className="mt-4 w-full"
                 >
                   <Camera className="mr-2 h-4 w-4" />
                   Capture Photo
@@ -297,11 +346,13 @@ export default function FaceVerificationPage() {
                     accept="image/*"
                     capture
                     onChange={handleFileUpload}
+                    disabled={isProcessing}
                     className="block w-full text-sm text-gray-500
                       file:mr-4 file:py-2 file:px-4
                       file:rounded-md file:border-0
                       file:text-sm file:font-semibold
                       file:bg-primary file:text-white
+                      file:disabled:bg-gray-400
                       hover:file:bg-primary/90"
                   />
                 </div>
@@ -310,31 +361,57 @@ export default function FaceVerificationPage() {
           </div>
 
           <div className={cn("photo flex justify-center", !hasPhoto ? 'hidden' : '')}>
-            <div className="w-[320px]">
+            <div className="w-[320px] sm:w-[380px]">
               <div className="canvas-container flex justify-center">
                 <canvas ref={photoRef} className="max-w-full"></canvas>
               </div>
-              <div className="flex gap-4 mt-4 justify-center">
-                <Button variant="outline" onClick={closePhoto}>
+              <div className="flex gap-4 mt-4 justify-between">
+                <Button 
+                  variant="outline" 
+                  onClick={closePhoto}
+                  disabled={isProcessing}
+                >
                   Retake
                 </Button>
                 <Button 
                   onClick={handleSubmit}
-                  disabled={uploading || isSubmitting}
+                  disabled={isProcessing}
+                  className="min-w-[120px]"
                 >
-                  {uploading ? `Uploading ${uploadProgress}%` : "Submit"}
+                  {isProcessing ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      {uploading ? `${uploadProgress}%` : "Processing..."}
+                    </>
+                  ) : (
+                    "Submit"
+                  )}
                 </Button>
               </div>
             </div>
           </div>
 
           {error && (
-            <div className="text-red-500 text-sm flex items-center gap-2">
-              <AlertCircle className="h-4 w-4" />
+            <div className="text-red-500 text-sm flex items-center gap-2 p-3 bg-red-50 rounded-md">
+              <AlertCircle className="h-4 w-4 flex-shrink-0" />
               <span>{error}</span>
             </div>
           )}
         </CardContent>
+        <CardFooter className="flex justify-between border-t pt-6">
+          <Button
+            variant="outline"
+            onClick={handleGoBack}
+            disabled={isProcessing}
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back
+          </Button>
+          
+          <div className="text-xs text-muted-foreground">
+            Step 3 of 3
+          </div>
+        </CardFooter>
       </Card>
     </div>
   )

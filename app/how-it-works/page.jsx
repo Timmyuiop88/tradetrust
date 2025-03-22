@@ -128,7 +128,7 @@ export default function HowItWorksPage() {
                       <div className="relative w-full max-w-sm aspect-square">
                         <div className="absolute inset-0 bg-gradient-to-tr from-primary/20 via-primary/10 to-transparent rounded-3xl" />
                         <Image
-                          src="/user.svg"
+                          src="/user.png"
                           alt="Account verification"
                           fill
                           className="object-contain p-6 relative z-10"
@@ -143,7 +143,7 @@ export default function HowItWorksPage() {
                       <div className="relative w-full max-w-sm aspect-square">
                         <div className="absolute inset-0 bg-gradient-to-tr from-primary/20 via-primary/10 to-transparent rounded-3xl" />
                         <Image
-                          src="/usephone.svg"
+                          src="/usephone.png"
                           alt="Browse accounts"
                           fill
                           className="object-contain p-6 relative z-10"
@@ -204,7 +204,7 @@ export default function HowItWorksPage() {
                       <div className="relative w-full max-w-sm aspect-square">
                         <div className="absolute inset-0 bg-gradient-to-tr from-primary/20 via-primary/10 to-transparent rounded-3xl" />
                         <Image
-                          src="/usephone2.svg"
+                          src="/usephone2.png"
                           alt="Secure payment"
                           fill
                           className="object-contain p-6 relative z-10"
@@ -330,7 +330,7 @@ export default function HowItWorksPage() {
                       <div className="relative w-full max-w-sm aspect-square">
                         <div className="absolute inset-0 bg-gradient-to-tr from-primary/20 via-primary/10 to-transparent rounded-3xl" />
                         <Image
-                          src="/usephone.svg"
+                          src="/usephone.png"
                           alt="List your account"
                           fill
                           className="object-contain p-6 relative z-10"
@@ -391,7 +391,7 @@ export default function HowItWorksPage() {
                       <div className="relative w-full max-w-sm aspect-square">
                         <div className="absolute inset-0 bg-gradient-to-tr from-primary/20 via-primary/10 to-transparent rounded-3xl" />
                         <Image
-                          src="/user.svg"
+                          src="/user.png"
                           alt="Buyer communication"
                           fill
                           className="object-contain p-6 relative z-10"
@@ -406,7 +406,7 @@ export default function HowItWorksPage() {
                       <div className="relative w-full max-w-sm aspect-square">
                         <div className="absolute inset-0 bg-gradient-to-tr from-primary/20 via-primary/10 to-transparent rounded-3xl" />
                         <Image
-                          src="/usephone2.svg"
+                          src="/usephone2.png"
                           alt="Get paid"
                           fill
                           className="object-contain p-6 relative z-10"

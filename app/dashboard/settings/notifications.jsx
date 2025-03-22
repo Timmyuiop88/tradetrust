@@ -48,16 +48,6 @@ export default function NotificationSettings() {
               <AlertTriangle className="h-5 w-5 text-yellow-500" />
               Notifications Not Supported
             </CardTitle>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              className="gap-1"
-              aria-label="Toggle theme"
-            >
-              <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-              <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-            </Button>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">

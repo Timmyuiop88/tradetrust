@@ -78,18 +78,12 @@ function FollowersPageContent() {
 
   return (
     <div className="max-w-4xl mx-auto py-8 px-4">
-      {/* <Button 
-        variant="ghost" 
-        className="mb-6" 
-        onClick={() => router.back()}
-      >
-        <ArrowLeft className="h-4 w-4 mr-2" />
-        Back
-      </Button>*/}
-
       <Card>
         <CardHeader>
-          <CardTitle>Connections</CardTitle>
+          <div className="flex items-center">
+            <ArrowLeft onClick={() => router.back()} className="h-4 w-4 mr-2" />
+            <CardTitle>Connections</CardTitle>
+          </div>
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">

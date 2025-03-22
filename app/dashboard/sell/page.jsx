@@ -39,7 +39,7 @@ export default function SellPage() {
   const router = useRouter()
   
   const { data: kycData, isLoading: kycLoading } = useKycStatus()
-  
+  console.log(kycData)
   // Show loading skeleton while session is loading
   if (sessionStatus === "loading" || kycLoading) {
     return <KycStepsSkeleton />

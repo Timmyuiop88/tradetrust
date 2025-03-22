@@ -45,7 +45,7 @@ export default function DashboardLayout({ children }) {
             <span className="font-bold text-xl truncate">TrustTrade</span>
           </Link>
           <div className="flex items-center space-x-4">
-            <div className="hidden sm:flex items-center space-x-1 text-sm">
+            <div className=" sm:flex items-center space-x-1 text-sm">
               <BalanceDisplay />
             </div>
             <AddBalanceSheet />

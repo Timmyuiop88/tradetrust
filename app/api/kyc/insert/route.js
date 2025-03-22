@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '../../auth/[...nextauth]/route';
+
 export async function POST(request) {
   try {
     const session = await getServerSession(authOptions)
@@ -17,64 +18,107 @@ export async function POST(request) {
       where: { userId: session.user.id }
     })
 
+    // Get user info for required fields if not provided
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { firstName: true, lastName: true }
+    })
+
     if (existingKyc?.verified) {
       return NextResponse.json({ error: 'KYC already verified' }, { status: 400 })
     }
 
     // Handle document URLs as JSON
     if (data.governmentIdUrl || data.faceImageUrl || data.addressDocUrl) {
-      const currentDocs = existingKyc?.idDocUrl ? JSON.parse(existingKyc.idDocUrl) : {}
+      // Safely parse existing idDocUrl
+      let currentDocs = {}
+      
+      if (existingKyc?.idDocUrl) {
+        try {
+          // Check if the string is already a URL (not JSON)
+          if (typeof existingKyc.idDocUrl === 'string' && 
+              (existingKyc.idDocUrl.startsWith('http') || !existingKyc.idDocUrl.startsWith('{'))) {
+            // Legacy format - single URL string
+            currentDocs = { governmentId: existingKyc.idDocUrl }
+          } else {
+            // Try to parse as JSON
+            currentDocs = JSON.parse(existingKyc.idDocUrl)
+          }
+        } catch (e) {
+          console.warn('Failed to parse idDocUrl as JSON, treating as string URL:', e)
+          // If parsing fails, assume it's a direct URL string
+          currentDocs = { governmentId: existingKyc.idDocUrl }
+        }
+      }
+
       const updatedDocs = {
         ...currentDocs,
         ...(data.governmentIdUrl && { governmentId: data.governmentIdUrl }),
         ...(data.faceImageUrl && { faceScan: data.faceImageUrl }),
         ...(data.addressDocUrl && { addressProof: data.addressDocUrl })
       }
+
+      // Store as JSON string
       data.idDocUrl = JSON.stringify(updatedDocs)
     }
 
-    // Create a clean data object with only valid schema fields
-    const cleanData = {
-      idType: data.idType || existingKyc?.idType || "government_id",
-      idNumber: data.idNumber || existingKyc?.idNumber || "12345",
-      fullName: data.fullName || existingKyc?.fullName || "User",
-      idDocUrl: data.idDocUrl,
-      address: data.address,
-      country: data.country,
-      dob: data.dob,
-      verified: false,
-      updatedAt: new Date()
+    // Create base data with only fields that exist in the KYC model
+    const baseData = {
+      userId: session.user.id,
+      verified: false, // Always set to false on update, admin must verify
+      // Include required fields with defaults if not provided
+      fullName: data.fullName || existingKyc?.fullName || user?.name || 'Unknown',
+      address: data.address || existingKyc?.address || '',
+      country: data.country || existingKyc?.country || '',
+      idNumber: data.idNumber || existingKyc?.idNumber || '',
+      idType: data.idType || existingKyc?.idType || '',
+      idDocUrl: data.idDocUrl || existingKyc?.idDocUrl || ''
     }
 
-    // For updates, we don't need to validate all fields
-    let kyc
-    if (existingKyc) {
-      // For updates, just update the fields that are provided
-      kyc = await prisma.kyc.update({
-        where: { userId: session.user.id },
-        data: cleanData
-      })
-    } else {
-      // For new records, we need at least some basic info
-      kyc = await prisma.kyc.create({
-        data: {
-          userId: session.user.id,
-          ...cleanData
-        }
-      })
+    // Allow only fields that exist in the Prisma KYC model
+    // Remove fields that are not in the model
+    delete data.email; // Email is not in the KYC model
+    delete data.governmentIdUrl;
+    delete data.faceImageUrl;
+    delete data.addressDocUrl;
+
+    // Create the final upsert data
+    const upsertData = {
+      ...baseData
     }
 
-    return NextResponse.json({
-      message: 'KYC information updated successfully',
-      kyc
+    // Log the data being used for upsert (for debugging)
+    console.log('Upserting KYC with data:', {
+      userId: upsertData.userId,
+      hasIdDocUrl: !!upsertData.idDocUrl,
+      fullName: upsertData.fullName,
+      // Other fields could be logged here
     })
 
+    await prisma.kyc.upsert({
+      where: { userId: session.user.id },
+      update: upsertData,
+      create: upsertData
+    })
+
+    // Update user's KYC status in User model
+    await prisma.user.update({
+      where: { id: session.user.id },
+      data: { 
+        isKycVerified: user.kyc?.verified,
+      }
+    })
+
+    return NextResponse.json({
+      success: true,
+      message: 'KYC information updated successfully'
+    })
   } catch (error) {
-    console.error('KYC submission error:', error)
-    return NextResponse.json({ 
-      error: 'Failed to process KYC submission', 
-      details: error.message 
-    }, { status: 500 })
+    console.error('KYC update error:', error)
+    return NextResponse.json(
+      { error: 'Failed to update KYC information', details: error.message },
+      { status: 500 }
+    )
   }
 }
 

@@ -20,8 +20,28 @@ export async function GET() {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    // Parse the document URLs if they exist
-    const docs = user.kyc?.idDocUrl ? JSON.parse(user.kyc.idDocUrl) : {}
+    // Safely parse the document URLs if they exist
+    let docs = {};
+    if (user.kyc?.idDocUrl) {
+      try {
+        // Check if the string starts with http/https (a URL) or isn't a valid JSON
+        if (typeof user.kyc.idDocUrl === 'string' && 
+            (user.kyc.idDocUrl.startsWith('http') || !user.kyc.idDocUrl.startsWith('{'))) {
+          // It's a single URL, not JSON
+          docs.governmentId = user.kyc.idDocUrl;
+        } else {
+          // Try to parse as JSON
+          docs = JSON.parse(user.kyc.idDocUrl);
+        }
+      } catch (error) {
+        console.error('Error parsing idDocUrl:', error);
+        // If parsing fails, assume it's a direct URL
+        docs.governmentId = user.kyc.idDocUrl;
+      }
+    }
+
+    // Check if address is stored
+    const hasAddressInfo = user.kyc?.address && user.kyc?.country;
 
     // Define the steps with their statuses
     const steps = [
@@ -30,14 +50,15 @@ export async function GET() {
         type: "identity",
         title: "Identity Verification",
         description: "Upload a valid government ID",
-        status: docs.governmentId ? "pending_review" : "pending"
+        status: docs.governmentId ? (user.kyc?.verified ? "completed" : "pending_review") : "pending"
       },
       {
         id: 2,
         type: "address",
         title: "Address Verification",
         description: "Proof of address document",
-        status: docs.addressProof ? "pending_review" : 
+        status: docs.addressProof ? (user.kyc?.verified ? "completed" : "pending_review") : 
+                hasAddressInfo ? "pending_review" :
                 docs.governmentId ? "pending" : "locked"
       },
       {
@@ -45,8 +66,8 @@ export async function GET() {
         type: "face",
         title: "Face Verification",
         description: "Quick selfie verification",
-        status: docs.faceScan ? "pending_review" : 
-                docs.addressProof ? "pending" : "locked"
+        status: docs.faceScan ? (user.kyc?.verified ? "completed" : "pending_review") : 
+                (docs.addressProof || hasAddressInfo) ? "pending" : "locked"
       }
     ]
 

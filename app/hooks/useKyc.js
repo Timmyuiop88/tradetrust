@@ -30,17 +30,23 @@ export function useKycSubmit() {
         const { data } = await axios.post('/api/kyc/insert', stepData)
         return data
       } catch (error) {
-        console.error('KYC submission error:', {
-          message: error.message,
-          response: error.response?.data,
-          status: error.response?.status,
+        const errorInfo = {
+          message: error.message || 'Unknown error',
           data: stepData
-        })
-        throw error
+        }
+        
+        if (error.response) {
+          errorInfo.responseData = error.response.data
+          errorInfo.status = error.response.status
+        }
+        
+        console.error('KYC submission error:', errorInfo)
+        
+        throw new Error(error.response?.data?.error || error.message || 'Failed to submit KYC information')
       }
     },
     onSuccess: () => {
       queryClient.invalidateQueries(['kyc-status'])
     }
   })
-} 
+}
