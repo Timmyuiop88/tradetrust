@@ -194,8 +194,10 @@ export async function POST(request) {
     }
     
     const body = await request.json()
+
+    console.log('body', body)
     
-    if (!body.platformId || !body.categoryId || !body.price || !body.description) {
+    if (!body.platform || !body.category || !body.price || !body.description) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
     }
     
@@ -214,7 +216,7 @@ export async function POST(request) {
     })
     
     const maxListings = {
-      "FREE": 1,
+      "FREE": 4,
       "BASIC": 5,
       "PRO": 20,
       "PREMIUM": 999999 // Unlimited
@@ -232,8 +234,8 @@ export async function POST(request) {
     // Create listing
     const listing = await prisma.listing.create({
       data: {
-        platformId: body.platformId,
-        categoryId: body.categoryId,
+        platformId: body.platform,
+        categoryId: body.category,
         price: parseFloat(body.price),
         description: body.description,
         username: body.username || null,

@@ -5,6 +5,12 @@ import { useEdgeStore } from "@/app/lib/edgeStore"
 import { Button } from "../../../components/button"
 import { Upload, X, Image, Check, AlertCircle } from "lucide-react"
 
+// Helper function to determine if a URL is an image
+const isImageUrl = (url) => {
+  const extensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg']
+  return extensions.some(ext => url.toLowerCase().endsWith(ext))
+}
+
 export function MediaUpload({ data, onUpdate }) {
   const [uploading, setUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
@@ -26,15 +32,16 @@ export function MediaUpload({ data, onUpdate }) {
             setUploadProgress(progress)
           },
         })
-        return {
-          url: res.url,
-          type: file.type.startsWith('image/') ? 'image' : 'video',
-          name: file.name
-        }
+        // Return only the URL
+        return res.url
       })
       
-      const uploadedFiles = await Promise.all(uploadPromises)
-      onUpdate({ media: [...data.media, ...uploadedFiles] })
+      const uploadedUrls = await Promise.all(uploadPromises)
+      // Update media and mediaProof with the same URLs for backend compatibility
+      onUpdate({ 
+        media: [...data.media, ...uploadedUrls],
+        mediaProof: [...(data.mediaProof || []), ...uploadedUrls]
+      })
     } catch (err) {
       setError("Failed to upload media")
       console.error(err)
@@ -47,7 +54,17 @@ export function MediaUpload({ data, onUpdate }) {
   const removeMedia = (index) => {
     const updatedMedia = [...data.media]
     updatedMedia.splice(index, 1)
-    onUpdate({ media: updatedMedia })
+    
+    // Also update mediaProof to keep them in sync
+    const updatedMediaProof = [...(data.mediaProof || [])]
+    if (index < updatedMediaProof.length) {
+      updatedMediaProof.splice(index, 1)
+    }
+    
+    onUpdate({ 
+      media: updatedMedia,
+      mediaProof: updatedMediaProof
+    })
   }
 
   return (
@@ -107,18 +124,18 @@ export function MediaUpload({ data, onUpdate }) {
         <div className="mt-6">
           <h4 className="text-sm font-medium mb-3">Uploaded Media ({data.media.length})</h4>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-            {data.media.map((item, index) => (
+            {data.media.map((url, index) => (
               <div key={index} className="relative group">
                 <div className="aspect-square rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-                  {item.type === 'image' ? (
+                  {isImageUrl(url) ? (
                     <img 
-                      src={item.url} 
+                      src={url} 
                       alt={`Media ${index + 1}`}
                       className="w-full h-full object-cover"
                     />
                   ) : (
                     <video 
-                      src={item.url}
+                      src={url}
                       className="w-full h-full object-cover"
                       controls
                     />

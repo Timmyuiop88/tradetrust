@@ -340,13 +340,13 @@ export default function DashboardPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-3 xs:gap-3 sm:gap-4">
         {listings.map((listing) => (
           <ListingCard key={listing.id} listing={listing} />
         ))}
         
         {(isLoading) && (
-          Array(6).fill(0).map((_, i) => <ListingCardSkeleton key={i} />)
+          Array(8).fill(0).map((_, i) => <ListingCardSkeleton key={i} />)
         )}
       </div>
       

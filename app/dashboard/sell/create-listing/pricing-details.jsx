@@ -2,11 +2,11 @@
 
 import { useState, useEffect } from "react"
 import { Input } from "../../../components/input"
-import { Select } from "../../../components/select"
-import { Textarea } from "../../../components/textarea"
-import { DollarSign, CreditCard, ArrowRightLeft, Crown } from "lucide-react"
+import { Checkbox } from "@/app/components/checkbox"
+import { DollarSign, Crown } from "lucide-react"
 import { useSubscription } from "@/lib/hooks/useSubscription"
 import { Skeleton } from "@/app/components/skeleton"
+import { Label } from "@/app/components/label"
 
 export function PricingDetails({ data, onUpdate }) {
   const { data: subscription, isLoading } = useSubscription()
@@ -31,9 +31,9 @@ export function PricingDetails({ data, onUpdate }) {
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-medium mb-2">Pricing & Transfer</h3>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-          Set your price and specify how you'll transfer the account to the buyer.
+        <h3 className="text-lg font-bold mb-2">Pricing Details</h3>
+        <p className="text-sm text-muted-foreground mb-4">
+          Set your price and decide if you're open to price negotiation.
         </p>
       </div>
       
@@ -73,24 +73,20 @@ export function PricingDetails({ data, onUpdate }) {
           </p>
         </div>
       )}
-
-      <div className="space-y-2">
-        <label className="text-sm font-medium flex items-center gap-1">
-          <ArrowRightLeft className="h-4 w-4 text-gray-500" />
-          Transfer Method
-        </label>
-        <Select
-          value={data.transferMethod}
-          onChange={(value) => onUpdate({ transferMethod: value })}
-          options={[
-            { value: "email_password", label: "Email & Password Change" },
-            { value: "full_account", label: "Full Account Takeover" },
-            { value: "api_transfer", label: "API-Based Transfer" },
-          ]}
-        />
-      </div>
       
-     
+      <div className="flex items-center space-x-2 pt-2">
+        <Checkbox 
+          id="negotiable" 
+          checked={data.negotiable}
+          onCheckedChange={(checked) => onUpdate({ negotiable: checked })}
+        />
+        <Label 
+          htmlFor="negotiable" 
+          className="text-sm font-medium cursor-pointer"
+        >
+          I'm open to price negotiation
+        </Label>
+      </div>
     </div>
   )
 } 

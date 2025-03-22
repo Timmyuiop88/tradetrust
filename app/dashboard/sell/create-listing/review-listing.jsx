@@ -5,6 +5,12 @@ import { usePlatforms } from "../../../hooks/usePlatforms"
 import { useCategories } from "../../../hooks/useCategories"
 import { countries } from "../../../lib/data/countries"
 
+// Helper function to determine if a URL is an image
+const isImageUrl = (url) => {
+  const extensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg']
+  return extensions.some(ext => url.toLowerCase().endsWith(ext))
+}
+
 // Format numbers for display
 const formatFollowers = (value) => {
   if (!value) return "Not specified";
@@ -47,7 +53,6 @@ export function ReviewListing({ data }) {
     data.description && 
     data.media.length > 0 && 
     data.price && 
-    data.transferMethod && 
     (category.name !== "Account" || (data.followers && data.engagement))
   
   // Format price with commas
@@ -206,17 +211,17 @@ export function ReviewListing({ data }) {
           <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">Media & Proof</h4>
           {data.media.length > 0 ? (
             <div className="grid grid-cols-4 gap-2">
-              {data.media.slice(0, 4).map((item, index) => (
+              {data.media.slice(0, 4).map((url, index) => (
                 <div key={index} className="aspect-square rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800">
-                  {item.type === 'image' ? (
+                  {isImageUrl(url) ? (
                     <img 
-                      src={item.url} 
+                      src={url} 
                       alt={`Media ${index + 1}`}
                       className="w-full h-full object-cover"
                     />
                   ) : (
                     <video 
-                      src={item.url}
+                      src={url}
                       className="w-full h-full object-cover"
                     />
                   )}
@@ -235,33 +240,22 @@ export function ReviewListing({ data }) {
         
         {/* Pricing */}
         <div>
-          <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">Pricing & Transfer</h4>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-white dark:bg-gray-900 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Listing Price</p>
-              <p className="font-medium text-lg text-primary">{formattedPrice}</p>
-              {data.negotiable && (
-                <div className="text-xs text-emerald-600 dark:text-emerald-500 mt-1">
-                  Price is negotiable
-                </div>
-              )}
-            </div>
-            <div className="bg-white dark:bg-gray-900 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Transfer Method</p>
-              <p className="font-medium">
-                {data.transferMethod === "email_password" ? "Email & Password Change" :
-                 data.transferMethod === "full_account" ? "Full Account Takeover" :
-                 data.transferMethod === "api_transfer" ? "API-Based Transfer" :
-                 "Not specified"}
-              </p>
-            </div>
+          <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">Pricing</h4>
+          <div className="bg-white dark:bg-gray-900 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Listing Price</p>
+            <p className="font-medium text-lg text-primary">{formattedPrice}</p>
+            {data.negotiable && (
+              <div className="text-xs text-emerald-600 dark:text-emerald-500 mt-1">
+                Price is negotiable
+              </div>
+            )}
           </div>
         </div>
         
         {/* Credentials Summary - Only show if they exist */}
-        {(data.credentials?.email || data.credentials?.username || data.credentials?.serialKey) && (
+        {(data.credentials?.email || data.credentials?.username || data.credentials?.serialKey || data.credentials?.transferInstructions) && (
           <div>
-            <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">Credentials</h4>
+            <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">Credentials & Transfer</h4>
             <div className="grid grid-cols-2 gap-4 bg-white dark:bg-gray-900 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
               {data.credentials?.email && (
                 <div>
@@ -306,6 +300,13 @@ export function ReviewListing({ data }) {
                   ) : "Not provided"}
                 </p>
               </div>
+
+              {data.credentials?.transferInstructions && (
+                <div className="col-span-2 mt-2 pt-2 border-t">
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Transfer Instructions</p>
+                  <p className="text-sm mt-1">{data.credentials.transferInstructions}</p>
+                </div>
+              )}
             </div>
           </div>
         )}
