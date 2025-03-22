@@ -1,4 +1,4 @@
-import { fontFamily } from "tailwindcss/defaultTheme"
+import { fontFamily, screens as defaultScreens } from "tailwindcss/defaultTheme"
 
 /** @type {import('tailwindcss').Config} */
 module.exports = {
@@ -9,6 +9,10 @@ module.exports = {
     "./lib/**/*.{js,jsx,ts,tsx}"
   ],
   theme: {
+    screens: {
+      'xs': '480px',
+      ...defaultScreens,
+    },
     container: {
       center: true,
       padding: "2rem",

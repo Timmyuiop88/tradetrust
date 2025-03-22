@@ -40,12 +40,13 @@ export default function CreateListingPage() {
     accountAge: "",
     posts: "",
     media: [],
+    mediaProof: [],
     price: "",
-    transferMethod: "",
     negotiable: false,
     credentials: {},
     previewLink: "",
-    accountCountry: ""
+    accountCountry: "",
+    transferMethod: "credentials"
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState(null)
@@ -93,7 +94,7 @@ export default function CreateListingPage() {
         throw new Error(data.error || 'Failed to create listing')
       }
       
-      router.push(`/dashboard/listings/${data.id}`)
+      router.push(`/dashboard/listings/${data.listing.id}`)
     } catch (err) {
       setError(err.message || 'Something went wrong')
     } finally {
@@ -126,7 +127,7 @@ export default function CreateListingPage() {
       case 2:
         return formData.media && formData.media.length > 0
       case 3:
-        return formData.price && formData.transferMethod
+        return formData.price
       case 4:
         // Credentials are optional, but if email is provided, password should be too
         if (formData.credentials?.email && !formData.credentials?.password) {

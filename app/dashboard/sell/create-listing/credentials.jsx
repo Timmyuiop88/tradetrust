@@ -330,15 +330,28 @@ export function CredentialsInput({ data, onUpdate }) {
         </TabsContent>
         
         <TabsContent value="additional" className="space-y-4 mt-4">
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Additional Information</label>
-            <p className="text-xs text-muted-foreground">Provide any additional information that might be helpful for the account transfer</p>
-            <textarea
-              placeholder="Additional access information, transfer details, or instructions for the buyer..."
-              className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/60 min-h-[150px]"
-              value={data.credentials?.additionalInfo || ""}
-              onChange={(e) => handleUpdate("additionalInfo", e.target.value)}
-            />
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Transfer Instructions</label>
+              <p className="text-xs text-muted-foreground">Explain how you'll transfer the account or product to the buyer</p>
+              <textarea
+                placeholder="Describe the transfer process, e.g., 'I will change the email to the buyer's preferred email address and provide all necessary login details...'"
+                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/60 min-h-[100px]"
+                value={data.credentials?.transferInstructions || ""}
+                onChange={(e) => handleUpdate("transferInstructions", e.target.value)}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Additional Information</label>
+              <p className="text-xs text-muted-foreground">Provide any additional information that might be helpful for the account transfer</p>
+              <textarea
+                placeholder="Additional access information, transfer details, or instructions for the buyer..."
+                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/60 min-h-[150px]"
+                value={data.credentials?.additionalInfo || ""}
+                onChange={(e) => handleUpdate("additionalInfo", e.target.value)}
+              />
+            </div>
           </div>
         </TabsContent>
       </Tabs>
