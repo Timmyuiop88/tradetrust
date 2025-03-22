@@ -9,6 +9,7 @@ import { Steps } from "./steps"
 import { AccountDetails } from "./account-details"
 import { MediaUpload } from "./media-upload"
 import { PricingDetails } from "./pricing-details"
+import { CredentialsInput } from "./credentials"
 import { ReviewListing } from "./review-listing"
 import { useKycStatus } from "@/app/hooks/useKyc"
 import { useSubscription } from "@/lib/hooks/useSubscription"
@@ -19,7 +20,8 @@ const STEPS = [
   { id: 1, title: "Account Details" },
   { id: 2, title: "Media & Proof" },
   { id: 3, title: "Pricing" },
-  { id: 4, title: "Review" },
+  { id: 4, title: "Credentials" },
+  { id: 5, title: "Review" },
 ]
 
 export default function CreateListingPage() {
@@ -41,6 +43,9 @@ export default function CreateListingPage() {
     price: "",
     transferMethod: "",
     negotiable: false,
+    credentials: {},
+    previewLink: "",
+    accountCountry: ""
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState(null)
@@ -105,6 +110,8 @@ export default function CreateListingPage() {
       case 3:
         return <PricingDetails data={formData} onUpdate={updateFormData} />
       case 4:
+        return <CredentialsInput data={formData} onUpdate={updateFormData} />
+      case 5:
         return <ReviewListing data={formData} />
       default:
         return null
@@ -115,12 +122,18 @@ export default function CreateListingPage() {
   const isStepValid = () => {
     switch(currentStep) {
       case 1:
-        return formData.platform && formData.category && formData.followers && formData.description
+        return formData.platform && formData.category && formData.description
       case 2:
         return formData.media && formData.media.length > 0
       case 3:
         return formData.price && formData.transferMethod
       case 4:
+        // Credentials are optional, but if email is provided, password should be too
+        if (formData.credentials?.email && !formData.credentials?.password) {
+          return false
+        }
+        return true
+      case 5:
         return true
       default:
         return false

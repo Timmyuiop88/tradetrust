@@ -4,13 +4,21 @@ import {
   Star, 
   CheckCircle, 
   ShoppingCart,
-  AlertTriangle
+  AlertTriangle,
+  Heart,
+  ExternalLink,
+  Globe,
+  CreditCard
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "./button";
 import { Badge } from "./badge";
 import { cn } from "../lib/utils";
 import { useCompletionRate } from "../hooks/useCompletionRate";
+import Image from "next/image";
+import { useState } from "react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./tooltip";
+import { countries } from "../lib/data/countries";
 
 // Format numbers for display
 const formatFollowers = (value) => {
@@ -41,6 +49,12 @@ const getCompletionRateIcon = (rate) => {
   return <AlertTriangle className="h-3.5 w-3.5" />;
 };
 
+// Function to truncate text with ellipsis
+const truncateText = (text, maxLength) => {
+  if (!text) return "";
+  return text.length > maxLength ? text.substring(0, maxLength) + "..." : text;
+};
+
 export function ListingCard({ listing }) {
   // Use the hook to fetch seller performance data
   const { 
@@ -48,32 +62,156 @@ export function ListingCard({ listing }) {
     isLoading: isLoadingSellerStats 
   } = useCompletionRate(listing.seller?.id);
 
+  const [isHovered, setIsHovered] = useState(false);
+  const [isFavorite, setIsFavorite] = useState(false);
+
+  // Determine if this is an account type listing
+  const isAccountType = listing.category?.name === "Account";
+
+  // Get the first media item if available
+  const mediaPreview = listing.media?.[0]?.url || null;
+  
+  // Format price with commas and currency symbol
+  const formattedPrice = typeof listing.price === 'number' 
+    ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(listing.price)
+    : '$0.00';
+
   return (
-    <div className="bg-card rounded-xl border shadow-sm overflow-hidden hover:shadow-md transition-shadow">
+    <div 
+      className={cn(
+        "bg-card rounded-xl border overflow-hidden transition-all duration-300",
+        isHovered ? "shadow-md transform translate-y-[-4px]" : "shadow-sm"
+      )}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      {/* Media Preview Section - Conditionally rendered if media exists */}
+      {mediaPreview && (
+        <div className="relative w-full h-36 bg-muted">
+          <img 
+            src={mediaPreview} 
+            alt="Listing preview" 
+            className="w-full h-full object-cover"
+          />
+          
+          {/* Favorite button */}
+          <button 
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setIsFavorite(!isFavorite);
+            }} 
+            className="absolute top-2 right-2 h-8 w-8 bg-white/80 backdrop-blur-sm dark:bg-gray-800/80 rounded-full flex items-center justify-center shadow-sm hover:bg-white dark:hover:bg-gray-800 transition-colors"
+          >
+            <Heart 
+              className={cn(
+                "h-4 w-4 transition-colors", 
+                isFavorite ? "fill-red-500 text-red-500" : "text-gray-500"
+              )} 
+            />
+          </button>
+          
+          {/* Negotiable badge */}
+          {listing.negotiable && (
+            <div className="absolute top-2 left-2">
+              <Badge variant="success" className="text-xs font-medium">
+                Negotiable
+              </Badge>
+            </div>
+          )}
+        </div>
+      )}
+      
       <div className="p-4">
+        {/* Header with platform info and price */}
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center font-semibold text-sm">
-              {listing.username && listing.username[0] ? listing.username[0].toUpperCase() : '?'}
+            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center font-semibold overflow-hidden">
+              <Image src={listing.platform?.icon} alt={listing.platform?.name} width={40} height={40} />
             </div>
             <div>
               <div className="flex items-center gap-1">
-                <h3 className="font-medium text-sm">{listing.username || 'Unnamed Account'}</h3>
+                <h3 className="font-medium text-sm">{listing.platform?.name}</h3>
                 {listing.verified && (
-                  <CheckCircle className="h-3.5 w-3.5 text-primary" />
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span>
+                          <CheckCircle className="h-3.5 w-3.5 text-primary" />
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="text-xs">Verified Listing</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 )}
               </div>
-              <p className="text-xs text-muted-foreground">
-                {listing.platform?.name || 'Unknown Platform'} • {formatFollowers(listing.followers)} followers
+              <p className="text-xs text-muted-foreground flex items-center gap-1">
+                {listing.category?.name || 'Unknown Category'} 
+                {isAccountType && (
+                  <> • {formatFollowers(listing.followers)} followers</>
+                )}
+                {listing.accountCountry && (
+                  <span className="flex items-center">
+                    <span className="mx-1">•</span>
+                    <Globe className="h-3 w-3 mr-0.5" />
+                    {countries.find(c => c.value === listing.accountCountry)?.label || listing.accountCountry}
+                  </span>
+                )}
               </p>
             </div>
           </div>
           <div className="text-right">
-            <p className="text-lg font-bold">${typeof listing.price === 'number' ? listing.price.toLocaleString() : '0'}</p>
+            <p className="text-lg font-bold text-primary">{formattedPrice}</p>
           </div>
         </div>
         
-        <div className="space-y-2">
+        {/* Description section */}
+        <div className="mt-2 mb-3">
+          <p className="text-sm line-clamp-2 text-muted-foreground">
+            {listing.description || "No description available"}
+          </p>
+        </div>
+        
+        {/* Preview link if available */}
+        {listing.previewLink && (
+          <div className="mb-3">
+            <a 
+              href={listing.previewLink} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-xs text-blue-500 hover:underline flex items-center gap-1"
+              onClick={e => e.stopPropagation()}
+            >
+              <ExternalLink className="h-3 w-3" />
+              Preview
+            </a>
+          </div>
+        )}
+        
+        <div className="space-y-3">
+          {/* Tags section */}
+          <div className="flex flex-wrap gap-1.5">
+            {listing.category && (
+              <Badge variant="secondary" className="text-xs">
+                {listing.category.name}
+              </Badge>
+            )}
+            {isAccountType && (
+              <Badge variant="secondary" className="text-xs">
+                {listing.engagement || 0}% engagement
+              </Badge>
+            )}
+            <Badge variant="outline" className="text-xs flex items-center gap-1">
+              <CreditCard className="h-3 w-3" />
+              {listing.transferMethod === "email_password" ? "Email & Password" :
+               listing.transferMethod === "full_account" ? "Full Account" :
+               listing.transferMethod === "api_transfer" ? "API Transfer" : "Transfer"}
+            </Badge>
+          </div>
+          
+          {/* Timestamp and seller info */}
           <div className="flex items-center justify-between text-xs text-muted-foreground">
             <div className="flex items-center gap-1">
               <Clock className="h-3.5 w-3.5" />
@@ -108,25 +246,16 @@ export function ListingCard({ listing }) {
             )}
           </div>
           
-          <div className="flex flex-wrap gap-1.5 my-2">
-            {listing.category && (
-              <Badge variant="secondary" className="text-xs">
-                {listing.category.name}
-              </Badge>
-            )}
-            <Badge variant="secondary" className="text-xs">
-              {listing.engagement || 0}% engagement
-            </Badge>
-            <Badge variant="outline" className="text-xs">
-              {listing.transferMethod === "email_password" ? "Email & Password" :
-               listing.transferMethod === "full_account" ? "Full Account" :
-               listing.transferMethod === "api_transfer" ? "API Transfer" : "Transfer"}
-            </Badge>
-          </div>
-          
+          {/* Action button */}
           <div className="flex gap-2 mt-2">
             <Link href={`/dashboard/listings/${listing.id}`} className="flex-1">
-              <Button className="w-full" size="sm">
+              <Button 
+                className={cn(
+                  "w-full transition-colors", 
+                  isHovered ? "bg-primary text-primary-foreground" : "bg-primary/90"
+                )} 
+                size="sm"
+              >
                 <ShoppingCart className="h-4 w-4 mr-2" />
                 View Details
               </Button>

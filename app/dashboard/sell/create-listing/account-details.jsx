@@ -1,12 +1,14 @@
 "use client"
 
 import { Input } from "../../../components/input"
-import { Select } from "../../../components/select"
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "../../../components/ui/select"
 import { Textarea } from "../../../components/textarea"
 import { usePlatforms } from "../../../hooks/usePlatforms"
 import { useCategories } from "../../../hooks/useCategories"
-import { Loader } from "lucide-react"
+import { Loader, HelpCircle, Info, Globe, Link as LinkIcon } from "lucide-react"
 import { useState, useEffect } from "react"
+import Image from "next/image"
+import { countries } from "../../../lib/data/countries"
 
 // Helper function to convert human-readable numbers to integers
 const parseFollowers = (value) => {
@@ -76,13 +78,18 @@ export function AccountDetails({ data, onUpdate }) {
 
   const platformOptions = platforms?.map(platform => ({
     value: platform.id,
-    label: platform.name
+    label: platform.name,
+    icon: platform.icon || null
   })) || []
 
   const categoryOptions = categories?.map(category => ({
     value: category.id,
     label: category.name
   })) || []
+
+  // Get the selected category name
+  const selectedCategory = categoryOptions.find(c => c.value === data.category);
+  const isAccountCategory = selectedCategory?.label === "Account";
 
   return (
     <div className="space-y-6">
@@ -91,10 +98,16 @@ export function AccountDetails({ data, onUpdate }) {
         <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
           Provide basic information about the account you're selling.
         </p>
+        <div className="text-xs text-muted-foreground flex items-center gap-1.5 mb-4">
+          <Info className="h-3.5 w-3.5" />
+          <span>Fields marked with <span className="text-red-500">*</span> are required</span>
+        </div>
       </div>
       
       <div className="space-y-2">
-        <label className="text-sm font-medium">Platform</label>
+        <label className="text-sm font-medium">
+          Platform <span className="text-red-500">*</span>
+        </label>
         {platformsLoading ? (
           <div className="flex items-center space-x-2 h-10 px-3 border border-gray-300 dark:border-gray-700 rounded-md">
             <Loader className="h-4 w-4 animate-spin text-gray-400" />
@@ -103,15 +116,60 @@ export function AccountDetails({ data, onUpdate }) {
         ) : (
           <Select
             value={data.platform}
-            onChange={(value) => onUpdate({ platform: value })}
-            options={platformOptions}
-            placeholder="Select a platform"
-          />
+            onValueChange={(value) => onUpdate({ platform: value })}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select a platform">
+                {data.platform ? (
+                  <div className="flex items-center gap-2">
+                    {platformOptions.find(p => p.value === data.platform)?.icon ? (
+                      <div className="relative w-6 h-6 rounded-full overflow-hidden">
+                        <img 
+                          src={platformOptions.find(p => p.value === data.platform)?.icon} 
+                          alt={`${platformOptions.find(p => p.value === data.platform)?.label} icon`}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    ) : (
+                      <div className="w-6 h-6 bg-muted rounded-full flex items-center justify-center">
+                        <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                    )}
+                    <span>{platformOptions.find(p => p.value === data.platform)?.label}</span>
+                  </div>
+                ) : "Select a platform"}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              {platformOptions.map(option => (
+                <SelectItem key={option.value} value={option.value}>
+                  <div className="flex items-center gap-2">
+                    {option.icon ? (
+                      <div className="relative w-6 h-6 rounded-full overflow-hidden">
+                        <img 
+                          src={option.icon} 
+                          alt={`${option.label} icon`}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    ) : (
+                      <div className="w-6 h-6 bg-muted rounded-full flex items-center justify-center">
+                        <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                    )}
+                    <span>{option.label}</span>
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         )}
       </div>
 
       <div className="space-y-2">
-        <label className="text-sm font-medium">Category</label>
+        <label className="text-sm font-medium">
+          Category <span className="text-red-500">*</span>
+        </label>
         {categoriesLoading ? (
           <div className="flex items-center space-x-2 h-10 px-3 border border-gray-300 dark:border-gray-700 rounded-md">
             <Loader className="h-4 w-4 animate-spin text-gray-400" />
@@ -120,35 +178,52 @@ export function AccountDetails({ data, onUpdate }) {
         ) : (
           <Select
             value={data.category}
-            onChange={(value) => onUpdate({ category: value })}
-            options={categoryOptions}
-            placeholder="Select a category"
-          />
+            onValueChange={(value) => onUpdate({ category: value })}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select a category" />
+            </SelectTrigger>
+            <SelectContent>
+              {categoryOptions.map(option => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         )}
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <label className="text-sm font-medium">Followers</label>
+          <label className={`text-sm font-medium ${!isAccountCategory ? 'text-gray-400 dark:text-gray-600' : ''}`}>
+            Followers / Friends {isAccountCategory && <span className="text-red-500">*</span>}
+          </label>
           <Input 
             type="text"
             value={data.followers ? data.followers.toLocaleString() : ""}
             onChange={handleFollowersChange}
-            placeholder="e.g. 100000"
+            placeholder={isAccountCategory ? "e.g. 100000" : "Only for Account category"}
             inputMode="numeric"
+            disabled={!isAccountCategory}
+            className={!isAccountCategory ? "opacity-50 cursor-not-allowed" : ""}
           />
           <p className="text-xs text-gray-500 mt-1">
             Enter the exact number (e.g., 100000)
           </p>
         </div>
         <div className="space-y-2">
-          <label className="text-sm font-medium">Engagement Rate (%)</label>
+          <label className={`text-sm font-medium ${!isAccountCategory ? 'text-gray-400 dark:text-gray-600' : ''}`}>
+            Engagement Rate (%) {isAccountCategory && <span className="text-red-500">*</span>}
+          </label>
           <Input 
             type="text"
             value={data.engagement || ""}
             onChange={handleEngagementChange}
-            placeholder="e.g. 4.5"
+            placeholder={isAccountCategory ? "e.g. 4.5" : "Only for Account category"}
             inputMode="decimal"
+            disabled={!isAccountCategory}
+            className={!isAccountCategory ? "opacity-50 cursor-not-allowed" : ""}
           />
           <p className="text-xs text-gray-500 mt-1">
             Enter as a number (e.g., 4.5)
@@ -157,7 +232,9 @@ export function AccountDetails({ data, onUpdate }) {
       </div>
 
       <div className="space-y-2">
-        <label className="text-sm font-medium">Description</label>
+        <label className="text-sm font-medium">
+          Description <span className="text-red-500">*</span>
+        </label>
         <Textarea
           value={data.description}
           onChange={(e) => onUpdate({ description: e.target.value })}
@@ -171,28 +248,36 @@ export function AccountDetails({ data, onUpdate }) {
 
       <div className="grid grid-cols-2 gap-4 mt-4">
         <div className="space-y-2">
-          <label className="text-sm font-medium">Username</label>
+          <label className={`text-sm font-medium flex items-center gap-1 ${!isAccountCategory ? 'text-gray-400 dark:text-gray-600' : ''}`}>
+            Username <span className="text-xs text-gray-500 ml-1">(Optional)</span>
+          </label>
           <Input 
             type="text"
             value={data.username || ""}
             onChange={(e) => onUpdate({ username: e.target.value })}
-            placeholder="e.g. fashionista123"
+            placeholder={isAccountCategory ? "e.g. fashionista123" : "Only for Account category"}
+            disabled={!isAccountCategory}
+            className={!isAccountCategory ? "opacity-50 cursor-not-allowed" : ""}
           />
         </div>
         <div className="space-y-2">
-          <label className="text-sm font-medium">Account Age (months)</label>
+          <label className="text-sm font-medium flex items-center gap-1">
+            Account Age <span className="text-xs text-gray-500 ml-1">(Optional)</span>
+          </label>
           <Input 
             type="number"
             value={data.accountAge || ""}
             onChange={(e) => onUpdate({ accountAge: parseInt(e.target.value) })}
-            placeholder="e.g. 24"
+            placeholder="e.g. 24 months"
             min="0"
           />
         </div>
       </div>
 
-      <div className="space-y-2 mt-4">
-        <label className="text-sm font-medium">Number of Posts</label>
+      <div className="space-y-2">
+        <label className="text-sm font-medium flex items-center gap-1">
+          Number of Posts <span className="text-xs text-gray-500 ml-1">(Optional)</span>
+        </label>
         <Input 
           type="number"
           value={data.posts || ""}
@@ -200,6 +285,48 @@ export function AccountDetails({ data, onUpdate }) {
           placeholder="e.g. 150"
           min="0"
         />
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <label className="text-sm font-medium flex items-center gap-1">
+            <LinkIcon className="h-4 w-4 mr-1" />
+            Preview Link <span className="text-xs text-gray-500 ml-1">(Optional)</span>
+          </label>
+          <Input 
+            type="url"
+            value={data.previewLink || ""}
+            onChange={(e) => onUpdate({ previewLink: e.target.value })}
+            placeholder="https://example.com/profile"
+          />
+          <p className="text-xs text-gray-500 mt-1">
+            Link where buyers can see the account/product
+          </p>
+        </div>
+        <div className="space-y-2">
+          <label className="text-sm font-medium flex items-center gap-1">
+            <Globe className="h-4 w-4 mr-1" />
+            Account Country <span className="text-xs text-gray-500 ml-1">(Optional)</span>
+          </label>
+          <Select
+            value={data.accountCountry || ""}
+            onValueChange={(value) => onUpdate({ accountCountry: value })}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select country" />
+            </SelectTrigger>
+            <SelectContent className="max-h-[200px]">
+              {countries.map(country => (
+                <SelectItem key={country.value} value={country.value}>
+                  {country.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-gray-500 mt-1">
+            Country where the account was created
+          </p>
+        </div>
       </div>
     </div>
   )

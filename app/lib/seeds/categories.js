@@ -1,14 +1,14 @@
 export const categories = [
   {
-    name: 'Lifestyle',
+    name: 'Account',
     description: 'Daily life, wellness, and personal development content'
   },
   {
-    name: 'Fashion',
+    name: 'Email Services',
     description: 'Style, trends, and fashion-related content'
   },
   {
-    name: 'Tech',
+    name: 'Giftcards',
     description: 'Technology, gadgets, and digital innovation'
   },
   {
@@ -16,15 +16,15 @@ export const categories = [
     description: 'Video games, streaming, and gaming culture'
   },
   {
-    name: 'Business',
+    name: 'VPN',
     description: 'Entrepreneurship, startups, and business insights'
   },
   {
-    name: 'Crypto',
+    name: 'Phone Number Services',
     description: 'Cryptocurrency, blockchain, and Web3 content'
   },
   {
-    name: 'Entertainment',
+    name: 'Subscriptions',
     description: 'Movies, music, and pop culture'
   }
 ] 

@@ -10,67 +10,45 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/tabs"
 import { AddBalanceSheet } from "@/app/components/add-balance-sheet"
 import { WithdrawSheet } from "@/app/components/withdraw-sheet"
-import { toast } from "sonner"
+import { toast } from "@/app/components/custom-toast"
 import Link from "next/link"
 import { Badge } from "@/app/components/badge"
+import { useBalance, formatCurrency } from "@/app/hooks/useBalance"
+import { useQueryClient } from "@tanstack/react-query"
 
 export default function BalancePage() {
-  const [balanceData, setBalanceData] = useState(null)
-  const [transactions, setTransactions] = useState([])
+  const { useGetBalance } = useBalance()
+  const { 
+    data: balanceData, 
+    isLoading: loading, 
+    isError, 
+    error,
+    refetch: refetchBalance
+  } = useGetBalance()
+
+  const queryClient = useQueryClient()
+  
   const [withdrawals, setWithdrawals] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [transactionsLoading, setTransactionsLoading] = useState(true)
   const [withdrawalsLoading, setWithdrawalsLoading] = useState(true)
   const [activeTab, setActiveTab] = useState("transactions")
   
   useEffect(() => {
-    const fetchBalance = async () => {
-      try {
-        setLoading(true)
-        const response = await fetch('/api/user/balance')
-        if (response.ok) {
-          const data = await response.json()
-          setBalanceData(data)
-          setTransactions(data.recentTransactions || [])
-          setTransactionsLoading(false)
-        }
-      } catch (error) {
-        console.error('Error fetching balance:', error)
-        toast.error("Failed to load balance data")
-      } finally {
-        setLoading(false)
-      }
-    }
-    
-    fetchBalance()
-  }, [])
-  
-  useEffect(() => {
-    const fetchWithdrawals = async () => {
-      try {
-        setWithdrawalsLoading(true)
-        const response = await fetch('/api/withdrawals')
-        if (response.ok) {
-          const data = await response.json()
-          setWithdrawals(data.withdrawalRequests || [])
-        }
-      } catch (error) {
-        console.error('Error fetching withdrawals:', error)
-      } finally {
-        setWithdrawalsLoading(false)
-      }
-    }
-    
     fetchWithdrawals()
   }, [])
   
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }).format(amount || 0);
+  const fetchWithdrawals = async () => {
+    try {
+      setWithdrawalsLoading(true)
+      const response = await fetch('/api/withdrawals')
+      if (response.ok) {
+        const data = await response.json()
+        setWithdrawals(data.withdrawalRequests || [])
+      }
+    } catch (error) {
+      console.error('Error fetching withdrawals:', error)
+    } finally {
+      setWithdrawalsLoading(false)
+    }
   }
   
   const formatDate = (dateString) => {
@@ -115,37 +93,22 @@ export default function BalancePage() {
   }
   
   const refreshData = async () => {
-    setLoading(true)
-    setTransactionsLoading(true)
-    setWithdrawalsLoading(true)
-    
     try {
-      const [balanceResponse, withdrawalsResponse] = await Promise.all([
-        fetch('/api/user/balance'),
-        fetch('/api/withdrawals')
+      await Promise.all([
+        refetchBalance(),
+        fetchWithdrawals()
       ])
-      
-      if (balanceResponse.ok) {
-        const data = await balanceResponse.json()
-        setBalanceData(data)
-        setTransactions(data.recentTransactions || [])
-      }
-      
-      if (withdrawalsResponse.ok) {
-        const data = await withdrawalsResponse.json()
-        setWithdrawals(data.withdrawalRequests || [])
-      }
       
       toast.success("Data refreshed successfully")
     } catch (error) {
       console.error('Error refreshing data:', error)
       toast.error("Failed to refresh data")
-    } finally {
-      setLoading(false)
-      setTransactionsLoading(false)
-      setWithdrawalsLoading(false)
     }
   }
+
+  // Get transactions from the balance data
+  const transactions = balanceData?.recentTransactions || []
+  const transactionsLoading = loading
   
   return (
     <div className="container max-w-5xl py-6 space-y-8 px-1">
@@ -255,31 +218,16 @@ export default function BalancePage() {
                           {formatDate(transaction.createdAt)}
                         </p>
                       </div>
-                      <div className="text-right self-end sm:self-center">
-                        <div className={`font-medium ${transaction.amount > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                          {transaction.amount > 0 ? '+' : ''}{formatCurrency(transaction.amount)}
-                        </div>
-                        {transaction.fee > 0 && (
-                          <div className="text-xs text-muted-foreground">
-                            Fee: {formatCurrency(transaction.fee)}
-                          </div>
-                        )}
+                      <div className={`font-medium whitespace-nowrap ${transaction.type === 'DEPOSIT' || transaction.type === 'SALE' ? 'text-green-600' : transaction.type === 'WITHDRAWAL' || transaction.type === 'PURCHASE' ? 'text-red-600' : ''}`}>
+                        {transaction.type === 'DEPOSIT' || transaction.type === 'SALE' ? '+' : transaction.type === 'WITHDRAWAL' || transaction.type === 'PURCHASE' ? '-' : ''}
+                        {formatCurrency(transaction.amount)}
                       </div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-8">
-                  <div className="mx-auto h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-3">
-                    <Clock className="h-6 w-6 text-muted-foreground" />
-                  </div>
-                  <h3 className="font-medium mb-1">No transactions yet</h3>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Your transaction history will appear here
-                  </p>
-                  <AddBalanceSheet>
-                    <Button>Add Your First Funds</Button>
-                  </AddBalanceSheet>
+                <div className="py-8 text-center">
+                  <p className="text-muted-foreground">No transactions found</p>
                 </div>
               )}
             </TabsContent>
@@ -307,36 +255,22 @@ export default function BalancePage() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
-                          <p className="font-medium">Withdrawal via {withdrawal.payoutSetting?.method || 'bank'}</p>
+                          <p className="font-medium">Withdrawal to {withdrawal.paymentMethod}</p>
                           {getWithdrawalStatusBadge(withdrawal.status)}
                         </div>
                         <p className="text-sm text-muted-foreground">
                           {formatDate(withdrawal.createdAt)}
                         </p>
                       </div>
-                      <div className="text-right self-end sm:self-center">
-                        <div className="font-medium text-red-600">
-                          -{formatCurrency(withdrawal.amount)}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          Fee: {formatCurrency(withdrawal.fee)}
-                        </div>
+                      <div className="font-medium whitespace-nowrap text-red-600">
+                        -{formatCurrency(withdrawal.amount)}
                       </div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-8">
-                  <div className="mx-auto h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-3">
-                    <Plane className="h-6 w-6 text-muted-foreground" />
-                  </div>
-                  <h3 className="font-medium mb-1">No withdrawals yet</h3>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Your withdrawal history will appear here
-                  </p>
-                  <WithdrawSheet balance={balanceData?.balance?.sellingBalance || 0} onSuccess={refreshData}>
-                    <Button>Make Your First Withdrawal</Button>
-                  </WithdrawSheet>
+                <div className="py-8 text-center">
+                  <p className="text-muted-foreground">No withdrawal requests found</p>
                 </div>
               )}
             </TabsContent>
