@@ -74,7 +74,7 @@ export async function PATCH(request, { params }) {
     // Find the listing first to check ownership
     const existingListing = await prisma.listing.findUnique({
       where: { id },
-      select: { sellerId: true }
+      select: { sellerId: true, status: true }
     })
     
     if (!existingListing) {
@@ -92,13 +92,58 @@ export async function PATCH(request, { params }) {
       )
     }
     
-    // Only allow specific fields to be updated
-    const allowedFields = ['price', 'description', 'negotiable']
+    // Check if the listing can be edited (not sold or deleted)
+    if (!['AVAILABLE', 'INACTIVE'].includes(existingListing.status)) {
+      return NextResponse.json(
+        { error: 'This listing cannot be edited in its current state' },
+        { status: 400 }
+      )
+    }
+    
+    // Define all fields that can be updated
+    const allowedFields = [
+      // Account Details
+      'platformId',
+      'categoryId',
+      'username',
+      'accountCountry',
+      'previewLink',
+      'transferMethod',
+      'verified',
+      
+      // Account Metrics
+      'followers',
+      'posts',
+      'accountAge',
+      'engagement',
+      
+      // Account Pricing
+      'price',
+      'negotiable',
+      
+      // Account Media & Description
+      'mediaProof',
+      'description',
+      
+      // Additional fields
+      'credentials'
+    ]
+    
+    // Build the update data object with only allowed fields
     const updateData = {}
     
     for (const field of allowedFields) {
       if (body[field] !== undefined) {
-        updateData[field] = body[field]
+        // Handle type conversions if needed
+        if (field === 'price' || field === 'engagement') {
+          updateData[field] = parseFloat(body[field])
+        } else if (field === 'followers' || field === 'posts' || field === 'accountAge') {
+          updateData[field] = parseInt(body[field], 10)
+        } else if (field === 'verified' || field === 'negotiable') {
+          updateData[field] = Boolean(body[field])
+        } else {
+          updateData[field] = body[field]
+        }
       }
     }
     
@@ -112,7 +157,7 @@ export async function PATCH(request, { params }) {
   } catch (error) {
     console.error('Error updating listing:', error)
     return NextResponse.json(
-      { error: 'Failed to update listing' },
+      { error: 'Failed to update listing', details: error.message },
       { status: 500 }
     )
   }

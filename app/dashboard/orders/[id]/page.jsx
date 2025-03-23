@@ -327,7 +327,7 @@ export default function OrderDetailPage() {
     
     disputeMutation.mutate({
       orderId: params.id,
-      reason: disputeReason,
+          reason: disputeReason,
       description: disputeDescription.trim()
     });
   }, [params.id, disputeReason, disputeDescription, disputeMutation]);
@@ -461,14 +461,14 @@ export default function OrderDetailPage() {
       
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center">
-          <Button variant="ghost" size="icon" onClick={() => router.back()}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <h1 className="text-2xl font-bold ml-2">
-            {isBuyer ? 'Purchase' : 'Sale'} Details
-          </h1>
-        </div>
-        
+        <Button variant="ghost" size="icon" onClick={() => router.back()}>
+          <ArrowLeft className="h-5 w-5" />
+        </Button>
+        <h1 className="text-2xl font-bold ml-2">
+          {isBuyer ? 'Purchase' : 'Sale'} Details
+        </h1>
+      </div>
+      
         {/* Add refresh button */}
         <Button
           variant="ghost"
@@ -795,7 +795,7 @@ export default function OrderDetailPage() {
           {isSeller && order.status === 'WAITING_FOR_SELLER' && (
             <div className="flex flex-col gap-3 w-full">
               <div className="flex gap-3">
-                <Button 
+            <Button 
                   className="flex-1" 
                   onClick={() => setShowDeclineConfirmation(true)}
                   variant="outline"
@@ -808,8 +808,8 @@ export default function OrderDetailPage() {
                     </span>
                   ) : (
                     'Decline Order'
-                  )}
-                </Button>
+              )}
+            </Button>
                 <Button 
                   className="flex-1" 
                   onClick={() => document.getElementById('credential-form').scrollIntoView({ behavior: 'smooth' })}
@@ -1002,7 +1002,7 @@ export default function OrderDetailPage() {
       {order && order.status === 'COMPLETED' && session?.user?.id === order.buyerId && hasReviewed && (
         <div className="mt-6 text-center">
           <p className="text-green-600 mb-2">Thank you for your review!</p>
-        </div>
+          </div>
       )}
       
       {order && order.status === 'COMPLETED' && session?.user?.id === order.buyerId && !showReviewForm && !hasReviewed && (

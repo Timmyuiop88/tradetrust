@@ -103,11 +103,40 @@ export function useUpdateListing() {
   return useMutation({
     mutationFn: async (updateData) => {
       const { id, ...listingData } = updateData
-      const { data } = await axios.patch(`/api/listings/${id}`, listingData)
+      
+      // Log the data being sent (for debugging)
+      console.log('Updating listing with data:', { id, ...listingData })
+      
+      try {
+        const { data } = await axios.patch(`/api/listings/${id}`, listingData)
+        return data
+      } catch (error) {
+        console.error('Error updating listing:', error.response?.data || error.message)
+        throw new Error(error.response?.data?.error || error.message || 'Failed to update listing')
+      }
+    },
+    onSuccess: (data) => {
+      // Invalidate both the listings collection and the specific listing
+      queryClient.invalidateQueries(['listings'])
+      queryClient.invalidateQueries(['listing', data.id])
       return data
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries(['listings'])
+    onError: (error) => {
+      console.error('Mutation error:', error)
+      throw error
     }
+  })
+}
+
+// New hook for fetching a single listing
+export function useListing(id) {
+  return useQuery({
+    queryKey: ['listing', id],
+    queryFn: async () => {
+      const { data } = await axios.get(`/api/listings/${id}`)
+      return data
+    },
+    enabled: !!id,
+    refetchOnWindowFocus: false,
   })
 } 
