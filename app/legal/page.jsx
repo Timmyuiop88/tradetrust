@@ -162,7 +162,7 @@ export default function LegalPage() {
                         <div>
                           <h3 className="text-xl font-bold">10. Contact Information</h3>
                           <div className="space-y-4 mt-4">
-                            <p>10.1 If you have any questions about these Terms, please contact us at legal@trusttrade.com.</p>
+                            <p>10.1 If you have any questions about these Terms, please contact us at legal@TrustTrade.com.</p>
                           </div>
                         </div>
                       </AnimateOnScroll>
@@ -299,7 +299,7 @@ export default function LegalPage() {
                           <h3 className="text-xl font-bold">10. Contact Us</h3>
                           <div className="space-y-4 mt-4">
                             <p>If you have any questions about this Privacy Policy, please contact us at:</p>
-                            <p>Email: privacy@trusttrade.com</p>
+                            <p>Email: privacy@TrustTrade.com</p>
                             <p>Address: 123 TrustTrade Way, San Francisco, CA 94105, USA</p>
                           </div>
                         </div>

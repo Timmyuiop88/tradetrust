@@ -5,6 +5,7 @@ import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { useEdgeStore } from "@/app/lib/edgeStore"
 import { useKycSubmit } from "@/app/hooks/useKyc"
+import { useUser } from "@/app/hooks/useUser"
 import { Button } from "@/app/components/button"
 import { Input } from "@/app/components/input"
 import { Label } from "@/app/components/label"
@@ -30,22 +31,18 @@ export default function IdentityVerificationPage() {
   const { edgestore } = useEdgeStore()
   const { mutate: submitKyc, isLoading: isSubmitting } = useKycSubmit()
   const { data: session, status, update: updateSession } = useSession()
-
+  const { data: user } = useUser()
   // Load user data when session is available
   useEffect(() => {
     if (status === "authenticated" && session?.user) {
-      // Parse the full name into first and last name
-      if (session.user.name) {
-        const nameParts = session.user.name.split(' ');
-        const userFirstName = nameParts[0] || "";
-        // Join all other parts as last name (handles multiple last names)
-        const userLastName = nameParts.slice(1).join(' ') || "";
-        
-        setFirstName(userFirstName);
-        setLastName(userLastName);
-        setInitialFirstName(userFirstName);
-        setInitialLastName(userLastName);
-      }
+      // Get first and last name from session if available
+      const userFirstName = user?.firstName || "";
+      const userLastName = user?.lastName || "";
+      
+      setFirstName(userFirstName);
+      setLastName(userLastName);
+      setInitialFirstName(userFirstName);
+      setInitialLastName(userLastName);
     }
   }, [status, session]);
 
@@ -170,11 +167,15 @@ export default function IdentityVerificationPage() {
         },
       })
 
+      // Construct the full name for KYC record
+      const fullName = `${firstName.trim()} ${lastName.trim()}`.trim();
+
       // Submit to KYC API - include idType to properly categorize the document
       submitKyc({ 
         idDocUrl: res.url,
         idType: "government_id",  // Explicitly set the document type
         idNumber: idNumber,
+        fullName: fullName,       // Include the full name for the KYC record
       }, {
         onSuccess: () => {
           toast.success("Your ID verification has been submitted successfully.");
@@ -227,7 +228,7 @@ export default function IdentityVerificationPage() {
                 id="firstName"
                 value={firstName}
                 onChange={(e) => setFirstName(e.target.value)}
-                placeholder="Your first name"
+                placeholder={user?.firstName}
                 required
                 disabled={isLoading}
               />
@@ -243,7 +244,7 @@ export default function IdentityVerificationPage() {
                 id="lastName"
                 value={lastName}
                 onChange={(e) => setLastName(e.target.value)}
-                placeholder="Your last name"
+                placeholder={user?.lastName}
                 required
                 disabled={isLoading}
               />

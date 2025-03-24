@@ -15,6 +15,7 @@ import { useKycStatus } from "@/app/hooks/useKyc"
 import { useSubscription } from "@/lib/hooks/useSubscription"
 import { Shield, AlertCircle, Crown } from "lucide-react"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/app/components/dialog"
+import { toast } from "sonner"
 
 const STEPS = [
   { id: 1, title: "Account Details" },
@@ -94,6 +95,7 @@ export default function CreateListingPage() {
         throw new Error(data.error || 'Failed to create listing')
       }
       
+      toast.success('Listing created successfully')
       router.push(`/dashboard/listings/${data.listing.id}`)
     } catch (err) {
       setError(err.message || 'Something went wrong')
