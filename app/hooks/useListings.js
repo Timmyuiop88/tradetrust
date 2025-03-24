@@ -1,6 +1,19 @@
-import { useInfiniteQuery } from "@tanstack/react-query"
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query"
 import axios from "axios"
 import { useQueryClient, useMutation } from "@tanstack/react-query"
+import useSWR from "swr"
+
+// Add this fetcher function if not already defined in the file
+const fetcher = async (url) => {
+  const res = await fetch(url)
+  if (!res.ok) {
+    const error = new Error('An error occurred while fetching the data.')
+    error.info = await res.json()
+    error.status = res.status
+    throw error
+  }
+  return res.json()
+}
 
 export function useListings(filters = {}) {
   const fetchListings = async ({ pageParam = 1 }) => {
@@ -67,6 +80,118 @@ export function useListings(filters = {}) {
   });
 }
 
+export function useListing(id) {
+  return useQuery({
+    queryKey: ["listing", id],
+    queryFn: async () => {
+      if (!id) {
+        return null;
+      }
+      
+      try {
+        const response = await fetch(`/api/listings/${id}`);
+        const data = await response.json();
+        
+        console.log('Listing API response:', { status: response.status, data });
+        
+        if (!response.ok) {
+          throw new Error(data.error || "Failed to fetch listing");
+        }
+        
+        if (data.listing) {
+          // If API returns { listing: {...} } format
+          return data.listing;
+        } else if (data.id) {
+          // If API returns the listing object directly
+          return data;
+        } else {
+          throw new Error("Invalid listing data format");
+        }
+      } catch (error) {
+        console.error("Error fetching listing:", error);
+        throw error;
+      }
+    },
+    enabled: !!id,
+    retry: 1,
+    refetchOnWindowFocus: false,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+}
+
+export function useSellerStats(sellerId) {
+  return useQuery({
+    queryKey: ["seller-stats", sellerId],
+    queryFn: async () => {
+      if (!sellerId) {
+        return null;
+      }
+      
+      const response = await fetch(`/api/users/${sellerId}/stats`);
+      const data = await response.json();
+      
+      if (!response.ok) {
+        return null; // Return null instead of throwing an error
+      }
+      
+      return data;
+    },
+    enabled: !!sellerId, // Only run the query if we have a seller ID
+    refetchOnWindowFocus: false,
+  });
+}
+
+export function useListingFavorite(listingId, userId) {
+  return useQuery({
+    queryKey: ["favorite", listingId, userId],
+    queryFn: async () => {
+      if (!listingId || !userId) {
+        return false;
+      }
+      
+      const response = await fetch(`/api/favorites?listingId=${listingId}`);
+      const data = await response.json();
+      
+      if (!response.ok) {
+        return false; // Default to not favorited on error
+      }
+      
+      return data.isFavorite || false;
+    },
+    enabled: !!listingId && !!userId, // Only run if we have both IDs
+    refetchOnWindowFocus: false,
+  });
+}
+
+export function useSimilarListings(listingId, platformId, categoryId) {
+  return useQuery({
+    queryKey: ["similar-listings", listingId, platformId, categoryId],
+    queryFn: async () => {
+      if (!listingId || (!platformId && !categoryId)) {
+        return [];
+      }
+      
+      // Build query params
+      const params = new URLSearchParams();
+      if (platformId) params.append("platformId", platformId);
+      if (categoryId) params.append("categoryId", categoryId);
+      params.append("excludeId", listingId);
+      params.append("limit", 3);
+      
+      const response = await fetch(`/api/listings/similar?${params.toString()}`);
+      const data = await response.json();
+      
+      if (!response.ok) {
+        return []; // Return empty array instead of throwing
+      }
+      
+      return data.listings || data || [];
+    },
+    enabled: !!listingId && (!!platformId || !!categoryId),
+    refetchOnWindowFocus: false,
+  });
+}
+
 export function useCreateListing() {
   const queryClient = useQueryClient()
   
@@ -82,19 +207,36 @@ export function useCreateListing() {
 }
 
 export function useToggleListingStatus() {
-  const queryClient = useQueryClient()
+  const queryClient = useQueryClient();
   
   return useMutation({
     mutationFn: async ({ id, status }) => {
-      const { data } = await axios.patch(`/api/listings/${id}/status`, {
-        status: status
-      })
-      return data
+      const response = await fetch(`/api/listings/${id}/status`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status }),
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        // Create a more structured error object with the server's error message
+        const error = new Error(data.error || 'Failed to update listing status');
+        error.status = response.status;
+        error.data = data; // Include the full response data for more context
+        throw error;
+      }
+      
+      return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['listings'])
-    }
-  })
+      queryClient.invalidateQueries({ queryKey: ['listings'] });
+      queryClient.invalidateQueries({ queryKey: ['seller-listings'] });
+      queryClient.invalidateQueries({ queryKey: ['listing-detail'] });
+    },
+  });
 }
 
 export function useUpdateListing() {
@@ -110,4 +252,17 @@ export function useUpdateListing() {
       queryClient.invalidateQueries(['listings'])
     }
   })
+}
+
+export function useSellerListings(sellerId, excludeId) {
+  const { data, error, isLoading } = useSWR(
+    sellerId ? `/api/sellers/${sellerId}/listings?excludeId=${excludeId}` : null,
+    fetcher
+  )
+
+  return {
+    listings: data || [],
+    isLoading,
+    isError: error
+  }
 } 

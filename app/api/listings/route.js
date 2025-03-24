@@ -1,4 +1,3 @@
-
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
@@ -201,13 +200,13 @@ export async function POST(request) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
     }
     
-    // Get user's subscription
+    // Get user's subscription with plan details
     const subscription = await prisma.subscription.findFirst({
       where: { userId: session.user.id, status: "ACTIVE" },
       include: { plan: true }
     })
     
-    // Check if user can create more listings
+    // Check active listings count
     const activeListingsCount = await prisma.listing.count({
       where: { 
         sellerId: session.user.id,
@@ -215,23 +214,15 @@ export async function POST(request) {
       }
     })
     
-    const maxListings = {
-      "FREE": 4,
-      "BASIC": 5,
-      "PRO": 20,
-      "PREMIUM": 999999 // Unlimited
-    }
-    
+    // Get max listings from subscription plan or default to FREE tier limit
     const subscriptionTier = subscription?.plan?.tier || "FREE"
+    const maxActiveListings = subscription?.plan?.maxListings || 4 // Default to FREE tier limit
     
-    if (activeListingsCount >= maxListings[subscriptionTier]) {
-      return NextResponse.json({
-        error: `You've reached the maximum number of active listings for your subscription tier (${maxListings[subscriptionTier]})`,
-        limitReached: true
-      }, { status: 403 })
-    }
+    // Determine if this listing should be active or inactive based on limits
+    const isActive = activeListingsCount < maxActiveListings
+    const initialStatus = isActive ? "AVAILABLE" : "INACTIVE"
     
-    // Create listing
+    // Create listing with appropriate status
     const listing = await prisma.listing.create({
       data: {
         platformId: body.platform,
@@ -250,11 +241,22 @@ export async function POST(request) {
         accountCountry: body.accountCountry || null,
         negotiable: body.negotiable || false,
         mediaProof: body.mediaProof || [],
-        credentials: body.credentials || null
+        credentials: body.credentials || null,
+        status: initialStatus
       }
     })
     
-    return NextResponse.json({ success: true, listing })
+    // Return appropriate response with status info
+    return NextResponse.json({ 
+      success: true, 
+      listing,
+      isActive,
+      activeListingsCount: activeListingsCount + (isActive ? 1 : 0),
+      maxActiveListings,
+      message: isActive 
+        ? "Listing created successfully" 
+        : `Listing created but set to inactive. You've reached your limit of ${maxActiveListings} active listings.`
+    })
   } catch (error) {
     console.error("Error creating listing:", error)
     return NextResponse.json({ error: "Failed to create listing" }, { status: 500 })

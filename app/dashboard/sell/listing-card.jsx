@@ -43,7 +43,16 @@ export function ListingCard({ listing }) {
             toast.success(`Listing ${isActive ? "deactivated" : "reactivated"} successfully`);
           },
           onError: (error) => {
-            toast.error(error.message || `Failed to ${actionText} listing`);
+            const errorMessage = error.data?.error || error.message || `Failed to ${actionText} listing`;
+            
+            if (error.data?.activeListings && error.data?.maxActiveListings) {
+              toast.error(
+                `${errorMessage} (${error.data.activeListings}/${error.data.maxActiveListings} active listings)`,
+                { duration: 5000 }
+              );
+            } else {
+              toast.error(errorMessage);
+            }
           }
         }
       );

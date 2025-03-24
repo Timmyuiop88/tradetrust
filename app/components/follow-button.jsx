@@ -1,40 +1,60 @@
 "use client";
 
+import { useState } from "react";
 import { Button } from "@/app/components/button";
-import { useFollow } from "@/app/hooks/useFollow";
-import { Loader2, HeartIcon, HeartOffIcon } from "lucide-react";
+import { UserPlus, UserMinus, Loader2 } from "lucide-react";
+import { useSession } from "next-auth/react";
+import { toast } from "@/app/components/custom-toast";
 
-export function FollowButton({ userId, className }) {
-  const { useIsFollowing, useFollowUser, useUnfollowUser } = useFollow();
-  const { data: isFollowing, isLoading: isCheckingFollow } = useIsFollowing(userId);
-  const { mutate: followUser, isPending: isFollowingPending } = useFollowUser();
-  const { mutate: unfollowUser, isPending: isUnfollowingPending } = useUnfollowUser();
-
-  const handleToggleFollow = () => {
-    if (isFollowing) {
-      unfollowUser(userId);
-    } else {
-      followUser(userId);
+export function FollowButton({ sellerId, isFollowing: initialIsFollowing = false, size = "default" }) {
+  const [isFollowing, setIsFollowing] = useState(initialIsFollowing);
+  const [isLoading, setIsLoading] = useState(false);
+  const { data: session } = useSession();
+  
+  const handleFollow = async () => {
+    if (!session?.user) {
+      toast.error("You need to be logged in to follow sellers");
+      return;
+    }
+    
+    setIsLoading(true);
+    
+    try {
+      const response = await fetch(`/api/sellers/${sellerId}/follow`, {
+        method: isFollowing ? 'DELETE' : 'POST',
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to update follow status");
+      }
+      
+      setIsFollowing(!isFollowing);
+      toast.success(isFollowing ? "Unfollowed seller" : "Following seller");
+    } catch (error) {
+      console.error("Follow error:", error);
+      toast.error(error.message || "Something went wrong");
+    } finally {
+      setIsLoading(false);
     }
   };
-
-  const isLoading = isCheckingFollow || isFollowingPending || isUnfollowingPending;
-
+  
   return (
     <Button
       variant={isFollowing ? "outline" : "default"}
-      size="sm"
-      className={className}
-      onClick={handleToggleFollow}
+      size={size}
+      onClick={handleFollow}
       disabled={isLoading}
+      className="gap-1"
     >
       {isLoading ? (
         <Loader2 className="h-4 w-4 animate-spin" />
       ) : isFollowing ? (
-        <HeartOffIcon className="h-4 w-4" />
+        <UserMinus className="h-4 w-4" />
       ) : (
-        <HeartIcon className="h-4 w-4" />
+        <UserPlus className="h-4 w-4" />
       )}
+      {isFollowing ? "Following" : "Follow"}
     </Button>
   );
 } 
