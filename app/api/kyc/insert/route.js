@@ -60,14 +60,31 @@ export async function POST(request) {
 
       // Store as JSON string
       data.idDocUrl = JSON.stringify(updatedDocs)
+      
+      // Log the updated documents object for debugging
+      console.log('Updated document URLs:', updatedDocs)
     }
+
+    // Check if we have a valid fullName from the request
+    const fullName = data.fullName?.trim() || null;
+    
+    // Construct user's full name from first and last name if available
+    const userFullName = user?.firstName && user?.lastName 
+      ? `${user.firstName} ${user.lastName}`.trim() 
+      : null;
+    
+    // Get a valid fullName from existing sources if not provided
+    const validFullName = fullName || 
+                          existingKyc?.fullName || 
+                          userFullName ||
+                          'Unknown';
 
     // Create base data with only fields that exist in the KYC model
     const baseData = {
       userId: session.user.id,
       verified: false, // Always set to false on update, admin must verify
       // Include required fields with defaults if not provided
-      fullName: data.fullName || existingKyc?.fullName || user?.name || 'Unknown',
+      fullName: validFullName,
       address: data.address || existingKyc?.address || '',
       country: data.country || existingKyc?.country || '',
       idNumber: data.idNumber || existingKyc?.idNumber || '',
@@ -95,19 +112,45 @@ export async function POST(request) {
       // Other fields could be logged here
     })
 
-    await prisma.kyc.upsert({
+    // Upsert the KYC record
+    const kycResult = await prisma.kyc.upsert({
       where: { userId: session.user.id },
       update: upsertData,
       create: upsertData
     })
 
-    // Update user's KYC status in User model
-    await prisma.user.update({
-      where: { id: session.user.id },
-      data: { 
-        isKycVerified: user.kyc?.verified,
+    // Check if we need to update the user's name in the User model to keep it in sync
+    if (fullName && fullName !== userFullName) {
+      try {
+        // Parse the fullName into firstName and lastName
+        const nameParts = fullName.split(' ');
+        const firstName = nameParts[0] || "";
+        const lastName = nameParts.slice(1).join(' ') || "";
+        
+        // Update the user record if the name has changed
+        await prisma.user.update({
+          where: { id: session.user.id },
+          data: { 
+            firstName: firstName,
+            lastName: lastName,
+            isKycVerified: kycResult.verified,
+          }
+        })
+        
+        console.log('Updated user firstName and lastName to match KYC fullName:', fullName);
+      } catch (error) {
+        console.error('Error updating user name:', error);
+        // Continue with the KYC update even if user name update fails
       }
-    })
+    } else {
+      // Just update the KYC verification status if needed
+      await prisma.user.update({
+        where: { id: session.user.id },
+        data: { 
+          isKycVerified: kycResult.verified,
+        }
+      })
+    }
 
     return NextResponse.json({
       success: true,

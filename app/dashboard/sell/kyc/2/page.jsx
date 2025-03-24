@@ -104,7 +104,7 @@ export default function AddressVerificationPage() {
 
       // Submit to KYC API
       submitKyc({ 
-        idDocUrl: res.url,
+        addressDocUrl: res.url,
         idType: "address_proof",
         country,
         address,

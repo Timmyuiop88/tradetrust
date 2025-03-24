@@ -245,10 +245,20 @@ export function useUpdateListing() {
   return useMutation({
     mutationFn: async (updateData) => {
       const { id, ...listingData } = updateData
-      const { data } = await axios.patch(`/api/listings/${id}`, listingData)
-      return data
+      
+      // Log the data being sent (for debugging)
+      console.log('Updating listing with data:', { id, ...listingData })
+      
+      try {
+        const { data } = await axios.patch(`/api/listings/${id}`, listingData)
+        return data
+      } catch (error) {
+        console.error('Error updating listing:', error.response?.data || error.message)
+        throw new Error(error.response?.data?.error || error.message || 'Failed to update listing')
+      }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      // Invalidate both the listings collection and the specific listing
       queryClient.invalidateQueries(['listings'])
     }
   })

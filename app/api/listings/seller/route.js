@@ -16,6 +16,13 @@ export async function GET(request) {
     const { searchParams } = new URL(request.url);
     const sellerId = searchParams.get("sellerId");
     
+    // Add pagination parameters
+    const page = parseInt(searchParams.get("page") || "1", 10);
+    const limit = parseInt(searchParams.get("limit") || "2", 10);
+    
+    // Calculate skip
+    const skip = (page - 1) * limit;
+    
     // Validate seller ID
     if (!sellerId) {
       return NextResponse.json({ error: "Seller ID is required" }, { status: 400 });
@@ -26,7 +33,14 @@ export async function GET(request) {
       return NextResponse.json({ error: "You can only view your own listings" }, { status: 403 });
     }
     
-    // Fetch listings for the seller
+    // Fetch total count for pagination
+    const totalCount = await prisma.listing.count({
+      where: {
+        sellerId: sellerId,
+      },
+    });
+    
+    // Fetch paginated listings for the seller
     const listings = await prisma.listing.findMany({
       where: {
         sellerId: sellerId,
@@ -38,9 +52,25 @@ export async function GET(request) {
         // Include any related data you need
         category: true,
       },
+      skip,
+      take: limit,
     });
     
-    return NextResponse.json({ listings });
+    // Calculate pagination metadata
+    const totalPages = Math.ceil(totalCount / limit);
+    const hasMore = page < totalPages;
+    const hasPrevious = page > 1;
+    
+    return NextResponse.json({ 
+      listings,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalCount,
+        hasMore,
+        hasPrevious
+      } 
+    });
   } catch (error) {
     console.error("Error fetching seller listings:", error);
     return NextResponse.json({ error: "Failed to fetch listings" }, { status: 500 });

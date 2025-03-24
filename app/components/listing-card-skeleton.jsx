@@ -4,7 +4,7 @@ export function ListingCardSkeleton() {
   return (
     <div className="bg-card rounded-xl border shadow-sm overflow-hidden animate-pulse flex flex-col h-full">
       {/* Media preview skeleton */}
-      <div className="w-full aspect-video sm:aspect-video md:h-36 bg-muted" />
+      <div className="w-full" />
       
       <div className="p-3 sm:p-4 flex-1 flex flex-col">
         <div className="flex items-start justify-between mb-2 sm:mb-3 gap-2">

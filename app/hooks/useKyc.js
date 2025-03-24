@@ -27,7 +27,24 @@ export function useKycSubmit() {
   return useMutation({
     mutationFn: async (stepData) => {
       try {
-        const { data } = await axios.post('/api/kyc/insert', stepData)
+        // Log the data being sent to API
+        console.log('Submitting KYC data:', stepData)
+        
+        // Create a copy of the data to transform if needed
+        const submissionData = { ...stepData }
+        
+        // Make sure we're passing address document URL properly
+        if (submissionData.addressDocUrl) {
+          // Keep the addressDocUrl field for the API to process correctly
+          console.log('Address document URL included:', submissionData.addressDocUrl)
+        }
+        
+        // Log if we're including the full name
+        if (submissionData.fullName) {
+          console.log('Full name included:', submissionData.fullName)
+        }
+        
+        const { data } = await axios.post('/api/kyc/insert', submissionData)
         return data
       } catch (error) {
         const errorInfo = {
