@@ -49,41 +49,42 @@ export function SellingInterface() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
+    <div className="max-w-2xl mx-auto space-y-4 sm:space-y-6 px-3 sm:px-4">
+      {/* Start Selling Card */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <ListPlus className="h-5 w-5 text-primary" />
+        <CardHeader className="p-4 sm:p-6">
+          <CardTitle className="flex items-center space-x-2 text-base sm:text-lg">
+            <ListPlus className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
             <span>Start Selling</span>
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-xs sm:text-sm">
             Create a new listing or manage your existing ones
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="p-4 sm:p-6 pt-0">
           <Button 
-            className="w-full flex items-center justify-center space-x-2"
+            className="w-full flex items-center justify-center gap-2 text-xs sm:text-sm h-9 sm:h-10"
             onClick={() => router.push('/dashboard/sell/create-listing')}
           >
-            <Plus className="h-4 w-4" />
+            <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             <span>Create New Listing</span>
           </Button>
         </CardContent>
       </Card>
 
-      {/* Active Listings Section */}
+      {/* Active Listings Card */}
       <Card>
-        <CardHeader>
-          <CardTitle>Your Listings</CardTitle>
+        <CardHeader className="p-4 sm:p-6">
+          <CardTitle className="text-base sm:text-lg">Your Listings</CardTitle>
           {!isLoading && !isError && pagination.totalCount > 0 && (
-            <CardDescription>
+            <CardDescription className="text-xs sm:text-sm">
               Showing {(pagination.currentPage - 1) * 2 + 1} - {Math.min(pagination.currentPage * 2, pagination.totalCount)} of {pagination.totalCount} listings
             </CardDescription>
           )}
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-4 sm:p-6 pt-0">
           {isLoading && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-3 sm:gap-4">
               {[...Array(2)].map((_, index) => (
                 <ListingCardSkeleton key={index} />
               ))}
@@ -91,20 +92,20 @@ export function SellingInterface() {
           )}
 
           {isError && (
-            <div className="flex items-center p-4 mb-4 text-sm text-red-800 border border-red-300 rounded-lg bg-red-50 dark:bg-gray-800 dark:text-red-400 dark:border-red-800">
-              <AlertCircle className="h-4 w-4 mr-2" />
+            <div className="flex items-center p-3 sm:p-4 mb-3 sm:mb-4 text-xs sm:text-sm text-red-800 border border-red-300 rounded-lg bg-red-50 dark:bg-gray-800 dark:text-red-400 dark:border-red-800">
+              <AlertCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-2 flex-shrink-0" />
               <span>{error?.message || "Failed to load your listings. Please try again."}</span>
             </div>
           )}
 
           {!isLoading && !isError && listings.length === 0 && pagination.totalCount === 0 && (
-            <div className="text-center text-muted-foreground py-8">
+            <div className="text-center text-muted-foreground py-6 sm:py-8 text-sm">
               No active listings yet
             </div>
           )}
 
           {!isLoading && !isError && listings.length > 0 && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-3 sm:gap-4">
               {listings.map((listing) => (
                 <ListingCard key={listing.id} listing={listing} />
               ))}
@@ -113,20 +114,20 @@ export function SellingInterface() {
         </CardContent>
         
         {!isLoading && !isError && pagination.totalPages > 1 && (
-          <CardFooter className="flex justify-between px-6 py-4 border-t">
+          <CardFooter className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4 px-4 sm:px-6 py-4 border-t">
             <Button 
               variant="outline" 
               size="sm" 
               onClick={handlePreviousPage}
               disabled={!pagination.hasPrevious || isLoading}
-              className="flex items-center gap-1"
+              className="w-full sm:w-auto flex items-center justify-center gap-1 text-xs sm:text-sm h-8 sm:h-9"
             >
-              <ChevronLeft className="h-4 w-4" />
+              <ChevronLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               Previous
             </Button>
             
-            <div className="flex items-center justify-center gap-1">
-              <span className="text-sm font-medium">
+            <div className="flex items-center justify-center">
+              <span className="text-xs sm:text-sm font-medium">
                 Page {pagination.currentPage} of {pagination.totalPages}
               </span>
             </div>
@@ -136,10 +137,10 @@ export function SellingInterface() {
               size="sm" 
               onClick={handleNextPage}
               disabled={!pagination.hasMore || isLoading || isPreviousData}
-              className="flex items-center gap-1"
+              className="w-full sm:w-auto flex items-center justify-center gap-1 text-xs sm:text-sm h-8 sm:h-9"
             >
               Next
-              <ChevronRight className="h-4 w-4" />
+              <ChevronRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             </Button>
           </CardFooter>
         )}

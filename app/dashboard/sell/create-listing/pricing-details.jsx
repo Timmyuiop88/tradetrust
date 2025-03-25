@@ -29,29 +29,29 @@ export function PricingDetails({ data, onUpdate }) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div>
-        <h3 className="text-lg font-bold mb-2">Pricing Details</h3>
-        <p className="text-sm text-muted-foreground mb-4">
+        <h3 className="text-base sm:text-lg font-bold mb-2">Pricing Details</h3>
+        <p className="text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-4">
           Set your price and decide if you're open to price negotiation.
         </p>
       </div>
       
       {isLoading ? (
         <div className="space-y-2">
-          <Skeleton className="h-5 w-32" />
-          <Skeleton className="h-10 w-full" />
-          <Skeleton className="h-4 w-48" />
-          <Skeleton className="h-4 w-40" />
+          <Skeleton className="h-4 sm:h-5 w-32" />
+          <Skeleton className="h-8 sm:h-10 w-full" />
+          <Skeleton className="h-3 sm:h-4 w-48" />
+          <Skeleton className="h-3 sm:h-4 w-40" />
         </div>
       ) : (
         <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <label className="text-sm font-medium flex items-center gap-1">
-              <DollarSign className="h-4 w-4 text-gray-500" />
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-0">
+            <label className="text-xs sm:text-sm font-medium flex items-center gap-1">
+              <DollarSign className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-gray-500" />
               Price (USD)
             </label>
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+            <div className="flex items-center gap-1 text-[10px] sm:text-xs text-muted-foreground">
               <Crown className="h-3 w-3 text-primary" />
               <span>Your commission rate: {(commissionRate * 100).toFixed(0)}%</span>
             </div>
@@ -63,12 +63,12 @@ export function PricingDetails({ data, onUpdate }) {
             placeholder="e.g. 499.99"
             min="0"
             step="0.01"
-            className="text-lg"
+            className="text-base sm:text-lg h-8 sm:h-10"
           />
-          <p className="text-xs text-gray-500 mt-1">
+          <p className="text-[10px] sm:text-xs text-gray-500 mt-1">
             Platform fee: {(commissionRate * 100).toFixed(0)}% ({data.price ? `$${calculateFee(data.price).toFixed(2)}` : '$0.00'})
           </p>
-          <p className="text-xs text-gray-500">
+          <p className="text-[10px] sm:text-xs text-gray-500">
             You'll receive: {data.price ? `$${calculateNet(data.price).toFixed(2)}` : '$0.00'}
           </p>
         </div>
@@ -79,10 +79,11 @@ export function PricingDetails({ data, onUpdate }) {
           id="negotiable" 
           checked={data.negotiable}
           onCheckedChange={(checked) => onUpdate({ negotiable: checked })}
+          className="h-4 w-4 sm:h-5 sm:w-5"
         />
         <Label 
           htmlFor="negotiable" 
-          className="text-sm font-medium cursor-pointer"
+          className="text-xs sm:text-sm font-medium cursor-pointer"
         >
           I'm open to price negotiation
         </Label>

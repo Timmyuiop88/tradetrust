@@ -58,10 +58,10 @@ export function AccountDetailsForm({ formData, updateFormData, onComplete }) {
   const isAccountCategory = selectedCategory?.name === "Account";
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div>
-        <h3 className="text-lg font-medium mb-2">Account Details</h3>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+        <h3 className="text-base sm:text-lg font-medium mb-1 sm:mb-2">Account Details</h3>
+        <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mb-3 sm:mb-4">
           Update the basic information about the account you're selling.
         </p>
         <div className="text-xs text-muted-foreground flex items-center gap-1.5 mb-4">
@@ -160,7 +160,7 @@ export function AccountDetailsForm({ formData, updateFormData, onComplete }) {
         )}
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
         <div className="space-y-2">
           <label className={`text-sm font-medium ${!isAccountCategory ? 'text-gray-400 dark:text-gray-600' : ''}`}>
             Followers / Friends {isAccountCategory && <span className="text-red-500">*</span>}
@@ -212,7 +212,7 @@ export function AccountDetailsForm({ formData, updateFormData, onComplete }) {
         </p>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 mt-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
         <div className="space-y-2">
           <label className={`text-sm font-medium flex items-center gap-1 ${!isAccountCategory ? 'text-gray-400 dark:text-gray-600' : ''}`}>
             Username <span className="text-xs text-gray-500 ml-1">(Optional)</span>
@@ -253,7 +253,7 @@ export function AccountDetailsForm({ formData, updateFormData, onComplete }) {
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
         <div className="space-y-2">
           <label className="text-sm font-medium flex items-center gap-1">
             <LinkIcon className="h-4 w-4 mr-1" />

@@ -84,31 +84,31 @@ export default function UserProfilePage() {
 
   if (isLoading) {
     return (
-      <div className="max-w-4xl mx-auto py-8 px-4">
+      <div className="max-w-4xl mx-auto py-4 sm:py-8 px-2 sm:px-4">
         {/* Profile Header Skeleton */}
-        <Card className="mb-6">
-          <CardContent className="pt-6">
-            <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
+        <Card className="mb-4 sm:mb-6">
+          <CardContent className="pt-4 sm:pt-6">
+            <div className="flex flex-col md:flex-row items-center md:items-start gap-4 sm:gap-6">
               {/* Avatar Skeleton */}
-              <div className="h-24 w-24 rounded-full bg-gray-200 dark:bg-gray-700 animate-pulse"></div>
+              <div className="h-16 w-16 sm:h-24 sm:w-24 rounded-full bg-gray-200 dark:bg-gray-700 animate-pulse"></div>
               
               <div className="flex-1 text-center md:text-left w-full">
-                <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 w-full">
+                <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3 sm:gap-4 w-full">
                   <div className="w-full">
                     {/* Name Skeleton */}
-                    <div className="h-8 w-48 bg-gray-200 dark:bg-gray-700 rounded animate-pulse mx-auto md:mx-0"></div>
+                    <div className="h-6 sm:h-8 w-36 sm:w-48 bg-gray-200 dark:bg-gray-700 rounded animate-pulse mx-auto md:mx-0"></div>
                     {/* Email Skeleton */}
-                    <div className="h-4 w-36 bg-gray-200 dark:bg-gray-700 rounded animate-pulse mt-2 mx-auto md:mx-0"></div>
+                    <div className="h-4 w-28 sm:w-36 bg-gray-200 dark:bg-gray-700 rounded animate-pulse mt-2 mx-auto md:mx-0"></div>
                     
                     {/* Badges Skeleton */}
-                    <div className="flex flex-wrap gap-2 mt-2 justify-center md:justify-start">
-                      <div className="h-6 w-24 bg-gray-200 dark:bg-gray-700 rounded-full animate-pulse"></div>
-                      <div className="h-6 w-28 bg-gray-200 dark:bg-gray-700 rounded-full animate-pulse"></div>
+                    <div className="flex flex-wrap gap-1.5 sm:gap-2 mt-2 justify-center md:justify-start">
+                      <div className="h-5 sm:h-6 w-20 sm:w-24 bg-gray-200 dark:bg-gray-700 rounded-full animate-pulse"></div>
+                      <div className="h-5 sm:h-6 w-24 sm:w-28 bg-gray-200 dark:bg-gray-700 rounded-full animate-pulse"></div>
                     </div>
                   </div>
                   
                   {/* Follow Button Skeleton */}
-                  <div className="h-10 w-24 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                  <div className="h-8 sm:h-10 w-full md:w-24 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
                 </div>
               </div>
             </div>
@@ -204,48 +204,59 @@ export default function UserProfilePage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto py-8 px-4">
+    <div className="max-w-4xl mx-auto py-4 sm:py-8 px-2 sm:px-4">
+      {/* Back button */}
       <Button 
         variant="ghost" 
-        className="mb-6" 
+        className="mb-4 sm:mb-6 h-8 sm:h-9 px-2 sm:px-3" 
         onClick={() => router.back()}
       >
-        <ChevronLeft className="h-4 w-4 mr-2" />
+        <ChevronLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
         Back
       </Button>
 
-      {/* Profile Header */}
-      <Card className="mb-6">
-        <CardContent className="pt-6">
-          <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
-            <Avatar className="h-24 w-24 border-2 border-primary">
+      {/* Profile Header Card */}
+      <Card className="mb-4 sm:mb-6">
+        <CardContent className="pt-4 sm:pt-6 px-3 sm:px-6">
+          <div className="flex flex-col md:flex-row items-center md:items-start gap-4 sm:gap-6">
+            {/* Avatar - smaller on mobile */}
+            <Avatar className="h-16 w-16 sm:h-24 sm:w-24 border-2 border-primary">
               <AvatarImage src={userData?.image} alt={userData?.firstName || "User"} />
-              <AvatarFallback>
+              <AvatarFallback className="text-base sm:text-lg">
                 {getInitials(userData?.firstName, userData?.lastName)}
               </AvatarFallback>
             </Avatar>
             
-            <div className="flex-1 text-center md:text-left">
-              <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+            <div className="flex-1 text-center md:text-left w-full">
+              <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3 sm:gap-4">
                 <div>
-                  <h1 className="text-2xl font-bold">
+                  <h1 className="text-xl sm:text-2xl font-bold">
                     {userData?.firstName} {userData?.lastName}
                   </h1>
-                  <p className="text-muted-foreground">{userData?.email}</p>
+                  <p className="text-sm text-muted-foreground">{userData?.email}</p>
                   
-                  <div className="flex flex-wrap gap-2 mt-2 justify-center md:justify-start">
+                  <div className="flex flex-wrap gap-1.5 sm:gap-2 mt-2 justify-center md:justify-start">
                     {userData?.isKycVerified && (
-                      <Badge variant="success" className="bg-green-500">KYC Verified</Badge>
+                      <Badge variant="success" className="bg-green-500 text-[10px] sm:text-xs px-2 py-0.5">
+                        KYC Verified
+                      </Badge>
                     )}
                     {userData?.isEmailVerified && (
-                      <Badge variant="success" className="bg-green-500">Email Verified</Badge>
+                      <Badge variant="success" className="bg-green-500 text-[10px] sm:text-xs px-2 py-0.5">
+                        Email Verified
+                      </Badge>
                     )}
                   </div>
                 </div>
                 
-                {/* Only show follow button if viewing someone else's profile */}
+                {/* Follow button - adjust size for mobile */}
                 {currentUserId !== userId && (
-                  <FollowButton userId={userId} />
+                  <div className="w-full md:w-auto">
+                    <FollowButton 
+                      userId={userId} 
+                      className="w-full md:w-auto h-8 sm:h-9 text-xs sm:text-sm"
+                    />
+                  </div>
                 )}
               </div>
             </div>
@@ -253,50 +264,50 @@ export default function UserProfilePage() {
         </CardContent>
       </Card>
 
-      {/* Main Content Tabs */}
+      {/* Tabs - make scrollable on mobile */}
       <Tabs defaultValue="overview" value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="listings">Listings</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-2 h-9 sm:h-10">
+          <TabsTrigger value="overview" className="text-xs sm:text-sm">Overview</TabsTrigger>
+          <TabsTrigger value="listings" className="text-xs sm:text-sm">Listings</TabsTrigger>
         </TabsList>
         
-        <TabsContent value="overview" className="space-y-6 mt-6">
-          {/* Personal Information */}
+        <TabsContent value="overview" className="space-y-4 sm:space-y-6 mt-4 sm:mt-6">
+          {/* Personal Information Card */}
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <User className="h-5 w-5 text-primary" />
+            <CardHeader className="pb-2 px-3 sm:px-6">
+              <CardTitle className="flex items-center gap-1.5 sm:gap-2 text-base sm:text-lg">
+                <User className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
                 About
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <CardContent className="space-y-4 px-3 sm:px-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div>
-                  <p className="text-sm text-muted-foreground">Full Name</p>
-                  <p className="font-medium">
+                  <p className="text-xs sm:text-sm text-muted-foreground">Full Name</p>
+                  <p className="text-sm sm:text-base font-medium">
                     {userData?.firstName && userData?.lastName 
                       ? `${userData.firstName} ${userData.lastName}` 
                       : "Not provided"}
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Email</p>
-                  <p className="font-medium">{userData?.email || "Not provided"}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">Email</p>
+                  <p className="text-sm sm:text-base font-medium">{userData?.email || "Not provided"}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Member Since</p>
-                  <p className="font-medium">{formatDate(userData?.createdAt)}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">Member Since</p>
+                  <p className="text-sm sm:text-base font-medium">{formatDate(userData?.createdAt)}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Verification Status</p>
-                  <div className="flex items-center gap-2">
+                  <p className="text-xs sm:text-sm text-muted-foreground">Verification Status</p>
+                  <div className="flex items-center gap-1.5">
                     {userData?.isKycVerified ? (
                       <>
-                        <CheckCircle className="h-4 w-4 text-green-500" />
-                        <span className="font-medium">Verified</span>
+                        <CheckCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-green-500" />
+                        <span className="text-sm sm:text-base font-medium">Verified</span>
                       </>
                     ) : (
-                      <span className="font-medium">Not Verified</span>
+                      <span className="text-sm sm:text-base font-medium">Not Verified</span>
                     )}
                   </div>
                 </div>
@@ -305,23 +316,26 @@ export default function UserProfilePage() {
           </Card>
         </TabsContent>
         
-        <TabsContent value="listings" className="space-y-6 mt-6">
+        <TabsContent value="listings" className="space-y-4 sm:space-y-6 mt-4 sm:mt-6">
           <Card>
-            <CardHeader>
-              <CardTitle>Listings</CardTitle>
+            <CardHeader className="pb-2 px-3 sm:px-6">
+              <CardTitle className="text-base sm:text-lg">Listings</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="px-3 sm:px-6">
               <UserListings userId={userId} />
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
 
-      <CompletionRate userId={userId} />
+      {/* Completion Rate and Reviews sections */}
+      <div className="mt-4 sm:mt-6">
+        <CompletionRate userId={userId} />
+      </div>
 
-      <UserReviews userId={userId} />
-
-      
+      <div className="mt-4 sm:mt-6">
+        <UserReviews userId={userId} />
+      </div>
     </div>
   );
 } 

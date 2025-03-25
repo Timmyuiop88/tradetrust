@@ -92,14 +92,14 @@ export function AccountDetails({ data, onUpdate }) {
   const isAccountCategory = selectedCategory?.label === "Account";
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div>
-        <h3 className="text-lg font-medium mb-2">Account Details</h3>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+        <h3 className="text-base sm:text-lg font-medium mb-2">Account Details</h3>
+        <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mb-3 sm:mb-4">
           Provide basic information about the account you're selling.
         </p>
-        <div className="text-xs text-muted-foreground flex items-center gap-1.5 mb-4">
-          <Info className="h-3.5 w-3.5" />
+        <div className="text-[10px] sm:text-xs text-muted-foreground flex items-center gap-1.5 mb-3 sm:mb-4">
+          <Info className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
           <span>Fields marked with <span className="text-red-500">*</span> are required</span>
         </div>
       </div>
@@ -194,9 +194,9 @@ export function AccountDetails({ data, onUpdate }) {
         )}
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <label className={`text-sm font-medium ${!isAccountCategory ? 'text-gray-400 dark:text-gray-600' : ''}`}>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+        <div className="space-y-1.5 sm:space-y-2">
+          <label className={`text-xs sm:text-sm font-medium ${!isAccountCategory ? 'text-gray-400 dark:text-gray-600' : ''}`}>
             Followers / Friends {isAccountCategory && <span className="text-red-500">*</span>}
           </label>
           <Input 
@@ -207,13 +207,14 @@ export function AccountDetails({ data, onUpdate }) {
             inputMode="numeric"
             disabled={!isAccountCategory}
             className={!isAccountCategory ? "opacity-50 cursor-not-allowed" : ""}
+            className="text-xs sm:text-sm h-8 sm:h-10"
           />
-          <p className="text-xs text-gray-500 mt-1">
+          <p className="text-[10px] sm:text-xs text-gray-500 mt-1">
             Enter the exact number (e.g., 100000)
           </p>
         </div>
-        <div className="space-y-2">
-          <label className={`text-sm font-medium ${!isAccountCategory ? 'text-gray-400 dark:text-gray-600' : ''}`}>
+        <div className="space-y-1.5 sm:space-y-2">
+          <label className={`text-xs sm:text-sm font-medium ${!isAccountCategory ? 'text-gray-400 dark:text-gray-600' : ''}`}>
             Engagement Rate (%) {isAccountCategory && <span className="text-red-500">*</span>}
           </label>
           <Input 
@@ -224,15 +225,16 @@ export function AccountDetails({ data, onUpdate }) {
             inputMode="decimal"
             disabled={!isAccountCategory}
             className={!isAccountCategory ? "opacity-50 cursor-not-allowed" : ""}
+            className="text-xs sm:text-sm h-8 sm:h-10"
           />
-          <p className="text-xs text-gray-500 mt-1">
+          <p className="text-[10px] sm:text-xs text-gray-500 mt-1">
             Enter as a number (e.g., 4.5)
           </p>
         </div>
       </div>
 
-      <div className="space-y-2">
-        <label className="text-sm font-medium">
+      <div className="space-y-1.5 sm:space-y-2">
+        <label className="text-xs sm:text-sm font-medium">
           Description <span className="text-red-500">*</span>
         </label>
         <Textarea
@@ -240,13 +242,14 @@ export function AccountDetails({ data, onUpdate }) {
           onChange={(e) => onUpdate({ description: e.target.value })}
           placeholder="Describe your account, its niche, content type, audience demographics, and any unique selling points..."
           rows={4}
+          className="text-xs sm:text-sm min-h-[80px] sm:min-h-[100px]"
         />
-        <p className="text-xs text-gray-500 mt-1">
+        <p className="text-[10px] sm:text-xs text-gray-500 mt-1">
           Be detailed but concise. Highlight what makes this account valuable to potential buyers.
         </p>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 mt-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
         <div className="space-y-2">
           <label className={`text-sm font-medium flex items-center gap-1 ${!isAccountCategory ? 'text-gray-400 dark:text-gray-600' : ''}`}>
             Username <span className="text-xs text-gray-500 ml-1">(Optional)</span>
@@ -287,7 +290,7 @@ export function AccountDetails({ data, onUpdate }) {
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-2">
           <label className="text-sm font-medium flex items-center gap-1">
             <LinkIcon className="h-4 w-4 mr-1" />

@@ -147,16 +147,18 @@ export default function CreateListingPage() {
   const currentPlan = subscription?.plan || { tier: 'FREE', maxListings: 3 }
   
   return (
-    <div className="max-w-3xl mx-auto space-y-6 py-8">
-      <h1 className="text-2xl font-bold">Create New Listing</h1>
+    <div className="max-w-3xl mx-auto space-y-4 sm:space-y-6 px-3 sm:px-6 py-4 sm:py-8">
+      <h1 className="text-xl sm:text-2xl font-bold">Create New Listing</h1>
       
-      {/* Subscription info banner */}
-      <div className="bg-muted/50 border rounded-lg p-4 flex items-center justify-between">
+      {/* Update subscription banner */}
+      <div className="bg-muted/50 border rounded-lg p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div className="flex items-center gap-2">
-          <Crown className="h-5 w-5 text-primary" />
+          <Crown className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
           <div>
-            <p className="text-sm font-medium">Current Plan: <span className="font-semibold">{currentPlan.tier}</span></p>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs sm:text-sm font-medium">
+              Current Plan: <span className="font-semibold">{currentPlan.tier}</span>
+            </p>
+            <p className="text-[10px] sm:text-xs text-muted-foreground">
               You can create up to {currentPlan.maxListings === 999999 ? 'unlimited' : currentPlan.maxListings} listings
             </p>
           </div>
@@ -165,6 +167,7 @@ export default function CreateListingPage() {
           variant="outline" 
           size="sm"
           onClick={() => router.push('/dashboard/subscription')}
+          className="w-full sm:w-auto text-xs sm:text-sm h-8 sm:h-9"
         >
           Upgrade
         </Button>
@@ -172,22 +175,22 @@ export default function CreateListingPage() {
       
       <Steps steps={STEPS} currentStep={currentStep} />
       
-      <Card className="p-6 shadow-lg border border-gray-100 dark:border-gray-800 rounded-xl">
+      <Card className="p-3 sm:p-6 shadow-lg border border-gray-100 dark:border-gray-800 rounded-xl">
         {renderStep()}
         
         {error && (
-          <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg flex items-center gap-2">
-            <AlertCircle className="h-4 w-4" />
+          <div className="mt-3 sm:mt-4 p-2 sm:p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg flex items-center gap-2 text-xs sm:text-sm">
+            <AlertCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
             <span>{error}</span>
           </div>
         )}
         
-        <div className="flex justify-between mt-6 pt-6 border-t border-gray-100 dark:border-gray-800">
+        <div className="flex justify-between mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-gray-100 dark:border-gray-800 gap-2">
           <Button
             variant="outline"
             onClick={() => setCurrentStep(prev => prev - 1)}
             disabled={currentStep === 1}
-            className="px-5"
+            className="px-3 sm:px-5 text-xs sm:text-sm h-8 sm:h-10"
           >
             Previous
           </Button>
@@ -200,7 +203,7 @@ export default function CreateListingPage() {
               setCurrentStep(prev => prev + 1)
             }}
             disabled={!isStepValid() || isSubmitting}
-            className="px-5 bg-gradient-to-r from-primary to-primary/90"
+            className="px-3 sm:px-5 text-xs sm:text-sm h-8 sm:h-10 bg-gradient-to-r from-primary to-primary/90"
           >
             {currentStep === STEPS.length 
               ? (isSubmitting ? "Creating..." : "Create Listing") 
@@ -209,30 +212,37 @@ export default function CreateListingPage() {
         </div>
       </Card>
       
-      {/* Upgrade Plan Dialog */}
+      {/* Update dialog content */}
       <Dialog open={showUpgradeDialog} onOpenChange={setShowUpgradeDialog}>
-        <DialogContent>
+        <DialogContent className="p-4 sm:p-6 max-w-[90vw] sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Listing Limit Reached</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-base sm:text-lg">Listing Limit Reached</DialogTitle>
+            <DialogDescription className="text-xs sm:text-sm">
               You've reached the maximum number of listings allowed on your current plan.
               Upgrade to create more listings and unlock additional benefits.
             </DialogDescription>
           </DialogHeader>
-          <div className="py-4">
-            <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
-              <Crown className="h-10 w-10 text-primary p-2 bg-primary/10 rounded-full" />
+          <div className="py-3 sm:py-4">
+            <div className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-muted rounded-lg">
+              <Crown className="h-8 w-8 sm:h-10 sm:w-10 text-primary p-1.5 sm:p-2 bg-primary/10 rounded-full" />
               <div>
-                <p className="font-medium">Upgrade your subscription</p>
-                <p className="text-sm text-muted-foreground">Get more listings, lower fees, and premium features</p>
+                <p className="text-sm sm:text-base font-medium">Upgrade your subscription</p>
+                <p className="text-xs text-muted-foreground">Get more listings, lower fees, and premium features</p>
               </div>
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowUpgradeDialog(false)}>
+          <DialogFooter className="gap-2 sm:gap-3">
+            <Button 
+              variant="outline" 
+              onClick={() => setShowUpgradeDialog(false)}
+              className="text-xs sm:text-sm h-8 sm:h-10"
+            >
               Cancel
             </Button>
-            <Button onClick={() => router.push('/dashboard/subscription')}>
+            <Button 
+              onClick={() => router.push('/dashboard/subscription')}
+              className="text-xs sm:text-sm h-8 sm:h-10"
+            >
               View Plans
             </Button>
           </DialogFooter>

@@ -10,6 +10,9 @@ import { AddBalanceSheet } from "../components/add-balance-sheet"
 import { NotificationsSheet } from "../components/notifications-sheet"
 import { BalanceDisplay } from "@/app/components/balance-display"
 import Image from "next/image"
+import { cn } from "@/lib/utils"
+import { usePathname } from "next/navigation"
+
 const navigation = [
   { name: 'Home', href: '/dashboard', icon: Home },
   { name: 'Orders', href: '/dashboard/orders', icon: ShoppingBag },
@@ -19,6 +22,7 @@ const navigation = [
 
 export default function DashboardLayout({ children }) {
   const { data: session, status } = useSession()
+  const pathname = usePathname()
 
   if (status === "loading") {
     return (
@@ -64,14 +68,26 @@ export default function DashboardLayout({ children }) {
         <div className="container flex h-16">
           {navigation.map((item) => {
             const Icon = item.icon
+            const isActive = item.href === '/dashboard' 
+              ? pathname === '/dashboard'  // Exact match for home
+              : pathname.startsWith(`${item.href}/`) || pathname === item.href
             return (
               <Link
                 key={item.name}
                 href={item.href}
-                className="flex-1 flex flex-col items-center justify-center space-y-1 text-muted-foreground hover:text-foreground transition-colors"
+                className={cn(
+                  "flex-1 flex flex-col items-center justify-center space-y-1 relative",
+                  isActive 
+                    ? "text-primary" 
+                    : "text-muted-foreground hover:text-foreground",
+                  "transition-colors"
+                )}
               >
                 <Icon className="h-5 w-5" />
                 <span className="text-xs font-medium">{item.name}</span>
+                {isActive && (
+                  <span className="absolute bottom-0 h-0.5 w-12 bg-primary rounded-full" />
+                )}
               </Link>
             )
           })}

@@ -15,8 +15,8 @@ export function CompletionRate({ userId }) {
 
   // Function to determine the icon based on completion rate
   const getCompletionRateIcon = (rate) => {
-    if (rate >= 70) return <CheckCircle className="h-4 w-4" />;
-    return <AlertTriangle className="h-4 w-4" />;
+    if (rate >= 70) return <CheckCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4" />;
+    return <AlertTriangle className="h-3.5 w-3.5 sm:h-4 sm:w-4" />;
   };
 
   // If user is not a seller, don't render anything
@@ -26,20 +26,20 @@ export function CompletionRate({ userId }) {
 
   if (isLoading) {
     return (
-      <Card className="mt-6">
-        <CardContent className="p-6">
-          <h3 className="text-base font-medium mb-4">Seller Performance</h3>
-          <div className="space-y-4">
+      <Card className="mt-4 sm:mt-6">
+        <CardContent className="p-3 sm:p-6">
+          <h3 className="text-sm sm:text-base font-medium mb-3 sm:mb-4">Seller Performance</h3>
+          <div className="space-y-3 sm:space-y-4">
             <div className="animate-pulse flex items-center justify-between">
-              <div className="h-4 w-24 bg-gray-200 dark:bg-gray-700 rounded-md"></div>
-              <div className="h-4 w-16 bg-gray-200 dark:bg-gray-700 rounded-md"></div>
+              <div className="h-3 sm:h-4 w-20 sm:w-24 bg-gray-200 dark:bg-gray-700 rounded-md"></div>
+              <div className="h-3 sm:h-4 w-14 sm:w-16 bg-gray-200 dark:bg-gray-700 rounded-md"></div>
             </div>
-            <div className="h-2 w-full bg-gray-200 dark:bg-gray-700 rounded-full"></div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="h-1.5 sm:h-2 w-full bg-gray-200 dark:bg-gray-700 rounded-full"></div>
+            <div className="grid grid-cols-2 gap-2 sm:gap-4">
               {[...Array(4)].map((_, i) => (
                 <div key={i} className="animate-pulse">
-                  <div className="h-4 w-20 bg-gray-200 dark:bg-gray-700 rounded-md mb-2"></div>
-                  <div className="h-5 w-12 bg-gray-200 dark:bg-gray-700 rounded-md"></div>
+                  <div className="h-3 sm:h-4 w-16 sm:w-20 bg-gray-200 dark:bg-gray-700 rounded-md mb-1 sm:mb-2"></div>
+                  <div className="h-4 sm:h-5 w-10 sm:w-12 bg-gray-200 dark:bg-gray-700 rounded-md"></div>
                 </div>
               ))}
             </div>
@@ -54,14 +54,14 @@ export function CompletionRate({ userId }) {
   }
 
   return (
-    <Card className="mt-6">
-      <CardContent className="p-6">
-        <h3 className="text-base font-medium mb-4">Seller Performance</h3>
+    <Card className="mt-4 sm:mt-6">
+      <CardContent className="p-3 sm:p-6">
+        <h3 className="text-sm sm:text-base font-medium mb-3 sm:mb-4">Seller Performance</h3>
         
-        <div className="mb-6">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-muted-foreground">Completion Rate</span>
-            <div className={cn("flex items-center gap-1 font-medium", 
+        <div className="mb-4 sm:mb-6">
+          <div className="flex items-center justify-between mb-1.5 sm:mb-2">
+            <span className="text-xs sm:text-sm text-muted-foreground">Completion Rate</span>
+            <div className={cn("flex items-center gap-1 font-medium text-sm sm:text-base", 
               getCompletionRateColor(stats.completionRate)
             )}>
               {getCompletionRateIcon(stats.completionRate)}
@@ -69,7 +69,7 @@ export function CompletionRate({ userId }) {
             </div>
           </div>
           
-          <div className="h-2 w-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+          <div className="h-1.5 sm:h-2 w-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
             <div 
               className={cn(
                 "h-full rounded-full",
@@ -81,7 +81,7 @@ export function CompletionRate({ userId }) {
             ></div>
           </div>
           
-          <p className="text-xs text-muted-foreground mt-2">
+          <p className="text-[10px] sm:text-xs text-muted-foreground mt-1.5 sm:mt-2">
             {stats.completionRate >= 90 
               ? "Excellent seller with high completion rate" 
               : stats.completionRate >= 70 
@@ -90,18 +90,18 @@ export function CompletionRate({ userId }) {
           </p>
         </div>
         
-        <div className="grid grid-cols-2 gap-4 text-sm">
+        <div className="grid grid-cols-2 gap-2 sm:gap-4 text-xs sm:text-sm">
           <div>
-            <div className="flex items-center gap-1 text-muted-foreground mb-1">
-              <Shield className="h-3.5 w-3.5" />
+            <div className="flex items-center gap-1 text-muted-foreground mb-0.5 sm:mb-1">
+              <Shield className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
               <span>Total Sales</span>
             </div>
             <span className="font-medium">{stats.totalSales}</span>
           </div>
           
           <div>
-            <div className="flex items-center gap-1 text-muted-foreground mb-1">
-              <Star className="h-3.5 w-3.5" />
+            <div className="flex items-center gap-1 text-muted-foreground mb-0.5 sm:mb-1">
+              <Star className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
               <span>Avg. Rating</span>
             </div>
             <span className="font-medium">
@@ -110,16 +110,16 @@ export function CompletionRate({ userId }) {
           </div>
           
           <div>
-            <div className="flex items-center gap-1 text-muted-foreground mb-1">
-              <CheckCircle className="h-3.5 w-3.5" />
+            <div className="flex items-center gap-1 text-muted-foreground mb-0.5 sm:mb-1">
+              <CheckCircle className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
               <span>Completed</span>
             </div>
             <span className="font-medium">{stats.completedOrders}/{stats.totalOrders}</span>
           </div>
           
           <div>
-            <div className="flex items-center gap-1 text-muted-foreground mb-1">
-              <Clock className="h-3.5 w-3.5" />
+            <div className="flex items-center gap-1 text-muted-foreground mb-0.5 sm:mb-1">
+              <Clock className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
               <span>Success Rate</span>
             </div>
             <span className={cn(

@@ -49,24 +49,24 @@ export default function LandingPage() {
                     Start Trading in Minutes • 100% Free
                   </AnimateOnScroll>
                   <AnimateOnScroll variants={fadeInUp} delay={0.3}>
-                    <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl">
-                      Buy & Sell <span className="text-primary">Social Media</span> Accounts Safely
-                    </h1>
+                  <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl">
+                    Buy & Sell <span className="text-primary">Social Media</span> Accounts Safely
+                  </h1>
                   </AnimateOnScroll>
                   <AnimateOnScroll variants={fadeInUp} delay={0.4}>
-                    <p className="max-w-[600px] text-muted-foreground text-lg md:text-xl">
-                      Turn your social media influence into cash. Buy verified accounts or sell yours through our secure escrow platform.
-                    </p>
+                  <p className="max-w-[600px] text-muted-foreground text-lg md:text-xl">
+                    Turn your social media influence into cash. Buy verified accounts or sell yours through our secure escrow platform.
+                  </p>
                   </AnimateOnScroll>
                   <AnimateOnScroll variants={fadeInUp} delay={0.5}>
-                    <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
+                  <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
                       <Button size="lg" className="bg-primary hover:bg-primary/90">
                         <Link href="/dashboard">Start Trading</Link>
-                      </Button>
-                      <Button size="lg" variant="outline">
-                        <Link href="/how-it-works">See How It Works</Link>
-                      </Button>
-                    </div>
+                    </Button>
+                    <Button size="lg" variant="outline">
+                      <Link href="/how-it-works">See How It Works</Link>
+                    </Button>
+                  </div>
                   </AnimateOnScroll>
                   <AnimateStagger className="flex flex-wrap items-center gap-y-4 gap-x-8 pt-4">
                     <StaggerItem className="flex items-center space-x-2">
@@ -206,10 +206,10 @@ export default function LandingPage() {
               ].map((feature, index) => (
                 <StaggerItem key={feature.title}>
                   <Card className="text-center p-6 h-full">
-                    <feature.icon className="h-12 w-12 text-primary mx-auto mb-4" />
-                    <h3 className="text-xl font-semibold mb-2">{feature.title}</h3>
-                    <p className="text-muted-foreground">{feature.description}</p>
-                  </Card>
+                  <feature.icon className="h-12 w-12 text-primary mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold mb-2">{feature.title}</h3>
+                  <p className="text-muted-foreground">{feature.description}</p>
+                </Card>
                 </StaggerItem>
               ))}
             </AnimateStagger>
@@ -263,7 +263,7 @@ export default function LandingPage() {
                           <h4 className="font-semibold">{testimonial.name}</h4>
                           <p className="text-sm text-muted-foreground">{testimonial.role}</p>
                         </div>
-                      </div>
+            </div>
                     </CardContent>
                   </Card>
                 </StaggerItem>

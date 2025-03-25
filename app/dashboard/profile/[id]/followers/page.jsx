@@ -77,72 +77,80 @@ function FollowersPageContent() {
   const isError = activeTab === 'followers' ? followersError : followingError;
 
   return (
-    <div className="max-w-4xl mx-auto py-8 px-4">
+    <div className="max-w-4xl mx-auto py-4 sm:py-8 px-2 sm:px-4">
       <Card>
-        <CardHeader>
+        <CardHeader className="px-3 sm:px-6 py-3 sm:py-4">
           <div className="flex items-center">
-            <ArrowLeft onClick={() => router.back()} className="h-4 w-4 mr-2" />
-            <CardTitle>Connections</CardTitle>
+            <Button 
+              variant="ghost" 
+              onClick={() => router.back()} 
+              className="h-8 w-8 sm:h-9 sm:w-9 p-0 mr-2"
+            >
+              <ArrowLeft className="h-4 w-4 sm:h-5 sm:w-5" />
+            </Button>
+            <CardTitle className="text-base sm:text-lg">Connections</CardTitle>
           </div>
         </CardHeader>
-        <CardContent>
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
-            <TabsList className="grid w-full grid-cols-1">
-              <TabsTrigger value="following">Favourites</TabsTrigger>
+        <CardContent className="px-3 sm:px-6">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-4 sm:mb-6">
+            <TabsList className="grid w-full grid-cols-1 h-9 sm:h-10">
+              <TabsTrigger value="following" className="text-xs sm:text-sm">Favourites</TabsTrigger>
             </TabsList>
             
             {isError && (
-              <div className="mt-6 text-center text-red-500">
+              <div className="mt-4 sm:mt-6 text-center text-red-500 text-sm">
                 <p>Failed to load data. Please try again.</p>
               </div>
             )}
             
             <TabsContent value="followers">
               {isLoadingFollowers ? (
-                <div className="flex justify-center py-8">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <div className="flex justify-center py-6 sm:py-8">
+                  <Loader2 className="h-6 w-6 sm:h-8 sm:w-8 animate-spin text-primary" />
                 </div>
               ) : followers.length === 0 ? (
-                <div className="text-center text-muted-foreground py-8">
+                <div className="text-center text-muted-foreground py-6 sm:py-8 text-sm">
                   No followers yet
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-2 sm:space-y-4">
                   {followers.map((user) => (
-                    <div key={user.id} className="flex items-center justify-between p-4 border rounded-lg">
-                      <div className="flex items-center space-x-3">
-                        <Avatar>
+                    <div key={user.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 border rounded-lg gap-3 sm:gap-4">
+                      <div className="flex items-center space-x-2 sm:space-x-3">
+                        <Avatar className="h-8 w-8 sm:h-10 sm:w-10">
                           <AvatarImage src={user.image} />
-                          <AvatarFallback>
+                          <AvatarFallback className="text-xs sm:text-sm">
                             {getInitials(user.firstName, user.lastName)}
                           </AvatarFallback>
                         </Avatar>
                         <div>
-                          <div className="font-medium flex items-center">
+                          <div className="font-medium flex items-center flex-wrap gap-1 sm:gap-2 text-sm sm:text-base">
                             {user.firstName} {user.lastName}
                             {user.isKycVerified && (
-                              <Badge variant="success" className="ml-2 h-5 px-1">
-                                <Shield className="h-3 w-3 mr-1" />
-                                <span className="text-xs">Verified</span>
+                              <Badge variant="success" className="h-4 sm:h-5 px-1 text-[10px] sm:text-xs">
+                                <Shield className="h-2.5 w-2.5 sm:h-3 sm:w-3 mr-0.5 sm:mr-1" />
+                                <span>Verified</span>
                               </Badge>
                             )}
                           </div>
-                          <div className="text-xs text-muted-foreground">
+                          <div className="text-[10px] sm:text-xs text-muted-foreground">
                             {user.email}
                           </div>
                         </div>
                       </div>
-                      <div className="flex items-center">
+                      <div className="flex items-center justify-end gap-2">
                         <Button 
                           variant="ghost" 
                           size="sm" 
-                          className="mr-2"
+                          className="h-8 text-xs sm:text-sm"
                           onClick={() => router.push(`/dashboard/profile/${user.id}`)}
                         >
                           View
                         </Button>
                         {currentUserId !== user.id && (
-                          <FollowButton userId={user.id} />
+                          <FollowButton 
+                            userId={user.id} 
+                          />
                         )}
                       </div>
                     </div>
@@ -153,50 +161,52 @@ function FollowersPageContent() {
             
             <TabsContent value="following">
               {isLoadingFollowing ? (
-                <div className="flex justify-center py-8">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <div className="flex justify-center py-6 sm:py-8">
+                  <Loader2 className="h-6 w-6 sm:h-8 sm:w-8 animate-spin text-primary" />
                 </div>
               ) : following.length === 0 ? (
-                <div className="text-center text-muted-foreground py-8">
+                <div className="text-center text-muted-foreground py-6 sm:py-8 text-sm">
                   Not following anyone yet
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-2 sm:space-y-4">
                   {following.map((user) => (
-                    <div key={user.id} className="flex items-center justify-between p-4 border rounded-lg">
-                      <div className="flex items-center space-x-3">
-                        <Avatar>
-                          <AvatarImage src={user.image} />
-                          <AvatarFallback>
+                    <div key={user.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 border rounded-lg gap-3 sm:gap-4">
+                      <div className="flex items-center space-x-2 sm:space-x-3">
+                        <Avatar className="h-8 w-8 sm:h-10 sm:w-10">
+                          <AvatarFallback className="text-xs sm:text-sm">
                             {getInitials(user.firstName, user.lastName)}
                           </AvatarFallback>
                         </Avatar>
                         <div>
-                          <div className="font-medium flex items-center">
+                          <div className="font-medium flex items-center flex-wrap gap-1 sm:gap-2 text-sm sm:text-base">
                             {user.firstName} {user.lastName}
                             {user.isKycVerified && (
-                              <Badge variant="success" className="ml-2 h-5 px-1">
-                                <Shield className="h-3 w-3 mr-1" />
-                                <span className="text-xs">Verified</span>
+                              <Badge variant="success" className="h-4 sm:h-5 px-1 text-[10px] sm:text-xs">
+                                <Shield className="h-2.5 w-2.5 sm:h-3 sm:w-3 mr-0.5 sm:mr-1" />
+                                <span>Verified</span>
                               </Badge>
                             )}
                           </div>
-                          <div className="text-xs text-muted-foreground">
+                          <div className="text-[10px] sm:text-xs text-muted-foreground">
                             {user.email}
                           </div>
                         </div>
                       </div>
-                      <div className="flex items-center">
+                      <div className="flex items-center justify-end gap-2">
                         <Button 
                           variant="ghost" 
                           size="sm" 
-                          className="mr-2"
+                          className="h-8 text-xs sm:text-sm"
                           onClick={() => router.push(`/dashboard/profile/${user.id}`)}
                         >
                           View
                         </Button>
                         {currentUserId !== user.id && (
-                          <FollowButton userId={user.id} />
+                          <FollowButton 
+                            userId={user.id} 
+                            className="h-8 text-xs sm:text-sm"
+                          />
                         )}
                       </div>
                     </div>
@@ -206,55 +216,59 @@ function FollowersPageContent() {
             </TabsContent>
           </Tabs>
 
-          {/* Pagination */}
+          {/* Pagination - Updated for better mobile display */}
           {activeTab === "followers" && followersPagination.totalPages > 1 && (
-            <div className="flex justify-between items-center mt-6">
+            <div className="flex justify-between items-center mt-4 sm:mt-6 px-1">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handlePrevPage}
                 disabled={page === 1}
+                className="h-8 text-xs sm:text-sm px-2 sm:px-3"
               >
-                <ChevronLeft className="h-4 w-4 mr-1" />
-                Previous
+                <ChevronLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" />
+                Prev
               </Button>
-              <span className="text-sm">
-                Page {page} of {followersPagination.totalPages}
+              <span className="text-xs sm:text-sm text-muted-foreground">
+                {page} / {followersPagination.totalPages}
               </span>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handleNextPage}
                 disabled={page === followersPagination.totalPages}
+                className="h-8 text-xs sm:text-sm px-2 sm:px-3"
               >
                 Next
-                <ChevronRight className="h-4 w-4 ml-1" />
+                <ChevronRight className="h-3.5 w-3.5 sm:h-4 sm:w-4 ml-1" />
               </Button>
             </div>
           )}
 
           {activeTab === "following" && followingPagination.totalPages > 1 && (
-            <div className="flex justify-between items-center mt-6">
+            <div className="flex justify-between items-center mt-4 sm:mt-6 px-1">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handlePrevPage}
                 disabled={page === 1}
+                className="h-8 text-xs sm:text-sm px-2 sm:px-3"
               >
-                <ChevronLeft className="h-4 w-4 mr-1" />
-                Previous
+                <ChevronLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" />
+                Prev
               </Button>
-              <span className="text-sm">
-                Page {page} of {followingPagination.totalPages}
+              <span className="text-xs sm:text-sm text-muted-foreground">
+                {page} / {followingPagination.totalPages}
               </span>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handleNextPage}
                 disabled={page === followingPagination.totalPages}
+                className="h-8 text-xs sm:text-sm px-2 sm:px-3"
               >
                 Next
-                <ChevronRight className="h-4 w-4 ml-1" />
+                <ChevronRight className="h-3.5 w-3.5 sm:h-4 sm:w-4 ml-1" />
               </Button>
             </div>
           )}
@@ -264,17 +278,17 @@ function FollowersPageContent() {
   );
 }
 
-// Fallback loading component
+// Update loading fallback for better mobile display
 function FollowersPageFallback() {
   return (
-    <div className="max-w-4xl mx-auto py-8 px-4">
+    <div className="max-w-4xl mx-auto py-4 sm:py-8 px-2 sm:px-4">
       <Card>
-        <CardHeader>
-          <CardTitle>Connections</CardTitle>
+        <CardHeader className="px-3 sm:px-6 py-3 sm:py-4">
+          <CardTitle className="text-base sm:text-lg">Connections</CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="flex justify-center py-12">
-            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <CardContent className="px-3 sm:px-6">
+          <div className="flex justify-center py-8 sm:py-12">
+            <Loader2 className="h-8 w-8 sm:h-12 sm:w-12 animate-spin text-primary" />
           </div>
         </CardContent>
       </Card>

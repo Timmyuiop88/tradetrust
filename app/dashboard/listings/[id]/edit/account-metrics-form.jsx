@@ -61,10 +61,10 @@ export function AccountMetricsForm({ formData, updateFormData, onComplete }) {
   };
   
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div>
-        <h3 className="text-lg font-medium mb-2">Account Metrics</h3>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+        <h3 className="text-base sm:text-lg font-medium mb-1 sm:mb-2">Account Metrics</h3>
+        <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mb-3 sm:mb-4">
           Update the numeric metrics that represent your account's performance and value.
         </p>
         <div className="text-xs text-muted-foreground flex items-center gap-1.5 mb-4">
@@ -73,7 +73,7 @@ export function AccountMetricsForm({ formData, updateFormData, onComplete }) {
         </div>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-6">
         <div className="space-y-2">
           <label className="text-sm font-medium flex items-center gap-1">
             <Users className="h-4 w-4 text-primary" />

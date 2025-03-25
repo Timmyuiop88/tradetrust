@@ -67,34 +67,34 @@ export function AccountReviewForm({ formData, isEdit = false }) {
   const isAccountCategory = category.name === "Account";
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div>
-        <h3 className="text-lg font-medium mb-2">Review Your Listing</h3>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+        <h3 className="text-base sm:text-lg font-medium mb-1 sm:mb-2">Review Your Listing</h3>
+        <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mb-3 sm:mb-4">
           Please review your listing details before {isEdit ? "updating" : "creating"} it.
         </p>
       </div>
       
       {!isComplete && (
-        <div className="p-4 bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 rounded-lg flex items-start gap-2">
-          <AlertCircle className="h-5 w-5 mt-0.5 flex-shrink-0" />
+        <div className="p-3 sm:p-4 bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 rounded-lg flex items-start gap-2">
+          <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 mt-0.5 flex-shrink-0" />
           <div>
-            <p className="font-medium">Some information is missing</p>
-            <p className="text-sm mt-1">Please go back and complete all required fields.</p>
+            <p className="text-sm font-medium">Some information is missing</p>
+            <p className="text-xs sm:text-sm mt-0.5 sm:mt-1">Please go back and complete all required fields.</p>
           </div>
         </div>
       )}
       
-      <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-6 space-y-6">
+      <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-3 sm:p-6 space-y-4 sm:space-y-6">
         {/* Platform & Category */}
         <div>
-          <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">Listing Type</h4>
-          <div className="grid grid-cols-2 gap-4">
+          <h4 className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 mb-2 sm:mb-3">Listing Type</h4>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <div>
-              <p className="text-xs text-gray-500 dark:text-gray-400">Platform</p>
-              <div className="flex items-center gap-2 mt-1">
+              <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">Platform</p>
+              <div className="flex items-center gap-1.5 sm:gap-2 mt-0.5 sm:mt-1">
                 {platform.icon ? (
-                  <div className="relative w-6 h-6 rounded-full overflow-hidden">
+                  <div className="relative w-5 h-5 sm:w-6 sm:h-6 rounded-full overflow-hidden">
                     <img 
                       src={platform.icon} 
                       alt={`${platform.name} icon`}
@@ -102,12 +102,12 @@ export function AccountReviewForm({ formData, isEdit = false }) {
                     />
                   </div>
                 ) : null}
-                <p className="font-medium capitalize">{platform.name || "Not specified"}</p>
+                <p className="text-sm sm:text-base font-medium capitalize">{platform.name || "Not specified"}</p>
               </div>
             </div>
             <div>
-              <p className="text-xs text-gray-500 dark:text-gray-400">Category</p>
-              <p className="font-medium mt-1">{category.name || "Not specified"}</p>
+              <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">Category</p>
+              <p className="text-sm sm:text-base font-medium mt-0.5 sm:mt-1">{category.name || "Not specified"}</p>
             </div>
           </div>
         </div>
@@ -115,19 +115,19 @@ export function AccountReviewForm({ formData, isEdit = false }) {
         {/* Links & External Info */}
         {(formData.previewLink || country) && (
           <div>
-            <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">Additional Information</h4>
-            <div className="grid grid-cols-2 gap-4">
+            <h4 className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 mb-2 sm:mb-3">Additional Information</h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               {formData.previewLink && (
-                <div className="bg-white dark:bg-gray-900 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
-                  <div className="flex items-center gap-2 mb-1 text-blue-500">
-                    <LinkIcon className="h-4 w-4" />
-                    <p className="text-xs font-semibold uppercase">Preview Link</p>
+                <div className="bg-white dark:bg-gray-900 p-2 sm:p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center gap-1.5 sm:gap-2 mb-0.5 sm:mb-1 text-blue-500">
+                    <LinkIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                    <p className="text-[10px] sm:text-xs font-semibold uppercase">Preview Link</p>
                   </div>
                   <a 
                     href={formData.previewLink} 
                     target="_blank" 
                     rel="noopener noreferrer"
-                    className="text-sm text-blue-500 hover:underline break-all"
+                    className="text-sm sm:text-base text-blue-500 hover:underline break-all"
                   >
                     {formData.previewLink}
                   </a>
@@ -135,12 +135,12 @@ export function AccountReviewForm({ formData, isEdit = false }) {
               )}
               
               {country && (
-                <div className="bg-white dark:bg-gray-900 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
-                  <div className="flex items-center gap-2 mb-1 text-violet-500">
-                    <Globe className="h-4 w-4" />
-                    <p className="text-xs font-semibold uppercase">Account Country</p>
+                <div className="bg-white dark:bg-gray-900 p-2 sm:p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center gap-1.5 sm:gap-2 mb-0.5 sm:mb-1 text-violet-500">
+                    <Globe className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                    <p className="text-[10px] sm:text-xs font-semibold uppercase">Account Country</p>
                   </div>
-                  <p className="font-medium">{country}</p>
+                  <p className="font-medium text-sm sm:text-base">{country}</p>
                 </div>
               )}
             </div>
@@ -149,58 +149,60 @@ export function AccountReviewForm({ formData, isEdit = false }) {
         
         {/* Description */}
         <div>
-          <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">Description</h4>
-          <div className="bg-white dark:bg-gray-900 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
-            <p className="text-sm whitespace-pre-line">{formData.description || "No description provided"}</p>
+          <h4 className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 mb-2 sm:mb-3">Description</h4>
+          <div className="bg-white dark:bg-gray-900 p-2 sm:p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+            <p className="text-xs sm:text-sm whitespace-pre-line">{formData.description || "No description provided"}</p>
           </div>
         </div>
         
         {/* Account Details */}
         {isAccountCategory && (
           <div>
-            <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">Account Metrics</h4>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="bg-white dark:bg-gray-900 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
-                <div className="flex items-center gap-2 mb-1 text-primary">
-                  <User className="h-4 w-4" />
-                  <p className="text-xs font-semibold uppercase">Followers</p>
+            <h4 className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 mb-2 sm:mb-3">Account Metrics</h4>
+            <div className="grid grid-cols-2 gap-2 sm:gap-4">
+              <div className="bg-white dark:bg-gray-900 p-2 sm:p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+                <div className="flex items-center gap-1.5 sm:gap-2 mb-0.5 sm:mb-1 text-primary">
+                  <User className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  <p className="text-[10px] sm:text-xs font-semibold uppercase">Followers</p>
                 </div>
-                <p className="font-medium text-lg">{formatFollowers(formData.followers)}</p>
+                <p className="font-medium text-sm sm:text-lg">{formatFollowers(formData.followers)}</p>
               </div>
               
-              <div className="bg-white dark:bg-gray-900 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
-                <div className="flex items-center gap-2 mb-1 text-emerald-500">
-                  <BarChart className="h-4 w-4" />
-                  <p className="text-xs font-semibold uppercase">Engagement</p>
+              <div className="bg-white dark:bg-gray-900 p-2 sm:p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+                <div className="flex items-center gap-1.5 sm:gap-2 mb-0.5 sm:mb-1 text-emerald-500">
+                  <BarChart className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  <p className="text-[10px] sm:text-xs font-semibold uppercase">Engagement</p>
                 </div>
-                <p className="font-medium text-lg">{formatEngagement(formData.engagement)}</p>
+                <p className="font-medium text-sm sm:text-lg">{formatEngagement(formData.engagement)}</p>
               </div>
               
               {formData.accountAge && (
-                <div className="bg-white dark:bg-gray-900 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
-                  <div className="flex items-center gap-2 mb-1 text-amber-500">
-                    <Clock className="h-4 w-4" />
-                    <p className="text-xs font-semibold uppercase">Account Age</p>
+                <div className="bg-white dark:bg-gray-900 p-2 sm:p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center gap-1.5 sm:gap-2 mb-0.5 sm:mb-1 text-amber-500">
+                    <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                    <p className="text-[10px] sm:text-xs font-semibold uppercase">Account Age</p>
                   </div>
-                  <p className="font-medium text-lg">{formData.accountAge} months</p>
+                  <p className="font-medium text-sm sm:text-lg">
+                    {formData.accountAge} <span className="text-xs sm:text-base">mo</span>
+                  </p>
                 </div>
               )}
               
               {formData.posts && (
-                <div className="bg-white dark:bg-gray-900 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
-                  <div className="flex items-center gap-2 mb-1 text-blue-500">
-                    <Hash className="h-4 w-4" />
-                    <p className="text-xs font-semibold uppercase">Posts</p>
+                <div className="bg-white dark:bg-gray-900 p-2 sm:p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center gap-1.5 sm:gap-2 mb-0.5 sm:mb-1 text-blue-500">
+                    <Hash className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                    <p className="text-[10px] sm:text-xs font-semibold uppercase">Posts</p>
                   </div>
-                  <p className="font-medium text-lg">{formData.posts?.toLocaleString() || "0"}</p>
+                  <p className="font-medium text-sm sm:text-lg">{formData.posts?.toLocaleString() || "0"}</p>
                 </div>
               )}
             </div>
             
             {formData.username && (
-              <div className="mt-4">
-                <p className="text-xs text-gray-500 dark:text-gray-400">Username</p>
-                <p className="text-sm font-medium mt-1">{formData.username}</p>
+              <div className="mt-3 sm:mt-4">
+                <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">Username</p>
+                <p className="text-xs sm:text-sm font-medium mt-0.5 sm:mt-1">{formData.username}</p>
               </div>
             )}
           </div>
@@ -208,9 +210,9 @@ export function AccountReviewForm({ formData, isEdit = false }) {
         
         {/* Media */}
         <div>
-          <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">Media & Proof</h4>
+          <h4 className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 mb-2 sm:mb-3">Media & Proof</h4>
           {formData.mediaProof?.length > 0 ? (
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               {formData.mediaProof.slice(0, 4).map((url, index) => (
                 <div key={index} className="aspect-square rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800">
                   {isImageUrl(url) ? (
@@ -229,23 +231,23 @@ export function AccountReviewForm({ formData, isEdit = false }) {
               ))}
               {formData.mediaProof.length > 4 && (
                 <div className="aspect-square rounded-lg bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-                  <span className="text-sm font-medium">+{formData.mediaProof.length - 4} more</span>
+                  <span className="text-xs sm:text-sm font-medium">+{formData.mediaProof.length - 4} more</span>
                 </div>
               )}
             </div>
           ) : (
-            <p className="text-sm text-red-500">No media uploaded</p>
+            <p className="text-xs sm:text-sm text-red-500">No media uploaded</p>
           )}
         </div>
         
         {/* Pricing */}
         <div>
-          <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">Pricing</h4>
-          <div className="bg-white dark:bg-gray-900 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
-            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Listing Price</p>
-            <p className="font-medium text-lg text-primary">{formattedPrice}</p>
+          <h4 className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 mb-2 sm:mb-3">Pricing</h4>
+          <div className="bg-white dark:bg-gray-900 p-2 sm:p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+            <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 mb-0.5 sm:mb-1">Listing Price</p>
+            <p className="font-medium text-base sm:text-lg text-primary">{formattedPrice}</p>
             {formData.negotiable && (
-              <div className="text-xs text-emerald-600 dark:text-emerald-500 mt-1">
+              <div className="text-[10px] sm:text-xs text-emerald-600 dark:text-emerald-500 mt-1">
                 Price is negotiable
               </div>
             )}
@@ -255,12 +257,12 @@ export function AccountReviewForm({ formData, isEdit = false }) {
         {/* Credentials Summary - Only show if they exist */}
         {(formData.credentials?.email || formData.credentials?.username || formData.credentials?.serialKey || formData.credentials?.transferInstructions) && (
           <div>
-            <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">Credentials & Transfer</h4>
-            <div className="grid grid-cols-2 gap-4 bg-white dark:bg-gray-900 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
+            <h4 className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 mb-2 sm:mb-3">Credentials & Transfer</h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 bg-white dark:bg-gray-900 p-3 sm:p-4 rounded-lg border border-gray-200 dark:border-gray-700">
               {formData.credentials?.email && (
                 <div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Email</p>
-                  <p className="text-sm break-all">
+                  <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">Email</p>
+                  <p className="text-xs sm:text-sm break-all">
                     <span className="bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded">
                       {formData.credentials.email}
                     </span>
@@ -270,8 +272,8 @@ export function AccountReviewForm({ formData, isEdit = false }) {
               
               {formData.credentials?.username && (
                 <div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Username</p>
-                  <p className="text-sm break-all">
+                  <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">Username</p>
+                  <p className="text-xs sm:text-sm break-all">
                     <span className="bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded">
                       {formData.credentials.username}
                     </span>
@@ -281,8 +283,8 @@ export function AccountReviewForm({ formData, isEdit = false }) {
               
               {formData.credentials?.serialKey && (
                 <div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Key/Serial Number</p>
-                  <p className="text-sm break-all">
+                  <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">Key/Serial Number</p>
+                  <p className="text-xs sm:text-sm break-all">
                     <span className="bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded">
                       {formData.credentials.serialKey}
                     </span>
@@ -291,8 +293,8 @@ export function AccountReviewForm({ formData, isEdit = false }) {
               )}
               
               <div>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Password</p>
-                <p className="text-sm">
+                <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">Password</p>
+                <p className="text-xs sm:text-sm">
                   {formData.credentials?.password ? (
                     <span className="bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded">
                       ••••••••••
@@ -302,9 +304,9 @@ export function AccountReviewForm({ formData, isEdit = false }) {
               </div>
 
               {formData.credentials?.transferInstructions && (
-                <div className="col-span-2 mt-2 pt-2 border-t">
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Transfer Instructions</p>
-                  <p className="text-sm mt-1">{formData.credentials.transferInstructions}</p>
+                <div className="col-span-2 mt-2 sm:mt-3 pt-2 sm:pt-3 border-t">
+                  <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">Transfer Instructions</p>
+                  <p className="text-xs sm:text-sm mt-0.5 sm:mt-1">{formData.credentials.transferInstructions}</p>
                 </div>
               )}
             </div>
@@ -313,19 +315,19 @@ export function AccountReviewForm({ formData, isEdit = false }) {
       </div>
       
       {isComplete ? (
-        <div className="p-4 bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 rounded-lg flex items-start gap-2">
-          <CheckCircle className="h-5 w-5 mt-0.5 flex-shrink-0" />
+        <div className="p-3 sm:p-4 bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 rounded-lg flex items-start gap-2">
+          <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 mt-0.5 flex-shrink-0" />
           <div>
-            <p className="font-medium">Your listing is ready to update</p>
-            <p className="text-sm mt-1">Click "Update Listing" to save your changes.</p>
+            <p className="text-sm font-medium">Your listing is ready to update</p>
+            <p className="text-xs sm:text-sm mt-0.5 sm:mt-1">Click "Update Listing" to save your changes.</p>
           </div>
         </div>
       ) : (
-        <div className="p-4 bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 rounded-lg flex items-start gap-2">
-          <AlertCircle className="h-5 w-5 mt-0.5 flex-shrink-0" />
+        <div className="p-3 sm:p-4 bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 rounded-lg flex items-start gap-2">
+          <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 mt-0.5 flex-shrink-0" />
           <div>
-            <p className="font-medium">Please complete all required fields</p>
-            <p className="text-sm mt-1">Go back to the previous steps to fill in missing information.</p>
+            <p className="text-sm font-medium">Please complete all required fields</p>
+            <p className="text-xs sm:text-sm mt-0.5 sm:mt-1">Go back to the previous steps to fill in missing information.</p>
           </div>
         </div>
       )}

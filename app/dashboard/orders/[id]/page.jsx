@@ -459,20 +459,20 @@ export default function OrderDetailPage() {
       {/* Loading indicator */}
       <LoadingIndicator />
       
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-4 sm:mb-6">
         <div className="flex items-center">
-        <Button variant="ghost" size="icon" onClick={() => router.back()}>
-          <ArrowLeft className="h-5 w-5" />
+          <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-9 sm:w-9" onClick={() => router.back()}>
+            <ArrowLeft className="h-4 w-4 sm:h-5 sm:w-5" />
         </Button>
-        <h1 className="text-2xl font-bold ml-2">
+          <h1 className="text-lg sm:text-2xl font-bold ml-2">
           {isBuyer ? 'Purchase' : 'Sale'} Details
         </h1>
       </div>
       
-        {/* Add refresh button */}
         <Button
           variant="ghost"
           size="icon"
+          className="h-8 w-8 sm:h-9 sm:w-9"
           onClick={handleManualRefresh}
           disabled={isFetching && isManualRefresh}
         >
@@ -487,17 +487,17 @@ export default function OrderDetailPage() {
         "transition-all duration-300",
         (isFetching && isManualRefresh) && "opacity-50"
       )}>
-        <CardHeader className="pb-4">
-          <div className="flex items-center justify-between">
+        <CardHeader className="pb-3 sm:pb-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0">
             <div>
-              <CardTitle className="text-xl">
+              <CardTitle className="text-base sm:text-xl">
                 {order.listing.platform.name} Account {isBuyer ? 'Purchase' : 'Sale'}
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-sm">
                 {order.listing.followers.toLocaleString()} followers • {order.listing.username}
               </CardDescription>
             </div>
-            <Badge variant={getStatusVariant(order.status)}>
+            <Badge variant={getStatusVariant(order.status)} className="self-start sm:self-center text-xs sm:text-sm">
               {formatStatus(order.status)}
             </Badge>
           </div>
@@ -506,18 +506,18 @@ export default function OrderDetailPage() {
         <CardContent className="space-y-6">
           {/* Timer Section */}
           {(order.status === 'WAITING_FOR_SELLER' || order.status === 'WAITING_FOR_BUYER') && (
-            <div className="bg-muted/50 rounded-lg p-4 transition-all duration-300 ease-in-out">
-              <div className="flex items-start gap-3">
-                <div className="h-10 w-10 rounded-full bg-amber-100 flex items-center justify-center">
-                  <Clock className="h-5 w-5 text-amber-600" />
+            <div className="bg-muted/50 rounded-lg p-3 sm:p-4">
+              <div className="flex items-start gap-2 sm:gap-3">
+                <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-amber-100 flex items-center justify-center">
+                  <Clock className="h-4 w-4 sm:h-5 sm:w-5 text-amber-600" />
                 </div>
                 <div>
-                  <h3 className="font-medium">
+                  <h3 className="font-medium text-sm sm:text-base">
                     {order.status === 'WAITING_FOR_SELLER' 
                       ? 'Waiting for seller to provide account details' 
                       : 'Waiting for buyer to confirm receipt'}
                   </h3>
-                  <p className="text-sm text-muted-foreground mt-1">
+                  <p className="text-xs sm:text-sm text-muted-foreground mt-1">
                     {order.status === 'WAITING_FOR_SELLER'
                       ? `Seller has ${isSellerDeadlineExpired ? 'expired' : `${minutes}:${seconds.toString().padStart(2, '0')}`} to provide account details`
                       : `Buyer has ${isBuyerDeadlineExpired ? 'expired' : `${buyerMinutes}:${buyerSeconds.toString().padStart(2, '0')}`} to confirm receipt`}
@@ -528,13 +528,13 @@ export default function OrderDetailPage() {
           )}
           
           {/* Order Details */}
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
+          <div className="space-y-3 sm:space-y-4">
+            <div className="flex justify-between items-center text-sm sm:text-base">
               <span className="text-muted-foreground">Amount</span>
               <span className="font-medium">${order.price.toFixed(2)}</span>
             </div>
             
-            <div className="flex justify-between items-center">
+            <div className="flex justify-between items-center text-sm sm:text-base">
               <span className="text-muted-foreground">Order No.</span>
               <div className="flex items-center">
                 <span className="font-medium mr-2">{order.id.substring(0, 8)}...</span>
@@ -544,18 +544,18 @@ export default function OrderDetailPage() {
               </div>
             </div>
             
-            <div className="flex justify-between items-center">
+            <div className="flex justify-between items-center text-sm sm:text-base">
               <span className="text-muted-foreground">Order Time</span>
               <span className="font-medium">{new Date(order.createdAt).toLocaleString()}</span>
             </div>
             
-            <div className="flex justify-between items-center">
+            <div className="flex justify-between items-center text-sm sm:text-base">
               <span className="text-muted-foreground">Transfer Method</span>
               <span className="font-medium">{order.listing.transferMethod}</span>
             </div>
             
             {order.status === 'WAITING_FOR_BUYER' && (
-              <div className="flex justify-between items-center">
+              <div className="flex justify-between items-center text-sm sm:text-base">
                 <span className="text-muted-foreground">Account Details</span>
                 <span className="font-medium">Provided by seller</span>
               </div>
@@ -565,34 +565,34 @@ export default function OrderDetailPage() {
           <Separator />
           
           {/* Action Section */}
-          <div className="bg-muted/30 rounded-lg p-4">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-medium">Transaction Progress</h3>
-              <Button variant="outline" size="sm" onClick={handleOpenChat}>
-                <MessageSquare className="h-4 w-4 mr-2" />
-                <span className="tabtext font-medium">Contact {isBuyer ? 'Seller' : 'Buyer'}</span>
+          <div className="bg-muted/30 rounded-lg p-3 sm:p-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 sm:mb-4 gap-2 sm:gap-0">
+              <h3 className="font-medium text-sm sm:text-base">Transaction Progress</h3>
+              <Button variant="outline" size="sm" onClick={handleOpenChat} className="w-full sm:w-auto">
+                <MessageSquare className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />
+                <span className="text-xs sm:text-sm font-medium">Contact {isBuyer ? 'Seller' : 'Buyer'}</span>
               </Button>
             </div>
             
-            <div className="relative">
-              <div className="absolute left-3.5 top-0 bottom-0 w-0.5 bg-muted-foreground/20" />
+            <div className="relative pl-6 sm:pl-8">
+              <div className="absolute left-2.5 sm:left-3.5 top-0 bottom-0 w-0.5 bg-muted-foreground/20" />
               
-              <div className="relative pl-8 pb-6">
-                <div className={`absolute left-0 h-7 w-7 rounded-full flex items-center justify-center transition-all duration-500 ${orderStep >= 1 ? 'bg-primary' : 'bg-muted-foreground/20'}`}>
-                  <span className="text-xs text-white font-medium">1</span>
+              <div className="relative pb-4 sm:pb-6">
+                <div className={`absolute left-0 h-5 w-5 sm:h-7 sm:w-7 rounded-full flex items-center justify-center`}>
+                  <span className="text-[10px] sm:text-xs text-white font-medium">1</span>
                 </div>
-                <h4 className="font-medium">Order Created</h4>
-                <p className="text-sm text-muted-foreground">
+                <h4 className="font-medium text-sm sm:text-base">Order Created</h4>
+                <p className="text-xs sm:text-sm text-muted-foreground">
                   {formatDistance(new Date(order.createdAt), new Date(), { addSuffix: true })}
                 </p>
               </div>
               
-              <div className="relative pl-8 pb-6">
-                <div className={`absolute left-0 h-7 w-7 rounded-full flex items-center justify-center transition-all duration-500 ${orderStep >= 2 ? 'bg-primary' : 'bg-muted-foreground/20'} ${lastAction === 'release_credentials' && statusChangeLoading ? 'animate-pulse' : ''}`}>
-                  <span className="text-xs text-white font-medium">2</span>
+              <div className="relative pb-4 sm:pb-6">
+                <div className={`absolute left-0 h-5 w-5 sm:h-7 sm:w-7 rounded-full flex items-center justify-center`}>
+                  <span className="text-[10px] sm:text-xs text-white font-medium">2</span>
                 </div>
-                <h4 className="font-medium">Account Details Provided</h4>
-                <p className="text-sm text-muted-foreground">
+                <h4 className="font-medium text-sm sm:text-base">Account Details Provided</h4>
+                <p className="text-xs sm:text-sm text-muted-foreground">
                   {order.status === 'WAITING_FOR_SELLER' 
                     ? 'Waiting for seller to provide account details'
                     : order.status === 'WAITING_FOR_BUYER'
@@ -603,12 +603,12 @@ export default function OrderDetailPage() {
                 </p>
               </div>
               
-              <div className="relative pl-8">
-                <div className={`absolute left-0 h-7 w-7 rounded-full flex items-center justify-center transition-all duration-500 ${orderStep >= 3 ? 'bg-primary' : 'bg-muted-foreground/20'} ${lastAction === 'confirm_received' && statusChangeLoading ? 'animate-pulse' : ''}`}>
-                  <span className="text-xs text-white font-medium">3</span>
+              <div className="relative pb-4 sm:pb-6">
+                <div className={`absolute left-0 h-5 w-5 sm:h-7 sm:w-7 rounded-full flex items-center justify-center`}>
+                  <span className="text-[10px] sm:text-xs text-white font-medium">3</span>
                 </div>
-                <h4 className="font-medium">Transaction Completed</h4>
-                <p className="text-sm text-muted-foreground">
+                <h4 className="font-medium text-sm sm:text-base">Transaction Completed</h4>
+                <p className="text-xs sm:text-sm text-muted-foreground">
                   {order.status === 'COMPLETED'
                     ? 'Transaction successfully completed'
                     : 'Waiting for transaction completion'}
@@ -619,12 +619,12 @@ export default function OrderDetailPage() {
           
           {/* Warning for seller */}
           {isSeller && order.status === 'WAITING_FOR_SELLER' && (
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-              <div className="flex gap-3">
-                <AlertTriangle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 sm:p-4">
+              <div className="flex gap-2 sm:gap-3">
+                <AlertTriangle className="h-4 w-4 sm:h-5 sm:w-5 text-amber-600 flex-shrink-0 mt-0.5" />
                 <div>
-                  <h4 className="font-medium text-amber-800">Important: Release Account Details</h4>
-                  <p className="text-sm text-amber-700 mt-1">
+                  <h4 className="font-medium text-sm sm:text-base text-amber-800">Important: Release Account Details</h4>
+                  <p className="text-xs sm:text-sm text-amber-700 mt-1">
                     You must provide the account details within the time limit. 
                     Failure to do so may result in order cancellation and potential penalties.
                   </p>
@@ -635,12 +635,12 @@ export default function OrderDetailPage() {
           
           {/* Warning for buyer */}
           {isBuyer && order.status === 'WAITING_FOR_BUYER' && (
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-              <div className="flex gap-3">
-                <AlertTriangle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 sm:p-4">
+              <div className="flex gap-2 sm:gap-3">
+                <AlertTriangle className="h-4 w-4 sm:h-5 sm:w-5 text-amber-600 flex-shrink-0 mt-0.5" />
                 <div>
-                  <h4 className="font-medium text-amber-800">Important: Confirm Receipt</h4>
-                  <p className="text-sm text-amber-700 mt-1">
+                  <h4 className="font-medium text-sm sm:text-base text-amber-800">Important: Confirm Receipt</h4>
+                  <p className="text-xs sm:text-sm text-amber-700 mt-1">
                     Please verify the account details and confirm receipt within the time limit.
                     Only confirm if you've successfully accessed the account.
                   </p>
@@ -657,8 +657,8 @@ export default function OrderDetailPage() {
           
           {/* Seller Credential Form */}
           {isSeller && order.status === 'WAITING_FOR_SELLER' && (
-            <div id="credential-form" className="mt-6 border border-border rounded-lg p-4">
-              <h3 className="font-medium text-lg mb-3">Release Account Credentials</h3>
+            <div className="mt-4 sm:mt-6 border border-border rounded-lg p-3 sm:p-4">
+              <h3 className="font-medium text-base sm:text-lg mb-3">Release Account Credentials</h3>
               <form onSubmit={handleReleaseCredentials} className="space-y-4">
                 <div>
                   <Label htmlFor="email">Account Email/Username</Label>
@@ -696,7 +696,7 @@ export default function OrderDetailPage() {
                 
                 <Button 
                   type="submit" 
-                  className="w-full"
+                  className="w-full text-xs sm:text-sm h-9 sm:h-10"
                   disabled={releasing || statusChangeLoading}
                 >
                   {releasing ? (
@@ -827,7 +827,7 @@ export default function OrderDetailPage() {
           {/* Buyer Actions */}
           {isBuyer && order.status === 'WAITING_FOR_BUYER' && (
             <Button 
-              className="w-full" 
+              className="w-full text-xs sm:text-sm h-9 sm:h-10" 
               onClick={handleConfirmReceived}
               disabled={confirmMutation.isPending}
             >

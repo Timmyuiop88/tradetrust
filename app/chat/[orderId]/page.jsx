@@ -409,20 +409,20 @@ export default function ChatPage() {
   return (
     <div className="flex flex-col h-screen max-h-screen bg-background">
       {/* Header */}
-      <div className="border-b p-4 bg-background sticky top-0 z-10">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
+      <div className="border-b p-2 sm:p-4 bg-background sticky top-0 z-10">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             <button 
               onClick={() => router.back()} 
-              className="text-muted-foreground hover:text-foreground transition-colors"
+              className="text-muted-foreground hover:text-foreground transition-colors p-1.5 sm:p-2"
               aria-label="Back to dashboard"
             >
-              <ArrowLeft className="h-5 w-5" />
+              <ArrowLeft className="h-4 w-4 sm:h-5 sm:w-5" />
             </button>
             
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
               {otherUser ? (
-                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary/70 to-primary flex items-center justify-center overflow-hidden shadow-sm">
+                <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-gradient-to-br from-primary/70 to-primary flex items-center justify-center overflow-hidden shadow-sm flex-shrink-0">
                   {otherUser.avatar ? (
                     <Image 
                       src={otherUser.avatar} 
@@ -432,55 +432,62 @@ export default function ChatPage() {
                       className="object-cover"
                     />
                   ) : (
-                    <User className="h-5 w-5 text-primary-foreground" />
+                    <User className="h-4 w-4 sm:h-5 sm:w-5 text-primary-foreground" />
                   )}
                 </div>
               ) : (
-                <div className="h-10 w-10 rounded-full bg-muted animate-pulse flex items-center justify-center">
-                  <User className="h-5 w-5 text-muted-foreground/50" />
+                <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-muted animate-pulse flex items-center justify-center flex-shrink-0">
+                  <User className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground/50" />
                 </div>
               )}
               
-              <div>
+              <div className="min-w-0">
                 {otherUser ? (
-                  <p onClick={() => router.push(`/dashboard/profile/${otherUser.id}`)} className="font-medium">{otherUser.email || 'Chat'}</p>
+                  <p 
+                    onClick={() => router.push(`/dashboard/profile/${otherUser.id}`)} 
+                    className="font-medium text-sm sm:text-base truncate"
+                  >
+                    {otherUser.email || 'Chat'}
+                  </p>
                 ) : (
-                  <div className="h-5 w-36 bg-muted animate-pulse rounded-sm"></div>
+                  <div className="h-4 sm:h-5 w-24 sm:w-36 bg-muted animate-pulse rounded-sm"></div>
                 )}
                 
                 {order ? (
-                  <p className="text-xs text-muted-foreground flex items-center gap-1">
-                    <ShoppingBag className="h-3 w-3" />
-                    Order #{order.id.substring(0, 8)} • 
-                    {activeDispute ? (
-                      <span className="text-amber-600 font-medium">Disputed</span>
-                    ) : (
-                      <span className={cn(
-                        "font-medium",
-                        order.status === 'COMPLETED' ? 'text-green-600' :
-                        order.status === 'CANCELLED' ? 'text-red-600' :
-                        'text-blue-600'
-                      )}>
-                        {order.status}
-                      </span>
-                    )}
+                  <p className="text-[10px] sm:text-xs text-muted-foreground flex items-center gap-1 truncate">
+                    <ShoppingBag className="h-2.5 w-2.5 sm:h-3 sm:w-3 flex-shrink-0" />
+                    <span className="truncate">
+                      Order #{order.id.substring(0, 8)} •&nbsp;
+                      {activeDispute ? (
+                        <span className="text-amber-600 font-medium">Disputed</span>
+                      ) : (
+                        <span className={cn(
+                          "font-medium",
+                          order.status === 'COMPLETED' ? 'text-green-600' :
+                          order.status === 'CANCELLED' ? 'text-red-600' :
+                          'text-blue-600'
+                        )}>
+                          {order.status}
+                        </span>
+                      )}
+                    </span>
                   </p>
                 ) : (
-                  <div className="h-3 w-24 bg-muted animate-pulse rounded-sm mt-1"></div>
+                  <div className="h-2.5 sm:h-3 w-20 sm:w-24 bg-muted animate-pulse rounded-sm mt-1"></div>
                 )}
               </div>
             </div>
           </div>
           
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
             <button
               onClick={handleManualRefresh}
-              className="p-2 rounded-full hover:bg-muted transition-colors disabled:opacity-50"
+              className="p-1.5 sm:p-2 rounded-full hover:bg-muted transition-colors disabled:opacity-50"
               disabled={messages.isFetching}
               aria-label="Refresh messages"
             >
               <RefreshCw className={cn(
-                "h-5 w-5 text-muted-foreground", 
+                "h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground", 
                 messages.isFetching && "animate-spin text-primary"
               )} />
             </button>
@@ -488,9 +495,9 @@ export default function ChatPage() {
             {activeDispute && (
               <Link
                 href={`/disputes/${activeDispute.id}`}
-                className="flex items-center gap-1 px-3 py-1.5 bg-amber-100 text-amber-800 rounded-full text-xs font-medium hover:bg-amber-200 transition-colors"
+                className="flex items-center gap-0.5 sm:gap-1 px-2 sm:px-3 py-1 sm:py-1.5 bg-amber-100 text-amber-800 rounded-full text-[10px] sm:text-xs font-medium hover:bg-amber-200 transition-colors whitespace-nowrap"
               >
-                <AlertTriangle className="h-3.5 w-3.5" />
+                <AlertTriangle className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
                 View Dispute
               </Link>
             )}
