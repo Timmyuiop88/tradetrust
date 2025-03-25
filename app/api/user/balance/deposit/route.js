@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { sendDepositConfirmation } from '@/lib/services/notificationService'
+import { sendDepositConfirmation, notifyTransactionUpdate } from '@/lib/services/notificationService'
 
 export async function POST(request) {
   try {
@@ -68,6 +68,19 @@ export async function POST(request) {
       } catch (emailError) {
         console.error('Error sending deposit confirmation email:', emailError);
         // Don't fail the request if email sending fails
+      }
+      
+      // Send push notification using the correct function
+      try {
+        await notifyTransactionUpdate(
+          session.user.id,
+          'DEPOSIT_COMPLETED',
+          result.transaction
+        );
+        console.log('Deposit push notification sent successfully');
+      } catch (pushError) {
+        console.error('Error sending push notification:', pushError);
+        // Don't fail the request if push notification fails
       }
       
       return NextResponse.json(result)
