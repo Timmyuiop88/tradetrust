@@ -50,7 +50,7 @@ export function CompactPlanIndicator() {
               plan?.tier === 'BASIC' ? 'text-emerald-500' :
               'text-gray-500'
             }`} />
-            <span className="text-sm font-medium">Current Plan:</span>
+            <span className="text-xs sm:text-sm font-medium">Current Plan:</span>
             <Badge 
               variant={plan?.tier === 'FREE' ? 'outline' : 'default'}
               className={`text-xs `}
@@ -61,8 +61,7 @@ export function CompactPlanIndicator() {
           
           <Button 
             variant="ghost" 
-            size="sm" 
-            className="h-8 px-2 text-xs gap-1 hover:bg-transparent hover:text-primary"
+            className="h-8 px-2 tabtext gap-1 hover:bg-transparent hover:text-primary"
             onClick={() => router.push('/dashboard/subscription')}
           >
             Manage

@@ -12,7 +12,7 @@ import { Label } from "@/app/components/label"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "../../../../components/card"
 import { Upload, Check, AlertCircle, X } from "lucide-react"
 import { useSession } from "next-auth/react"
-import toast from "react-hot-toast"
+import { toast } from "sonner"
 
 export default function IdentityVerificationPage() {
   const [file, setFile] = useState(null)

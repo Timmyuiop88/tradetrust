@@ -570,7 +570,7 @@ export default function OrderDetailPage() {
               <h3 className="font-medium">Transaction Progress</h3>
               <Button variant="outline" size="sm" onClick={handleOpenChat}>
                 <MessageSquare className="h-4 w-4 mr-2" />
-                <span className="text-xs font-medium">Contact {isBuyer ? 'Seller' : 'Buyer'}</span>
+                <span className="tabtext font-medium">Contact {isBuyer ? 'Seller' : 'Buyer'}</span>
               </Button>
             </div>
             

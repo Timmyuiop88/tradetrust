@@ -14,7 +14,7 @@ import { Upload, Check, AlertCircle, X, MapPin, Search } from "lucide-react"
 import { useSession } from "next-auth/react"
 import countryList from 'react-select-country-list'
 import ReactCountryFlag from "react-country-flag"
-import toast from "react-hot-toast"
+import { toast } from "sonner"
 
 export default function AddressVerificationPage() {
   const [file, setFile] = useState(null)
