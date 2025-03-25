@@ -41,7 +41,7 @@ export default function DashboardLayout({ children }) {
       <header className="fixed top-0 left-0 right-0 z-50 border-b bg-background/95 backdrop-blur">
         <div className="container flex h-14 items-center justify-between">
           <Link href="/dashboard" className="flex items-center space-x-2">
-            <Image src="/images/logo.png" alt="TrustTrade Logo" width={20} height={20} />
+            <Image src="/images/logo.png" alt="TrustTrade Logo" width={20} height={20} className="sm:h-15 w-15" />
             <span className="font-bold text-lg truncate">TrustTrade</span>
           </Link>
           <div className="flex items-center space-x-4">
@@ -49,7 +49,7 @@ export default function DashboardLayout({ children }) {
               <BalanceDisplay />
             </div>
             <AddBalanceSheet />
-            <NotificationsSheet />
+            {/* <NotificationsSheet /> */}
           </div>
         </div>
       </header>

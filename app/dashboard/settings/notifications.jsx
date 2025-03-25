@@ -58,7 +58,7 @@ export default function NotificationSettings() {
               </p>
               <Button 
                 variant="outline" 
-                className="w-full tabtext flex items-center justify-center gap-2"
+                className="w-full tabtext flex items-center justify-center gap-2 p-2"
                 onClick={() => router.push('/dashboard/settings/ios-guide')}
               >
                 <Info className="h-4 w-4" />
@@ -127,23 +127,24 @@ export default function NotificationSettings() {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="space-y-0.5">
+        <div className="flex  justify-between flex-col">
+          <div className="space-y-0.5 mb-2">
             <h4 className="font-medium">Push Notifications</h4>
             <p className="text-sm text-muted-foreground">
               Receive notifications when you're not on the site
             </p>
           </div>
           {permission === 'denied' ? (
-            <Button variant="outline" size="sm" disabled className="flex items-center gap-2">
+            <Button variant="outline" size="sm" disabled className="flex items-center gap-2 p-2 mt-2">
               <BellOff className="h-4 w-4" />
               Blocked by Browser
             </Button>
           ) : (
             <Button
+            
               size="sm"
               variant={subscription ? "outline" : "default"}
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 p-2 pt-2"
               onClick={handleSubscribe}
               disabled={isSubscribing}
             >

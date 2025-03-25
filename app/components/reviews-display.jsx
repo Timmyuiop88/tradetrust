@@ -49,7 +49,7 @@ export function ReviewsDisplay({ userId, compact = true }) {
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle className="flex flex-row items-center justify-between w-full">
+        <CardTitle className="flex flex-col md:flex-row md:items-center gap-2 justify-between w-full">
           Reviews
           <Link href={`/dashboard/profile/${userId}/reviews`} className="flex-end">
             <Button variant="outline" className="w-full">

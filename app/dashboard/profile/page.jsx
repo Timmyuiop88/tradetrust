@@ -392,8 +392,8 @@ export default function ProfilePage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center justify-between">
-              <div className="text-3xl font-bold">
+            <div className="flex gap-2  justify-between flex-col md:flex-row">
+              <div className="text-2xl font-bold md:text-3xl">
                 {balanceLoading ? (
                   <div className="h-8 w-32 bg-muted animate-pulse rounded" />
                 ) : (
@@ -418,8 +418,8 @@ export default function ProfilePage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center justify-between">
-              <div className="text-3xl font-bold">
+            <div className="flex gap-2  justify-between flex-col md:flex-row">
+              <div className="text-2xl font-bold md:text-3xl">
                 {balanceLoading ? (
                   <div className="h-8 w-32 bg-muted animate-pulse rounded" />
                 ) : (
@@ -448,7 +448,7 @@ export default function ProfilePage() {
       >
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="overview" className="tabtext">Overview</TabsTrigger>
-          <TabsTrigger value="kyc" className="tabtext">KYC Verification</TabsTrigger>
+          <TabsTrigger value="kyc" className="tabtext">KYC </TabsTrigger>
           <TabsTrigger value="activity" className="tabtext">Activity</TabsTrigger>
           <TabsTrigger value="logout" className="tabtext">Logout</TabsTrigger>
         </TabsList>
@@ -457,7 +457,7 @@ export default function ProfilePage() {
           {/* Personal Information */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+              <CardTitle className="flex items-center gap-2 text-lg">
                 <User className="h-5 w-5 text-primary" />
                 Personal Information
               </CardTitle>
@@ -466,7 +466,7 @@ export default function ProfilePage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm text-muted-foreground">Full Name</p>
-                  <p className="font-medium">
+                  <p className="font-sm md:font-medium ">
                     {user.firstName && user.lastName
                       ? `${user.firstName} ${user.lastName}`
                       : user.kyc?.fullName || "Not provided"}
@@ -474,22 +474,22 @@ export default function ProfilePage() {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Email</p>
-                  <p className="font-medium">{user.email}</p>
+                  <p className="font-sm md:font-medium ">{user.email}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Country</p>
-                  <p className="font-medium">
+                  <p className="font-sm md:font-medium ">
                     {user.kyc?.country || "Not provided"}
                   </p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Member Since</p>
-                  <p className="font-medium">{formatDate(user.createdAt)}</p>
+                  <p className="font-sm md:font-medium ">{formatDate(user.createdAt)}</p>
                 </div>
               </div>
             </CardContent>
             <CardFooter>
-              <NotificationSettings  className="w-full"/>
+             
             </CardFooter>
           </Card>
 
