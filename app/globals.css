@@ -75,6 +75,17 @@
   }
 }
 
+@layer components {
+  .tabtext {
+    font-size: 10px !important;
+    padding-left: 0.25rem;
+    padding-right: 0.25rem;
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+    white-space: nowrap;
+  }
+}
+
 .animate-float {
   animation: float 6s ease-in-out infinite;
 }

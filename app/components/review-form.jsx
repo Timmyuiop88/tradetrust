@@ -29,6 +29,7 @@ export function ReviewForm({ order, onClose }) {
       orderId: order.id,
       rating,
       comment,
+      reviewerId: order.reviewerId,
     }, {
       onSuccess: () => {
         onClose();

@@ -51,6 +51,8 @@ export async function GET(request) {
           select: {
             id: true,
             email: true,
+            firstName: true,
+            lastName: true,
           },
         },
         listing: {

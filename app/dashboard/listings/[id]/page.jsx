@@ -77,7 +77,7 @@ export default function ListingPage() {
   const { id } = useParams()
   const { data: session } = useSession()
   const [isSubmitting, setIsSubmitting] = useState(false)
-  
+
   // Use React Query hooks for data fetching
   const { 
     data: listing,
@@ -86,7 +86,7 @@ export default function ListingPage() {
   } = useListing(id)
   
   const createOrderMutation = useCreateOrder()
-  
+
   const handleBuyNow = async () => {
     if (!session) {
       router.push('/login?redirect=' + encodeURIComponent(`/dashboard/listings/${id}`))
@@ -107,7 +107,7 @@ export default function ListingPage() {
   }
 
 
-  
+
   const handleShare = () => {
     if (navigator.share) {
       navigator.share({
@@ -163,7 +163,7 @@ export default function ListingPage() {
       </div>
     )
   }
-  
+
   return (
     <ModernListingView
       listing={listing}

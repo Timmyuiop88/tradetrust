@@ -99,16 +99,16 @@ export default function SettingsPage() {
       
       <Tabs defaultValue="account" value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="mb-6 w-full grid grid-cols-4 gap-2 px-1">
-          <TabsTrigger value="account" className="px-1 py-2 text-[10px] sm:text-xs md:text-sm whitespace-nowrap">
+          <TabsTrigger value="account" className="tabtext">
             Account
           </TabsTrigger>
-          <TabsTrigger value="payment" className="px-1 py-2 text-[10px] sm:text-xs md:text-sm whitespace-nowrap">
+          <TabsTrigger value="payment" className="tabtext">
             Payment
           </TabsTrigger>
-          <TabsTrigger value="legal" className="px-1 py-2 text-[10px] sm:text-xs md:text-sm whitespace-nowrap">
+          <TabsTrigger value="legal" className="tabtext">
             Legal
           </TabsTrigger>
-          <TabsTrigger value="logout" className="px-1 py-2 text-[10px] sm:text-xs md:text-sm whitespace-nowrap">
+          <TabsTrigger value="logout" className="tabtext">
             Logout
           </TabsTrigger>
         </TabsList>

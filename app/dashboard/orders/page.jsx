@@ -81,17 +81,17 @@ export default function OrdersPage() {
       
       <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="mb-6">
-          <TabsTrigger value="all">All Orders</TabsTrigger>
-          <TabsTrigger value="active">Active</TabsTrigger>
-          <TabsTrigger value="completed">Completed</TabsTrigger>
-          <TabsTrigger value="disputed">Disputed</TabsTrigger>
+          <TabsTrigger value="all" className="tabtext">All Orders</TabsTrigger>
+          <TabsTrigger value="active" className="tabtext">Active</TabsTrigger>
+          <TabsTrigger value="completed" className="tabtext">Completed</TabsTrigger>
+          <TabsTrigger value="disputed" className="tabtext">Disputed</TabsTrigger>
         </TabsList>
         
         <TabsContent value={activeTab}>
           {filteredOrders.length > 0 ? (
             <div className="space-y-4">
               {filteredOrders.map(order => (
-                <Card key={order.id} className="hover:bg-muted/50 transition-colors">
+                <Card key={order.id} className="hover:bg-muted/50 transition-colors cursor-pointer" onClick={() => router.push(`/dashboard/orders/${order.id}`)}>
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-3">
