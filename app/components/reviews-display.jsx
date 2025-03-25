@@ -26,13 +26,9 @@ export function ReviewsDisplay({ userId, compact = true }) {
   const reviews = data?.reviews || [];
   const pagination = data?.pagination || { totalPages: 1, total: 0 };
 
-  const getInitials = (name) => {
-    if (!name) return "U";
-    return name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase();
+  const getInitials = (firstName, lastName) => {
+    if (!firstName && !lastName) return "U";
+    return (firstName[0] + lastName[0]).toUpperCase();
   };
 
   const renderStars = (rating) => {
@@ -71,9 +67,9 @@ export function ReviewsDisplay({ userId, compact = true }) {
       <CardContent>
         <Tabs value={currentTab} onValueChange={setCurrentTab} className="mb-6">
           <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="all">All Reviews</TabsTrigger>
-            <TabsTrigger value="positive">Positive</TabsTrigger>
-            <TabsTrigger value="negative">Negative</TabsTrigger>
+            <TabsTrigger value="all" className="tabtext">All Reviews</TabsTrigger>
+            <TabsTrigger value="positive" className="tabtext">Positive</TabsTrigger>
+            <TabsTrigger value="negative" className="tabtext">Negative</TabsTrigger>
           </TabsList>
         </Tabs>
 
@@ -117,11 +113,11 @@ export function ReviewsDisplay({ userId, compact = true }) {
                     <Avatar>
                       <AvatarImage src={review.reviewer.image} />
                       <AvatarFallback>
-                        {getInitials(review.reviewer.name)}
+                        {getInitials(review.reviewer.firstName, review.reviewer.lastName)}
                       </AvatarFallback>
                     </Avatar>
                     <div>
-                      <div className="font-medium">{review.reviewer.name}</div>
+                      <div className="font-medium">{review.reviewer.firstName} {review.reviewer.lastName}</div>
                       <div className="text-xs text-muted-foreground">
                         {new Date(review.createdAt).toLocaleDateString()}
                       </div>

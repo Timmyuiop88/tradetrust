@@ -58,7 +58,7 @@ export default function NotificationSettings() {
               </p>
               <Button 
                 variant="outline" 
-                className="w-full flex items-center justify-center gap-2"
+                className="w-full tabtext flex items-center justify-center gap-2"
                 onClick={() => router.push('/dashboard/settings/ios-guide')}
               >
                 <Info className="h-4 w-4" />

@@ -65,6 +65,7 @@ import { FollowButton } from "@/app/components/follow-button"
 import Image from "next/image"
 import { useSellerListings } from "@/app/hooks/useListings"
 import { useCompletionRate } from "@/app/hooks/useCompletionRate"
+import { ListingCard } from "@/app/components/listing-card"
 
 // Updated custom separator component that won't overflow
 const Separator = ({ className, ...props }) => (
@@ -243,9 +244,6 @@ export function ModernListingView({ listing, onBuyNow, isSubmitting, similarList
           <ChevronLeft className="h-3.5 w-3.5" />
           Back
         </Button>
-        <span>/</span>
-        <span>Listings</span>
-        <span>/</span>
         <span className="font-medium text-primary truncate max-w-[200px]">{listing.title}</span>
       </div>
       
@@ -559,10 +557,10 @@ export function ModernListingView({ listing, onBuyNow, isSubmitting, similarList
 
           {/* Updated seller card with trust indicators and other listings */}
           <Card className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-md overflow-hidden border shadow-sm">
-            <div className="bg-gradient-to-r from-primary/5 to-primary/10 px-6 py-4 border-b dark:border-gray-800">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-800 flex-shrink-0">
+            <div className="bg-gradient-to-r from-primary/5 to-primary/10 px-4 sm:px-6 py-3 sm:py-4 border-b dark:border-gray-800">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-800 flex-shrink-0">
                     {listing.seller?.avatar ? (
                       <NextImage
                         src={listing.seller.avatar}
@@ -573,16 +571,18 @@ export function ModernListingView({ listing, onBuyNow, isSubmitting, similarList
                       />
                     ) : (
                       <div className="h-full w-full flex items-center justify-center bg-primary/10">
-                        <User className="h-5 w-5 text-primary" />
+                        <User className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
                       </div>
                     )}
                   </div>
                   <div>
-                    <div className="font-medium flex items-center gap-1.5">
-                      {listing.seller?.firstName || "Anonymous"} {listing.seller?.lastName || ""}
+                    <div className="font-medium flex flex-wrap items-center gap-1 sm:gap-1.5">
+                      <span className="truncate max-w-[150px] sm:max-w-none">
+                        {listing.seller?.firstName || "Anonymous"} {listing.seller?.lastName || ""}
+                      </span>
                       {listing.seller?.isKycVerified && (
-                        <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 text-xs">
-                          <BadgeCheck className="h-3 w-3 mr-1" /> Verified
+                        <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 text-[10px] sm:text-xs">
+                          <BadgeCheck className="h-2.5 w-2.5 sm:h-3 sm:w-3 mr-0.5 sm:mr-1" /> Verified
                         </Badge>
                       )}
                     </div>
@@ -595,39 +595,39 @@ export function ModernListingView({ listing, onBuyNow, isSubmitting, similarList
                   variant="outline" 
                   size="sm"
                   onClick={() => router.push(`/dashboard/profile/${listing.seller.id}`)}
-                  className="text-xs"
+                  className="text-xs w-full sm:w-auto mt-1 sm:mt-0"
                 >
                   View Profile
                 </Button>
               </div>
             </div>
 
-            <div className="px-6 py-4">
-              <div className="grid grid-cols-3 gap-6 mb-4">
+            <div className="px-4 sm:px-6 py-3 sm:py-4">
+              <div className="grid grid-cols-3 gap-3 sm:gap-6 mb-4">
                 <div className="text-center">
-                  <div className="text-xl font-bold text-primary">
+                  <div className="text-base sm:text-xl font-bold text-primary">
                     {sellerStatsLoading ? (
-                      <Loader2 className="h-5 w-5 animate-spin mx-auto" />
+                      <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 animate-spin mx-auto" />
                     ) : (
                       `${sellerStats?.completionRate ?? 0}%`
                     )}
                   </div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400">Completion Rate</div>
+                  <div className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">Completion Rate</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-xl font-bold">
+                  <div className="text-base sm:text-xl font-bold">
                     {sellerStatsLoading ? (
-                      <Loader2 className="h-5 w-5 animate-spin mx-auto" />
+                      <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 animate-spin mx-auto" />
                     ) : (
                       sellerStats?.totalOrders ?? 0
                     )}
                   </div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400">Total Sales</div>
+                  <div className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">Total Sales</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-xl font-bold flex items-center justify-center">
+                  <div className="text-base sm:text-xl font-bold flex items-center justify-center">
                     {sellerStatsLoading ? (
-                      <Loader2 className="h-5 w-5 animate-spin" />
+                      <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 animate-spin" />
                     ) : (
                       <>
                         {sellerStats?.avgRating ? sellerStats.avgRating.toFixed(1) : '0.0'}
@@ -635,20 +635,20 @@ export function ModernListingView({ listing, onBuyNow, isSubmitting, similarList
                       </>
                     )}
                   </div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400">Average Rating</div>
+                  <div className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">Average Rating</div>
                 </div>
               </div>
 
               {/* Additional seller metrics if available */}
               {sellerStats?.totalListings > 0 && (
-                <div className="flex items-center justify-center gap-4 text-sm text-gray-500 dark:text-gray-400 mt-2 mb-3">
+                <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-2 mb-3">
                   <div className="flex items-center gap-1">
-                    <Package className="h-4 w-4" />
+                    <Package className="h-3 w-3 sm:h-4 sm:w-4" />
                     {sellerStats.totalListings} listing{sellerStats.totalListings !== 1 ? 's' : ''}
                   </div>
                   {sellerStats.isSeller && (
                     <div className="flex items-center gap-1">
-                      <BadgeCheck className="h-4 w-4 text-primary" />
+                      <BadgeCheck className="h-3 w-3 sm:h-4 sm:w-4 text-primary" />
                       Verified Seller
                     </div>
                   )}
@@ -658,65 +658,28 @@ export function ModernListingView({ listing, onBuyNow, isSubmitting, similarList
               {sellerListings.length > 0 && (
                 <>
                   <div className="flex items-center mb-3 w-full overflow-hidden">
-                    <h3 className="text-sm font-medium flex-shrink-0 mr-4">More from this seller</h3>
+                    <h3 className="text-xs sm:text-sm font-medium flex-shrink-0 mr-4">More from this seller</h3>
                     <Separator className="flex-grow" />
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {sellerListings.slice(0, 2).map(item => (
-                      <Card 
+                      <ListingCard 
                         key={item.id} 
-                        className="overflow-hidden group cursor-pointer hover:shadow-md transition-shadow"
-                        onClick={() => router.push(`/dashboard/listings/${item.id}`)}
-                      >
-                        <div className="aspect-video relative bg-gray-100 dark:bg-gray-800">
-                          {item.mediaProof && item.mediaProof[0] ? (
-                            <NextImage
-                              src={item.mediaProof[0]}
-                              alt={item.title || "Listing image"}
-                              fill
-                              className="object-cover"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center">
-                              {item.platform?.icon ? (
-                                <div className="h-8 w-8 rounded-full overflow-hidden">
-                                  <img 
-                                    src={item.platform.icon} 
-                                    alt={item.platform.name} 
-                                    className="h-full w-full object-cover"
-                                  />
-                                </div>
-                              ) : (
-                                <div className="h-8 w-8 bg-primary/10 rounded-full flex items-center justify-center">
-                                  <PlatformIcon platform={item.platform?.name} size="sm" className="text-primary" />
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                        <CardContent className="p-3">
-                          <div className="flex justify-between items-start mb-1">
-                            <div className="truncate text-sm font-medium">{item.title}</div>
-                          </div>
-                          <div className="flex justify-between items-center">
-                            <div className="text-primary font-bold">${parseFloat(item.price).toFixed(2)}</div>
-                            <Badge variant="outline" className="text-xs">
-                              {item.category?.name || "Other"}
-                            </Badge>
-                          </div>
-                        </CardContent>
-                      </Card>
+                        listing={item} 
+                        variant="minimal"
+                        hidePlatformLogo={true}
+                        platformNameSize="text-xs font-medium"
+                        priceSize="text-sm font-bold"
+                      />
                     ))}
                   </div>
-                  {sellerListings.length > 2 && (
-                    <Button 
-                      variant="ghost" 
-                      className="w-full mt-3 text-sm"
-                      onClick={() => router.push(`/dashboard/users/${listing.seller.id}`)}
-                    >
-                      View all {sellerListings.length} listings
-                    </Button>
-                  )}
+                  <Button 
+                    variant="ghost" 
+                    className="w-full mt-3 text-xs sm:text-sm"
+                    onClick={() => router.push(`/dashboard/profile/${listing.seller.id}#listings`)}
+                  >
+                    View all {sellerListings.length} listings
+                  </Button>
                 </>
               )}
             </div>

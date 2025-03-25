@@ -8,7 +8,7 @@ import { Button } from "@/app/components/button"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "../../../../components/card"
 import { Camera, AlertCircle, Loader2, ArrowLeft } from "lucide-react"
 import { cn } from "@/app/lib/utils"
-import { toast } from "react-hot-toast"
+import { toast } from "sonner"
 import { useSession } from "next-auth/react"
 
 export default function FaceVerificationPage() {

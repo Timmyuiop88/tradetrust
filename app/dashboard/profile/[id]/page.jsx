@@ -10,7 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/app/components/avatar";
 import { Badge } from "@/app/components/badge";
 import { Button } from "@/app/components/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/tabs";
-import { Loader2, User, Mail, Calendar, Shield, CheckCircle, ArrowLeft, Star, Clock, AlertTriangle, ExternalLink } from "lucide-react";
+import { Loader2, User, Mail, Calendar, Shield, CheckCircle, ArrowLeft, Star, Clock, AlertTriangle, ExternalLink, ChevronLeft } from "lucide-react";
 import { format } from "date-fns";
 import { UserListings } from "@/app/components/user-listings";
 import { UserReviews } from "../user-reviews";
@@ -54,6 +54,17 @@ export default function UserProfilePage() {
       fetchUserData();
     }
   }, [userId]);
+
+  // Check for hash in URL and set active tab accordingly
+  useEffect(() => {
+    // Get the hash from the URL (e.g., #payment)
+    const hash = window.location.hash.replace('#', '');
+    
+    // If hash exists and matches one of our tabs, set it as active
+    if (hash && ['overview', 'listings'].includes(hash)) {
+      setActiveTab(hash);
+    }
+  }, []);
 
   // Format date helper
   const formatDate = (dateString) => {
@@ -194,14 +205,14 @@ export default function UserProfilePage() {
 
   return (
     <div className="max-w-4xl mx-auto py-8 px-4">
-      {/* <Button 
+      <Button 
         variant="ghost" 
         className="mb-6" 
         onClick={() => router.back()}
       >
-        <ArrowLeft className="h-4 w-4 mr-2" />
+        <ChevronLeft className="h-4 w-4 mr-2" />
         Back
-      </Button>*/}
+      </Button>
 
       {/* Profile Header */}
       <Card className="mb-6">

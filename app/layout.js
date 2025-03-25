@@ -5,7 +5,6 @@ import "@fontsource/rubik/600.css"
 import "@fontsource/rubik/700.css"
 import "./globals.css"
 import { Providers } from "./providers"
-import { Toaster } from "react-hot-toast"
 import { ThemeProvider } from "@/app/components/theme-provider"
 import { CookieConsent } from "./components/cookie-consent"
 
@@ -38,7 +37,6 @@ export default function RootLayout({ children }) {
       <body className="min-h-screen bg-background font-sans antialiased overflow-x-hidden">
         <Providers>
           {children}
-          <Toaster position="bottom-right" />
           <CookieConsent />
         </Providers>
       </body>

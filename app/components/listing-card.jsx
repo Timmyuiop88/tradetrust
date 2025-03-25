@@ -80,7 +80,13 @@ const getCountryCode = (countryValue) => {
   return "US"; // Default fallback
 };
 
-export function ListingCard({ listing }) {
+export function ListingCard({ 
+  listing, 
+  variant = "default", 
+  hidePlatformLogo = false,
+  platformNameSize = "text-sm sm:text-base",
+  priceSize = "text-base sm:text-lg"
+}) {
   // Use the hook to fetch seller performance data
   const { 
     stats: sellerStats, 
@@ -109,6 +115,9 @@ export function ListingCard({ listing }) {
   const countryCode = listing.accountCountry ? 
     getCountryCode(listing.accountCountry) : null;
 
+  // Determine if we're using the minimal variant
+  const isMinimal = variant === "minimal";
+
   return (
     <div 
       className={cn(
@@ -118,8 +127,8 @@ export function ListingCard({ listing }) {
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      {/* Media Preview Section - Conditionally rendered if media exists */}
-      {mediaPreview && (
+      {/* Media Preview Section - Conditionally rendered if media exists and not minimal view */}
+      {mediaPreview && !isMinimal && (
         <div className="relative w-full aspect-video sm:aspect-video md:h-36 bg-muted overflow-hidden">
           <img 
             src={mediaPreview} 
@@ -159,13 +168,15 @@ export function ListingCard({ listing }) {
         {/* Header with platform info and price */}
         <div className="flex items-start justify-between mb-2 sm:mb-3 gap-2">
           <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
-            <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-primary/10 flex items-center justify-center font-semibold overflow-hidden flex-shrink-0">
-              <Image src={listing.platform?.icon} alt={listing.platform?.name} width={40} height={40} />
-            </div>
+            {!hidePlatformLogo && (
+              <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-primary/10 flex items-center justify-center font-semibold overflow-hidden flex-shrink-0">
+                <Image src={listing.platform?.icon} alt={listing.platform?.name} width={40} height={40} />
+              </div>
+            )}
             <div className="min-w-0">
               <div className="flex items-center gap-1">
-                <h3 className="font-medium text-sm sm:text-base truncate">{listing.platform?.name}</h3>
-                {listing.verified && (
+                <h3 className={cn("font-medium truncate", platformNameSize)}>{listing.platform?.name}</h3>
+                {!isMinimal && listing.verified && (
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -180,53 +191,57 @@ export function ListingCard({ listing }) {
                   </TooltipProvider>
                 )}
               </div>
-              <p className="text-xs text-muted-foreground flex items-center gap-1 truncate">
-                <span className="truncate">{listing.category?.name || 'Unknown Category'}</span>
-                {isAccountType && (
-                  <> • <span className="truncate">{formatFollowers(listing.followers)} followers</span></>
-                )}
-                {listing.accountCountry && countryCode && (
-                  <span className="flex items-center ml-1 flex-shrink-0">
-                    <span className="mx-1 hidden xs:inline">•</span>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span className="flex items-center">
-                            <ReactCountryFlag 
-                              countryCode={countryCode} 
-                              svg 
-                              style={{
-                                width: '1em',
-                                height: '1em',
-                              }}
-                              title={countryInfo?.label || listing.accountCountry}
-                            />
-                          </span>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p className="text-xs">{countryInfo?.label || listing.accountCountry}</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </span>
-                )}
-              </p>
+              {!isMinimal && (
+                <p className="text-xs text-muted-foreground flex items-center gap-1 truncate">
+                  <span className="truncate">{listing.category?.name || 'Unknown Category'}</span>
+                  {isAccountType && (
+                    <> • <span className="truncate">{formatFollowers(listing.followers)} followers</span></>
+                  )}
+                  {listing.accountCountry && countryCode && (
+                    <span className="flex items-center ml-1 flex-shrink-0">
+                      <span className="mx-1 hidden xs:inline">•</span>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="flex items-center">
+                              <ReactCountryFlag 
+                                countryCode={countryCode} 
+                                svg 
+                                style={{
+                                  width: '1em',
+                                  height: '1em',
+                                }}
+                                title={countryInfo?.label || listing.accountCountry}
+                              />
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p className="text-xs">{countryInfo?.label || listing.accountCountry}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </span>
+                  )}
+                </p>
+              )}
             </div>
           </div>
           <div className="text-right flex-shrink-0">
-            <p className="text-base sm:text-lg font-bold text-primary whitespace-nowrap">{formattedPrice}</p>
+            <p className={cn("font-bold text-primary whitespace-nowrap", priceSize)}>{formattedPrice}</p>
           </div>
         </div>
         
-        {/* Description section */}
-        <div className="mt-1 sm:mt-2 mb-2 sm:mb-3 flex-grow">
-          <p className="text-xs sm:text-sm line-clamp-2 text-muted-foreground">
-            {listing.description || "No description available"}
-          </p>
-        </div>
+        {/* Description section - hidden in minimal view */}
+        {!isMinimal && (
+          <div className="mt-1 sm:mt-2 mb-2 sm:mb-3 flex-grow">
+            <p className="text-xs sm:text-sm line-clamp-2 text-muted-foreground">
+              {listing.description || "No description available"}
+            </p>
+          </div>
+        )}
         
-        {/* Preview link if available */}
-        {listing.previewLink && (
+        {/* Preview link if available - hidden in minimal view */}
+        {!isMinimal && listing.previewLink && (
           <div className="mb-2 sm:mb-3">
             <a 
               href={listing.previewLink} 
@@ -241,61 +256,65 @@ export function ListingCard({ listing }) {
           </div>
         )}
         
-        <div className="mt-auto space-y-2 sm:space-y-3">
-          {/* Tags section */}
-          <div className="flex flex-wrap gap-1 sm:gap-1.5">
-            {listing.category && (
-              <Badge variant="secondary" className="text-[10px] sm:text-xs">
-                {listing.category.name}
+        <div className={cn("mt-auto space-y-2 sm:space-y-3", isMinimal && "mt-0")}>
+          {/* Tags section - hidden in minimal view */}
+          {!isMinimal && (
+            <div className="flex flex-wrap gap-1 sm:gap-1.5">
+              {listing.category && (
+                <Badge variant="secondary" className="text-[10px] sm:text-xs">
+                  {listing.category.name}
+                </Badge>
+              )}
+              {isAccountType && (
+                <Badge variant="secondary" className="text-[10px] sm:text-xs">
+                  {listing.engagement || 0}% engagement
+                </Badge>
+              )}
+              <Badge variant="outline" className="text-[10px] sm:text-xs flex items-center gap-1">
+                <CreditCard className="h-2.5 sm:h-3 w-2.5 sm:w-3 flex-shrink-0" />
+                {listing.transferMethod === "email_password" ? "Email & Password" :
+                 listing.transferMethod === "full_account" ? "Full Account" :
+                 listing.transferMethod === "api_transfer" ? "API Transfer" : "Transfer"}
               </Badge>
-            )}
-            {isAccountType && (
-              <Badge variant="secondary" className="text-[10px] sm:text-xs">
-                {listing.engagement || 0}% engagement
-              </Badge>
-            )}
-            <Badge variant="outline" className="text-[10px] sm:text-xs flex items-center gap-1">
-              <CreditCard className="h-2.5 sm:h-3 w-2.5 sm:w-3 flex-shrink-0" />
-              {listing.transferMethod === "email_password" ? "Email & Password" :
-               listing.transferMethod === "full_account" ? "Full Account" :
-               listing.transferMethod === "api_transfer" ? "API Transfer" : "Transfer"}
-            </Badge>
-          </div>
-          
-          {/* Timestamp and seller info */}
-          <div className="flex items-center justify-between text-[10px] sm:text-xs text-muted-foreground">
-            <div className="flex items-center gap-1">
-              <Clock className="h-3 w-3 sm:h-3.5 sm:w-3.5 flex-shrink-0" />
-              <span className="truncate">
-                {listing.createdAt ? formatDistanceToNow(new Date(listing.createdAt), { addSuffix: true }) : 'Recently'}
-              </span>
             </div>
-            
-            {isLoadingSellerStats ? (
+          )}
+          
+          {/* Timestamp and seller info - hidden in minimal view */}
+          {!isMinimal && (
+            <div className="flex items-center justify-between text-[10px] sm:text-xs text-muted-foreground">
               <div className="flex items-center gap-1">
-                <div className="h-3 w-3 sm:h-3.5 sm:w-3.5 bg-gray-200 dark:bg-gray-700 rounded-full animate-pulse"></div>
-                <div className="h-2.5 sm:h-3 w-14 sm:w-16 bg-gray-200 dark:bg-gray-700 rounded-md animate-pulse"></div>
+                <Clock className="h-3 w-3 sm:h-3.5 sm:w-3.5 flex-shrink-0" />
+                <span className="truncate">
+                  {listing.createdAt ? formatDistanceToNow(new Date(listing.createdAt), { addSuffix: true }) : 'Recently'}
+                </span>
               </div>
-            ) : sellerStats ? (
-              <div className="flex items-center gap-2">
-                <div className="flex items-center">
-                  <Star className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-yellow-500 mr-0.5 flex-shrink-0" />
-                  <span>{sellerStats.averageRating ? sellerStats.averageRating.toFixed(1) : "New"}</span>
+              
+              {isLoadingSellerStats ? (
+                <div className="flex items-center gap-1">
+                  <div className="h-3 w-3 sm:h-3.5 sm:w-3.5 bg-gray-200 dark:bg-gray-700 rounded-full animate-pulse"></div>
+                  <div className="h-2.5 sm:h-3 w-14 sm:w-16 bg-gray-200 dark:bg-gray-700 rounded-md animate-pulse"></div>
                 </div>
-                <div className="flex items-center">
-                  {getCompletionRateIcon(sellerStats.completionRate)}
-                  <span className={cn("ml-0.5", getCompletionRateColor(sellerStats.completionRate))}>
-                    {sellerStats.completionRate}%
-                  </span>
+              ) : sellerStats ? (
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center">
+                    <Star className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-yellow-500 mr-0.5 flex-shrink-0" />
+                    <span>{sellerStats.averageRating ? sellerStats.averageRating.toFixed(1) : "New"}</span>
+                  </div>
+                  <div className="flex items-center">
+                    {getCompletionRateIcon(sellerStats.completionRate)}
+                    <span className={cn("ml-0.5", getCompletionRateColor(sellerStats.completionRate))}>
+                      {sellerStats.completionRate}%
+                    </span>
+                  </div>
                 </div>
-              </div>
-            ) : (
-              <div className="flex items-center gap-1">
-                <Star className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-yellow-500 flex-shrink-0" />
-                <span>New Seller</span>
-              </div>
-            )}
-          </div>
+              ) : (
+                <div className="flex items-center gap-1">
+                  <Star className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-yellow-500 flex-shrink-0" />
+                  <span>New Seller</span>
+                </div>
+              )}
+            </div>
+          )}
           
           {/* Action button */}
           <div className="flex gap-2 mt-2">
