@@ -3,18 +3,25 @@
 import { useState, useEffect } from "react"
 import { 
   Wallet, ArrowUpRight, ArrowDownRight, Clock, DollarSign, 
-  CreditCard, AlertCircle, Plane, ChevronLeft, RefreshCw
+  CreditCard, AlertCircle, Plane, ChevronLeft, RefreshCw,
+  MoreVertical
 } from "lucide-react"
 import { Button } from "@/app/components/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/tabs"
 import { AddBalanceSheet } from "@/app/components/add-balance-sheet"
 import { WithdrawSheet } from "@/app/components/withdraw-sheet"
-import { toast } from "@/app/components/custom-toast"
+import { toast } from "sonner"
 import Link from "next/link"
 import { Badge } from "@/app/components/badge"
 import { useBalance, formatCurrency } from "@/app/hooks/useBalance"
 import { useQueryClient } from "@tanstack/react-query"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "../../components/ui/dropdown-menu"
 
 export default function BalancePage() {
   const { useGetBalance } = useBalance()
@@ -31,6 +38,7 @@ export default function BalancePage() {
   const [withdrawals, setWithdrawals] = useState([])
   const [withdrawalsLoading, setWithdrawalsLoading] = useState(true)
   const [activeTab, setActiveTab] = useState("transactions")
+  const [refreshingPayment, setRefreshingPayment] = useState(null)
   
   useEffect(() => {
     fetchWithdrawals()
@@ -48,6 +56,57 @@ export default function BalancePage() {
       console.error('Error fetching withdrawals:', error)
     } finally {
       setWithdrawalsLoading(false)
+    }
+  }
+  
+  const handleRefreshPaymentStatus = async (transaction) => {
+    try {
+      setRefreshingPayment(transaction.id)
+      
+      const findResponse = await fetch(`/api/payments/oxapay/find-by-transaction/${transaction.id}`)
+      
+      if (!findResponse.ok) {
+        const error = await findResponse.json()
+        throw new Error(error.message || 'Failed to find payment')
+      }
+      
+      const paymentData = await findResponse.json()
+      
+      const statusResponse = await fetch(`/api/payments/oxapay/status/${paymentData.paymentId}`)
+      
+      if (!statusResponse.ok) {
+        const error = await statusResponse.json()
+        throw new Error(error.message || 'Failed to check payment status')
+      }
+      
+      const statusData = await statusResponse.json()
+      
+      if (statusData.status === 'COMPLETED') {
+        toast.success("Payment Completed", {
+          description: "Your deposit has been successfully processed."
+        })
+        
+        refetchBalance()
+      } else if (statusData.status === 'CONFIRMED') {
+        toast.info("Payment Confirming", {
+          description: "Your payment is being confirmed. Please wait a moment."
+        })
+      } else if (statusData.status === 'FAILED') {
+        toast.error("Payment Failed", {
+          description: "Your payment has failed. Please try again."
+        })
+      } else {
+        toast.warning("Payment Pending", {
+          description: "Your payment is still pending. Please complete the payment."
+        })
+      }
+    } catch (error) {
+      console.error('Error refreshing payment status:', error)
+      toast.error("Error", {
+        description: error.message || "Failed to refresh payment status"
+      })
+    } finally {
+      setRefreshingPayment(null)
     }
   }
   
@@ -77,130 +136,143 @@ export default function BalancePage() {
     }
   }
   
+  const getTransactionStatusBadge = (status) => {
+    switch (status) {
+      case 'COMPLETED':
+        return <Badge variant="success">Completed</Badge>;
+      case 'PENDING':
+        return <Badge variant="outline">Pending</Badge>;
+      case 'FAILED':
+        return <Badge variant="destructive">Failed</Badge>;
+      case 'PROCESSING':
+        return <Badge variant="secondary">Processing</Badge>;
+      default:
+        return <Badge variant="outline">{status}</Badge>;
+    }
+  }
+  
   const getWithdrawalStatusBadge = (status) => {
     switch (status) {
       case 'COMPLETED':
-        return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Completed</Badge>;
+        return <Badge variant="success">Completed</Badge>;
       case 'PROCESSING':
-        return <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">Processing</Badge>;
+        return <Badge variant="secondary">Processing</Badge>;
+      case 'PENDING':
+        return <Badge variant="outline">Pending</Badge>;
       case 'REJECTED':
-        return <Badge className="bg-red-100 text-red-800 hover:bg-red-100">Rejected</Badge>;
-      case 'CANCELLED':
-        return <Badge className="bg-gray-100 text-gray-800 hover:bg-gray-100">Cancelled</Badge>;
+        return <Badge variant="destructive">Rejected</Badge>;
       default:
-        return <Badge className="bg-gray-100 text-gray-800 hover:bg-gray-100">{status}</Badge>;
+        return <Badge variant="outline">{status}</Badge>;
     }
   }
   
-  const refreshData = async () => {
-    try {
-      await Promise.all([
-        refetchBalance(),
-        fetchWithdrawals()
-      ])
-      
-      toast.success("Data refreshed successfully")
-    } catch (error) {
-      console.error('Error refreshing data:', error)
-      toast.error("Failed to refresh data")
-    }
+  if (loading) {
+    return (
+      <div className="container max-w-screen-lg mx-auto px-4 py-8">
+        <div className="flex items-center gap-2 mb-6">
+          <ChevronLeft className="h-5 w-5" />
+          <Link href="/dashboard" className="text-muted-foreground hover:text-foreground transition-colors">
+            Back to Dashboard
+          </Link>
+        </div>
+        <div className="space-y-6">
+          <div className="h-[200px] rounded-lg border bg-card animate-pulse" />
+          <div className="h-[400px] rounded-lg border bg-card animate-pulse" />
+        </div>
+      </div>
+    )
   }
-
-  // Get transactions from the balance data
-  const transactions = balanceData?.recentTransactions || []
-  const transactionsLoading = loading
+  
+  if (isError) {
+    return (
+      <div className="container max-w-screen-lg mx-auto px-4 py-8">
+        <div className="flex items-center gap-2 mb-6">
+          <ChevronLeft className="h-5 w-5" />
+          <Link href="/dashboard" className="text-muted-foreground hover:text-foreground transition-colors">
+            Back to Dashboard
+          </Link>
+        </div>
+        <div className="p-6 rounded-lg border bg-destructive/10 text-destructive flex items-center gap-3">
+          <AlertCircle className="h-5 w-5" />
+          <p>Error loading balance: {error?.message || 'Unknown error'}</p>
+        </div>
+      </div>
+    )
+  }
+  
+  const { balance, recentTransactions = [] } = balanceData || {}
   
   return (
-    <div className="container max-w-5xl py-6 space-y-8 px-1">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <Link href="/dashboard" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors">
-              <ChevronLeft className="h-4 w-4 mr-1" />
-              Back to Dashboard
-            </Link>
-          </div>
-          <h1 className="text-2xl font-bold tracking-tight mt-2">Your Balance</h1>
-          <p className="text-muted-foreground">Manage your funds and view transaction history</p>
-        </div>
-        <Button variant="outline" size="sm" onClick={refreshData} disabled={loading || withdrawalsLoading}>
-          <RefreshCw className={`h-4 w-4 mr-2 ${(loading || withdrawalsLoading) ? 'animate-spin' : ''}`} />
-          Refresh
-        </Button>
+    <div className="container max-w-screen-lg mx-auto px-4 py-8">
+      <div className="flex items-center gap-2 mb-6">
+        <ChevronLeft className="h-5 w-5" />
+        <Link href="/dashboard" className="text-muted-foreground hover:text-foreground transition-colors">
+          Back to Dashboard
+        </Link>
       </div>
       
-      <div className="grid gap-6 md:grid-cols-2">
-        <Card className="border-l-4 border-l-blue-500">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-lg">Buying Balance</CardTitle>
-            <p className="text-sm text-muted-foreground">Available for purchases</p>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Wallet className="h-5 w-5 text-primary" />
+              Buying Balance
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center justify-between">
-              <div className="text-3xl font-bold">
-                {loading ? (
-                  <div className="h-8 w-32 bg-muted animate-pulse rounded" />
-                ) : (
-                  formatCurrency(balanceData?.balance?.buyingBalance || 0)
-                )}
-              </div>
+            <div className="flex flex-col">
+              <span className="text-3xl font-bold mb-4">
+                {formatCurrency(balance?.buyingBalance || 0)}
+              </span>
               <AddBalanceSheet>
-                <Button>Add Funds</Button>
+                <Button className="w-full sm:w-auto">
+                  <ArrowUpRight className="h-4 w-4 mr-2" />
+                  Add Funds
+                </Button>
               </AddBalanceSheet>
             </div>
           </CardContent>
         </Card>
         
-        <Card className="border-l-4 border-l-green-500">
+        <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-lg">Selling Balance</CardTitle>
-            <p className="text-sm text-muted-foreground">Available for withdrawal</p>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Wallet className="h-5 w-5 text-green-500" />
+              Selling Balance
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center justify-between">
-              <div className="text-3xl font-bold">
-                {loading ? (
-                  <div className="h-8 w-32 bg-muted animate-pulse rounded" />
-                ) : (
-                  formatCurrency(balanceData?.balance?.sellingBalance || 0)
-                )}
-              </div>
-              <WithdrawSheet balance={balanceData?.balance?.sellingBalance || 0} onSuccess={refreshData}>
-                <Button variant="outline">Withdraw</Button>
+            <div className="flex flex-col">
+              <span className="text-3xl font-bold mb-4">
+                {formatCurrency(balance?.sellingBalance || 0)}
+              </span>
+              <WithdrawSheet balance={balance?.sellingBalance || 0}>
+                <Button variant="outline" className="w-full sm:w-auto">
+                  <ArrowDownRight className="h-4 w-4 mr-2" />
+                  Withdraw Funds
+                </Button>
               </WithdrawSheet>
             </div>
           </CardContent>
         </Card>
       </div>
       
-      <Card>
-        <CardHeader>
-          <CardTitle>Transaction History</CardTitle>
-        </CardHeader>
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="transactions">Transactions</TabsTrigger>
-            <TabsTrigger value="withdrawals">Withdrawals</TabsTrigger>
-          </TabsList>
-          
+      <Card className="mb-6">
+        <Tabs defaultValue={activeTab} onValueChange={setActiveTab}>
+          <CardHeader className="pb-0">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <CardTitle>Transaction History</CardTitle>
+              <TabsList className="grid w-full sm:w-auto grid-cols-2">
+                <TabsTrigger value="transactions">Transactions</TabsTrigger>
+                <TabsTrigger value="withdrawals">Withdrawals</TabsTrigger>
+              </TabsList>
+            </div>
+          </CardHeader>
           <CardContent className="pt-6">
             <TabsContent value="transactions">
-              {transactionsLoading ? (
-                <div className="space-y-4">
-                  {[...Array(3)].map((_, i) => (
-                    <div key={i} className="flex items-center gap-4">
-                      <div className="h-10 w-10 rounded-full bg-muted animate-pulse" />
-                      <div className="space-y-2 flex-1">
-                        <div className="h-4 w-1/3 bg-muted animate-pulse rounded" />
-                        <div className="h-3 w-1/2 bg-muted animate-pulse rounded" />
-                      </div>
-                      <div className="h-6 w-20 bg-muted animate-pulse rounded" />
-                    </div>
-                  ))}
-                </div>
-              ) : transactions.length > 0 ? (
-                <div className="space-y-4">
-                  {transactions.map((transaction) => (
+              {recentTransactions.length > 0 ? (
+                <div className="space-y-1">
+                  {recentTransactions.map((transaction) => (
                     <div key={transaction.id} className="flex flex-col sm:flex-row sm:items-center gap-3 py-3 border-b last:border-0">
                       <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
                         {getTransactionIcon(transaction.type)}
@@ -209,9 +281,7 @@ export default function BalancePage() {
                         <div className="flex flex-wrap items-center gap-2">
                           <p className="font-medium">{transaction.description || transaction.type}</p>
                           {transaction.status !== 'COMPLETED' && (
-                            <Badge variant="outline" className="text-xs">
-                              {transaction.status}
-                            </Badge>
+                            getTransactionStatusBadge(transaction.status)
                           )}
                         </div>
                         <p className="text-sm text-muted-foreground">
@@ -220,8 +290,32 @@ export default function BalancePage() {
                       </div>
                       <div className={`font-medium whitespace-nowrap ${transaction.type === 'DEPOSIT' || transaction.type === 'SALE' ? 'text-green-600' : transaction.type === 'WITHDRAWAL' || transaction.type === 'PURCHASE' ? 'text-red-600' : ''}`}>
                         {transaction.type === 'DEPOSIT' || transaction.type === 'SALE' ? '+' : transaction.type === 'WITHDRAWAL' || transaction.type === 'PURCHASE' ? '-' : ''}
-                        {formatCurrency(transaction.amount)}
+                        {formatCurrency(Math.abs(transaction.amount))}
                       </div>
+                      
+                      {/* Add refresh button for pending deposits */}
+                      {transaction.status === 'PENDING' && transaction.type === 'DEPOSIT' && (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              {refreshingPayment === transaction.id ? (
+                                <RefreshCw className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <MoreVertical className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem 
+                              onClick={() => handleRefreshPaymentStatus(transaction)}
+                              disabled={refreshingPayment === transaction.id}
+                            >
+                              <RefreshCw className="mr-2 h-4 w-4" />
+                              Refresh Status
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
                     </div>
                   ))}
                 </div>

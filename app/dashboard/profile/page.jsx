@@ -308,7 +308,7 @@ export default function ProfilePage() {
       <Card className="mb-6">
         <CardContent className="pt-6">
           <div className="flex justify-between items-start mb-4">
-            <h2 className="text-2xl font-bold">Your Profile</h2>
+            <h2 className="text-1xl md:text-2xl font-bold">Your Profile</h2>
             <div className="flex items-center gap-2">
             <Button
             variant="ghost"
@@ -345,12 +345,12 @@ export default function ProfilePage() {
               </AvatarFallback>
             </Avatar>
             <div className="flex-1 text-center md:text-left">
-              <h1 className="text-2xl font-bold">
+              <h1 className="text-1xl md:text-2xl font-bold">
                 {user.firstName && user.lastName 
                   ? `${user.firstName} ${user.lastName}`
                   : user.email || "User"}
               </h1>
-              <p className="text-muted-foreground">{user.email}</p>
+              <p className="text-muted-foreground overflow-hidden text-ellipsis whitespace-nowrap max-w-[200px]">{user.email}</p>
 
               <div className="flex flex-wrap gap-2 mt-2 justify-center md:justify-start">
                 <Badge
@@ -370,17 +370,9 @@ export default function ProfilePage() {
           </div>
         </CardContent>
       </Card>
-
-      <Card className="mb-6">
-        <CardContent className="pt-6">
-          <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
-            {/* Existing avatar and user info */}
-            <div className="w-full">
+      <div className="w-full mb-6">
               <CompactPlanIndicator />
             </div>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Balance Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
@@ -392,8 +384,8 @@ export default function ProfilePage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center justify-between">
-              <div className="text-3xl font-bold">
+            <div className="flex gap-2  justify-between flex-col md:flex-row">
+              <div className="text-2xl font-bold md:text-3xl">
                 {balanceLoading ? (
                   <div className="h-8 w-32 bg-muted animate-pulse rounded" />
                 ) : (
@@ -418,8 +410,8 @@ export default function ProfilePage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center justify-between">
-              <div className="text-3xl font-bold">
+            <div className="flex gap-2  justify-between flex-col md:flex-row">
+              <div className="text-2xl font-bold md:text-3xl">
                 {balanceLoading ? (
                   <div className="h-8 w-32 bg-muted animate-pulse rounded" />
                 ) : (
@@ -448,7 +440,7 @@ export default function ProfilePage() {
       >
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="overview" className="tabtext">Overview</TabsTrigger>
-          <TabsTrigger value="kyc" className="tabtext">KYC Verification</TabsTrigger>
+          <TabsTrigger value="kyc" className="tabtext">KYC </TabsTrigger>
           <TabsTrigger value="activity" className="tabtext">Activity</TabsTrigger>
           <TabsTrigger value="logout" className="tabtext">Logout</TabsTrigger>
         </TabsList>
@@ -457,7 +449,7 @@ export default function ProfilePage() {
           {/* Personal Information */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+              <CardTitle className="flex items-center gap-2 text-lg">
                 <User className="h-5 w-5 text-primary" />
                 Personal Information
               </CardTitle>
@@ -466,7 +458,7 @@ export default function ProfilePage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm text-muted-foreground">Full Name</p>
-                  <p className="font-medium">
+                  <p className="font-sm md:font-medium overflow-hidden text-ellipsis whitespace-nowrap ">
                     {user.firstName && user.lastName
                       ? `${user.firstName} ${user.lastName}`
                       : user.kyc?.fullName || "Not provided"}
@@ -474,22 +466,26 @@ export default function ProfilePage() {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Email</p>
-                  <p className="font-medium">{user.email}</p>
+                  <p className="font-sm md:font-medium overflow-hidden text-ellipsis whitespace-nowrap ">
+                    {user.email}
+                  </p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Country</p>
-                  <p className="font-medium">
+                  <p className="font-sm md:font-medium overflow-hidden text-ellipsis whitespace-nowrap ">
                     {user.kyc?.country || "Not provided"}
                   </p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Member Since</p>
-                  <p className="font-medium">{formatDate(user.createdAt)}</p>
+                  <p className="font-sm md:font-medium overflow-hidden text-ellipsis whitespace-nowrap ">
+                    {formatDate(user.createdAt)}
+                  </p>
                 </div>
               </div>
             </CardContent>
             <CardFooter>
-              <NotificationSettings  className="w-full"/>
+             
             </CardFooter>
           </Card>
 

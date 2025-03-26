@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { 
   Sheet, 
   SheetContent, 
@@ -12,45 +12,280 @@ import { Button } from "@/app/components/button"
 import { Input } from "@/app/components/input"
 import { Label } from "@/app/components/label"
 import { RadioGroup, RadioGroupItem } from "@/app/components/radio-group"
-import { CreditCard, Wallet, DollarSign, Loader2 } from "lucide-react"
+import { CreditCard, Wallet, DollarSign, Loader2, Bitcoin, AlertCircle, RefreshCw } from "lucide-react"
 import { toast } from "@/app/components/custom-toast"
 import { useBalance, formatCurrency } from "@/app/hooks/useBalance"
+import { useRouter } from "next/navigation"
 
 export function AddBalanceSheet({ children }) {
+  const router = useRouter()
   const [open, setOpen] = useState(false)
   const [amount, setAmount] = useState('')
   const [paymentMethod, setPaymentMethod] = useState('card')
+  const [cryptoPaymentData, setCryptoPaymentData] = useState(null)
+  const [oxaPaymentData, setOxaPaymentData] = useState(null)
+  const [paymentStep, setPaymentStep] = useState('input') // 'input', 'processing', 'crypto', 'oxapay'
+  const [isCheckingStatus, setIsCheckingStatus] = useState(false)
   
   const { useDepositFunds } = useBalance()
   const { mutate: depositFunds, isPending: isDepositing } = useDepositFunds()
   
-  const handleAddFunds = async () => {
-    if (!amount || parseFloat(amount) <= 0) {
+  const handleAddFunds = async (e) => {
+    e.preventDefault()
+    
+    if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
       toast.error("Please enter a valid amount")
       return
     }
     
-    depositFunds(
-      {
-        amount: parseFloat(amount),
-        paymentMethod
-      }, 
-      {
-        onSuccess: () => {
-          toast.success(`Successfully added ${formatCurrency(parseFloat(amount))} to your balance`)
-          setOpen(false)
-          setAmount('')
+    if (paymentMethod === 'oxapay') {
+      try {
+        setPaymentStep('processing')
+        
+        // Create Oxapay payment
+        const response = await fetch('/api/payments/oxapay/create', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            amount: parseFloat(amount),
+            currency: 'USDT'
+          }),
+        })
+        
+        if (!response.ok) {
+          const error = await response.json()
+          throw new Error(error.message || 'Failed to create payment')
         }
+        
+        const data = await response.json()
+        
+        if (!data.paymentUrl) {
+          throw new Error('No payment URL received from Oxapay')
+        }
+        
+        setOxaPaymentData(data)
+        
+        // Open payment URL in new tab
+        window.open(data.paymentUrl, '_blank')
+        
+        // Close the sheet and redirect to balance page
+        setOpen(false)
+        
+        // Show a toast message
+        toast.success("Payment initiated! Complete the payment in the new tab.")
+        
+        // Redirect to balance page
+        router.push('/dashboard/balance')
+        
+      } catch (error) {
+        console.error('Error creating Oxapay payment:', error)
+        toast.error(error.message || 'Failed to create payment')
+        setPaymentStep('input')
       }
-    )
+    } else {
+      // Handle other payment methods (e.g., card)
+      try {
+        setPaymentStep('processing')
+        
+        const response = await fetch('/api/user/balance/deposit', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            amount: parseFloat(amount),
+            paymentMethod,
+          }),
+        })
+        
+        if (!response.ok) {
+          const error = await response.json()
+          throw new Error(error.message || 'Failed to add funds')
+        }
+        
+        setPaymentStep('success')
+        
+        // Close the sheet after a delay
+        setTimeout(() => {
+          setOpen(false)
+          setPaymentStep('input')
+          setAmount('')
+          
+          // Redirect to balance page
+          router.push('/dashboard/balance')
+        }, 2000)
+      } catch (error) {
+        console.error('Error adding funds:', error)
+        toast.error(error.message || 'Failed to add funds')
+        setPaymentStep('input')
+      }
+    }
   }
   
   const handleAmountSelect = (value) => {
     setAmount(value)
   }
   
+  const handleCheckPaymentStatus = async (paymentId, provider) => {
+    try {
+      setIsCheckingStatus(true);
+      const endpoint = provider === 'oxapay' 
+        ? `/api/payments/oxapay/status/${paymentId}`
+        : `/api/payments/crypto/status/${paymentId}`;
+      
+      const response = await fetch(endpoint);
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to check payment status');
+      }
+      
+      const data = await response.json();
+      
+      if (data.status === 'COMPLETED') {
+        toast.success('Payment completed successfully!');
+        setOpen(false);
+        // Refresh balance if needed
+        window.location.reload();
+      } else if (data.status === 'CONFIRMED') {
+        toast.info('Payment is being confirmed. Please wait a moment.');
+      } else if (data.status === 'FAILED') {
+        toast.error('Payment failed. Please try again.');
+        setPaymentStep('input');
+      } else {
+        toast.info('Payment is still pending. Please complete the payment.');
+      }
+    } catch (error) {
+      console.error('Error checking payment status:', error);
+      toast.error(error.message || 'Failed to check payment status');
+    } finally {
+      setIsCheckingStatus(false);
+    }
+  }
+  
+  const resetPayment = () => {
+    setCryptoPaymentData(null)
+    setOxaPaymentData(null)
+    setPaymentStep('input')
+  }
+  
+  const handleOpenChange = (isOpen) => {
+    setOpen(isOpen)
+    if (!isOpen) {
+      setPaymentStep('input')
+      setAmount('')
+    }
+  }
+  
+  const renderPaymentContent = () => {
+    if (paymentStep === 'processing') {
+      return (
+        <div className="flex flex-col items-center justify-center py-8">
+          <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+          <p className="text-center text-muted-foreground">
+            Processing your payment...
+          </p>
+        </div>
+      )
+    }
+    
+    if (paymentStep === 'success') {
+      return (
+        <div className="flex flex-col items-center justify-center py-8">
+          <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center mb-4">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-6 w-6 text-green-600"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M5 13l4 4L19 7"
+              />
+            </svg>
+          </div>
+          <h3 className="text-lg font-medium text-center mb-2">
+            Payment Successful!
+          </h3>
+          <p className="text-center text-muted-foreground mb-4">
+            Your funds have been added to your account.
+          </p>
+        </div>
+      )
+    }
+    
+    return (
+      <form onSubmit={handleAddFunds} className="space-y-4 pt-4">
+        <div className="space-y-2">
+          <Label htmlFor="amount">Amount</Label>
+          <div className="relative">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+              $
+            </span>
+            <Input
+              id="amount"
+              type="number"
+              placeholder="0.00"
+              className="pl-8"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              min="1"
+              step="0.01"
+              required
+            />
+          </div>
+        </div>
+        
+        <div className="space-y-2">
+          <Label>Payment Method</Label>
+          <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod}>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="card" id="card" />
+              <Label htmlFor="card" className="flex items-center">
+                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center mr-2">
+                  <CreditCard className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <div className="font-medium">Credit Card</div>
+                  <div className="text-sm text-muted-foreground">
+                    Pay with Visa, Mastercard, etc.
+                  </div>
+                </div>
+              </Label>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="oxapay" id="oxapay" />
+              <Label htmlFor="oxapay" className="flex items-center">
+                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center mr-2">
+                  <Bitcoin className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <div className="font-medium">Oxapay</div>
+                  <div className="text-sm text-muted-foreground">
+                    Pay with cryptocurrency via Oxapay
+                  </div>
+                </div>
+              </Label>
+            </div>
+          </RadioGroup>
+        </div>
+        
+        <Button type="submit" className="w-full">
+          Add Funds
+        </Button>
+      </form>
+    )
+  }
+  
   return (
-    <Sheet open={open} onOpenChange={setOpen}>
+    <Sheet open={open} onOpenChange={handleOpenChange}>
       <SheetTrigger asChild>
         {children}
       </SheetTrigger>
@@ -62,85 +297,7 @@ export function AddBalanceSheet({ children }) {
           </p>
         </SheetHeader>
         
-        <div className="py-6 space-y-6">
-          <div className="space-y-2">
-            <Label htmlFor="amount">Amount</Label>
-            <div className="relative">
-              <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                id="amount"
-                type="number"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                placeholder="0.00"
-                min="5"
-                step="0.01"
-                className="pl-9"
-              />
-            </div>
-            
-            <div className="grid grid-cols-3 gap-2 mt-2">
-              {['50', '100', '200'].map((value) => (
-                <Button
-                  key={value}
-                  type="button"
-                  variant={amount === value ? "default" : "outline"}
-                  onClick={() => handleAmountSelect(value)}
-                >
-                  ${value}
-                </Button>
-              ))}
-            </div>
-          </div>
-          
-          <div className="space-y-2">
-            <Label>Payment Method</Label>
-            <RadioGroup 
-              value={paymentMethod} 
-              onValueChange={setPaymentMethod}
-              className="grid grid-cols-1 gap-2"
-            >
-              <div className={`flex items-center space-x-2 rounded-md border p-3 ${paymentMethod === 'card' ? 'border-primary' : ''}`}>
-                <RadioGroupItem value="card" id="card" />
-                <Label htmlFor="card" className="flex items-center gap-2 cursor-pointer flex-1">
-                  <CreditCard className="h-4 w-4" />
-                  <div>
-                    <p className="font-medium">Credit/Debit Card</p>
-                    <p className="text-xs text-muted-foreground">Instant deposit</p>
-                  </div>
-                </Label>
-              </div>
-              
-              <div className={`flex items-center space-x-2 rounded-md border p-3 ${paymentMethod === 'bank' ? 'border-primary' : ''}`}>
-                <RadioGroupItem value="bank" id="bank" />
-                <Label htmlFor="bank" className="flex items-center gap-2 cursor-pointer flex-1">
-                  <Wallet className="h-4 w-4" />
-                  <div>
-                    <p className="font-medium">Bank Transfer</p>
-                    <p className="text-xs text-muted-foreground">1-3 business days</p>
-                  </div>
-                </Label>
-              </div>
-            </RadioGroup>
-          </div>
-        </div>
-        
-        <div className="mt-6">
-          <Button 
-            onClick={handleAddFunds} 
-            disabled={!amount || parseFloat(amount) <= 0 || isDepositing}
-            className="w-full"
-          >
-            {isDepositing ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Processing...
-              </>
-            ) : (
-              `Add ${amount ? `$${parseFloat(amount).toFixed(2)}` : 'Funds'}`
-            )}
-          </Button>
-        </div>
+        {renderPaymentContent()}
       </SheetContent>
     </Sheet>
   )

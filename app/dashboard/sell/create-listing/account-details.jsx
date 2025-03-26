@@ -206,8 +206,7 @@ export function AccountDetails({ data, onUpdate }) {
             placeholder={isAccountCategory ? "e.g. 100000" : "Only for Account category"}
             inputMode="numeric"
             disabled={!isAccountCategory}
-            className={!isAccountCategory ? "opacity-50 cursor-not-allowed" : ""}
-            className="text-xs sm:text-sm h-8 sm:h-10"
+            className={"text-xs sm:text-sm h-8 sm:h-10" + !isAccountCategory ? "opacity-50 cursor-not-allowed" : ""}
           />
           <p className="text-[10px] sm:text-xs text-gray-500 mt-1">
             Enter the exact number (e.g., 100000)
@@ -224,8 +223,7 @@ export function AccountDetails({ data, onUpdate }) {
             placeholder={isAccountCategory ? "e.g. 4.5" : "Only for Account category"}
             inputMode="decimal"
             disabled={!isAccountCategory}
-            className={!isAccountCategory ? "opacity-50 cursor-not-allowed" : ""}
-            className="text-xs sm:text-sm h-8 sm:h-10"
+            className={"text-xs sm:text-sm h-8 sm:h-10" + !isAccountCategory ? "opacity-50 cursor-not-allowed" : ""}
           />
           <p className="text-[10px] sm:text-xs text-gray-500 mt-1">
             Enter as a number (e.g., 4.5)

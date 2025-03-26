@@ -25,6 +25,9 @@ import prisma from "@/lib/prisma"
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/app/components/dialog"
 import { cn } from "@/lib/utils"
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/app/components/tabs"
+import { FileUploader } from "@/app/components/file-uploader"
+import { Trash } from "lucide-react"
 
 // Fetch function for the order
 const fetchOrder = async (orderId) => {
@@ -119,7 +122,14 @@ export default function OrderDetailPage() {
   const [credentials, setCredentials] = useState({
     email: '',
     password: '',
-    additionalInfo: ''
+    additionalInfo: '',
+    loginImages: [],
+    recoveryEmail: '',
+    recoveryPassword: '',
+    recoveryPhone: '',
+    securityQuestions: '',
+    recoveryImages: [],
+    transferInstructions: ''
   })
   const [showCredentials, setShowCredentials] = useState(false)
   const [showDisputeModal, setShowDisputeModal] = useState(false)
@@ -136,6 +146,10 @@ export default function OrderDetailPage() {
   const [lastFetchTime, setLastFetchTime] = useState(0)
   const pollingTimeoutRef = useRef(null)
   const [etag, setEtag] = useState(null)
+  const [showPassword, setShowPassword] = useState({
+    password: false,
+    recoveryPassword: false
+  })
   
   // Main order query with proper configuration
   const { 
@@ -180,7 +194,18 @@ export default function OrderDetailPage() {
     onSuccess: () => {
       queryClient.invalidateQueries(['order', params.id]);
       toast.success('Account credentials released');
-      setCredentials({ email: '', password: '', additionalInfo: '' });
+      setCredentials({
+        email: '',
+        password: '',
+        additionalInfo: '',
+        loginImages: [],
+        recoveryEmail: '',
+        recoveryPassword: '',
+        recoveryPhone: '',
+        securityQuestions: '',
+        recoveryImages: [],
+        transferInstructions: ''
+      });
     },
     onError: (error) => {
       toast.error(error.message || 'Failed to release credentials');
@@ -260,29 +285,34 @@ export default function OrderDetailPage() {
     toast.success('Order ID copied to clipboard');
   }, [params.id]);
   
-  const handleReleaseCredentials = useCallback(async (e) => {
-    e?.preventDefault();
+  const handleReleaseCredentials = async (e) => {
+    e.preventDefault();
+    setReleasing(true);
     
-    // Validation
-    if (!credentials.email.trim()) {
-      toast.error('Account email/username is required');
-      return;
-    }
-    
-    if (!credentials.password.trim()) {
-      toast.error('Account password is required');
-      return;
-    }
-    
-    releaseMutation.mutate({ 
-      orderId: params.id,
-      credentials: {
-        email: credentials.email.trim(),
-        password: credentials.password.trim(),
-        additionalInfo: credentials.additionalInfo.trim() || null
+    try {
+      const response = await fetch(`/api/orders/${order.id}/release-credentials`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(credentials),
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to release credentials');
       }
-    });
-  }, [params.id, credentials, releaseMutation]);
+      
+      // Success
+      toast.success('Credentials released successfully');
+      setTimeout(() => router.reload(), 1000);
+    } catch (error) {
+      toast.error(error.message);
+    } finally {
+      setReleasing(false);
+    }
+  };
   
   const handleConfirmReceived = useCallback(async () => {
     if (!confirm('Are you sure you want to confirm receipt? This will release the payment to the seller and cannot be undone.')) {
@@ -342,6 +372,33 @@ export default function OrderDetailPage() {
   const toggleCredentialVisibility = () => {
     setShowCredentials(prev => !prev);
   }
+  
+  // Update your useEffect for loading credentials from listing
+  useEffect(() => {
+    if (order?.listing?.credentials) {
+      try {
+        // Parse credentials if they're stored as a JSON string
+        const listingCreds = typeof order.listing.credentials === 'string' 
+          ? JSON.parse(order.listing.credentials) 
+          : order.listing.credentials;
+          
+        setCredentials(prevCreds => ({
+          ...prevCreds,
+          email: listingCreds.email || prevCreds.email,
+          password: listingCreds.password || prevCreds.password,
+          serialKey: listingCreds.serialKey || prevCreds.serialKey,
+          loginImages: listingCreds.loginImages || prevCreds.loginImages,
+          recoveryAccountType: listingCreds.recoveryAccountType || prevCreds.recoveryAccountType,
+          recoveryEmail: listingCreds.recoveryEmail || prevCreds.recoveryEmail,
+          recoveryPassword: listingCreds.recoveryPassword || prevCreds.recoveryPassword,
+          recoveryImages: listingCreds.recoveryImages || prevCreds.recoveryImages,
+          transferInstructions: listingCreds.transferInstructions || prevCreds.transferInstructions
+        }));
+      } catch (error) {
+        console.error("Error parsing credentials:", error);
+      }
+    }
+  }, [order]);
   
   if (showLoading) {
     return (
@@ -659,53 +716,293 @@ export default function OrderDetailPage() {
           {isSeller && order.status === 'WAITING_FOR_SELLER' && (
             <div className="mt-4 sm:mt-6 border border-border rounded-lg p-3 sm:p-4">
               <h3 className="font-medium text-base sm:text-lg mb-3">Release Account Credentials</h3>
+              
+              <div className="bg-muted/30 border border-yellow-200 dark:border-yellow-900/50 rounded-lg p-4 flex gap-2 items-start mb-4">
+                <Shield className="h-5 w-5 text-yellow-600 dark:text-yellow-400 mt-0.5" />
+                <div className="text-sm">
+                  <p className="font-medium text-yellow-700 dark:text-yellow-400">Security Note</p>
+                  <p className="text-yellow-600/90 dark:text-yellow-400/80">
+                    These credentials are encrypted and will only be revealed to the buyer after you confirm the order.
+                    Never share this information outside the platform.
+                  </p>
+                </div>
+              </div>
+              
+              {order.listing?.credentials && (
+                <div className="bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 rounded-lg p-4 mb-4 flex gap-2 items-start">
+                  <div className="h-5 w-5 mt-0.5">✓</div>
+                  <div className="text-sm">
+                    <p className="font-medium">Credentials Already Available</p>
+                    <p>You provided credentials when creating this listing. You can review and edit them below.</p>
+                  </div>
+                </div>
+              )}
+              
               <form onSubmit={handleReleaseCredentials} className="space-y-4">
-                <div>
-                  <Label htmlFor="email">Account Email/Username</Label>
-                  <Input 
-                    id="email" 
-                    value={credentials.email}
-                    onChange={(e) => setCredentials({...credentials, email: e.target.value})}
-                    placeholder="Enter account email or username"
-                    required
-                  />
-                </div>
-                
-                <div>
-                  <Label htmlFor="password">Account Password</Label>
-                  <Input 
-                    id="password" 
-                    type="password"
-                    value={credentials.password}
-                    onChange={(e) => setCredentials({...credentials, password: e.target.value})}
-                    placeholder="Enter account password"
-                    required
-                  />
-                </div>
-                
-                <div>
-                  <Label htmlFor="additionalInfo">Additional Information (Optional)</Label>
-                  <Textarea 
-                    id="additionalInfo" 
-                    value={credentials.additionalInfo}
-                    onChange={(e) => setCredentials({...credentials, additionalInfo: e.target.value})}
-                    placeholder="Any additional information the buyer needs to know"
-                    rows={3}
-                  />
-                </div>
+                <Tabs defaultValue="login" className="w-full">
+                  <TabsList className="w-full grid grid-cols-3">
+                    <TabsTrigger value="login">Login Details</TabsTrigger>
+                    <TabsTrigger value="recovery">Recovery Info</TabsTrigger>
+                    <TabsTrigger value="additional">Additional Info</TabsTrigger>
+                  </TabsList>
+                  
+                  <TabsContent value="login" className="space-y-4 mt-4">
+                    <div className="grid grid-cols-1 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="email">Email / Username</Label>
+                        <Input 
+                          id="email" 
+                          value={credentials.email || ''}
+                          onChange={(e) => setCredentials({...credentials, email: e.target.value})}
+                          placeholder="Account email or username"
+                          required
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="password">Password</Label>
+                        <div className="relative">
+                          <Input 
+                            id="password" 
+                            type={showPassword.password ? "text" : "password"}
+                            value={credentials.password || ''}
+                            onChange={(e) => setCredentials({...credentials, password: e.target.value})}
+                            placeholder="Account password"
+                            required
+                          />
+                          <button
+                            type="button"
+                            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500"
+                            onClick={() => setShowPassword({...showPassword, password: !showPassword.password})}
+                          >
+                            {showPassword.password ? (
+                              <EyeOff className="h-5 w-5" />
+                            ) : (
+                              <Eye className="h-5 w-5" />
+                            )}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="serialKey">Key or Serial Number (Optional)</Label>
+                        <Input
+                          id="serialKey"
+                          value={credentials.serialKey || ''}
+                          onChange={(e) => setCredentials({...credentials, serialKey: e.target.value})}
+                          placeholder="Enter license key or serial number"
+                        />
+                        <p className="text-xs text-muted-foreground">Add product key, license key, or serial number if applicable</p>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="loginImages">Credential Images (Optional)</Label>
+                        <p className="text-xs text-muted-foreground">Upload screenshots of login credentials if needed</p>
+                        
+                        <FileUploader
+                          onFilesSelected={(files) => {
+                            const promises = Array.from(files).map(file => {
+                              return new Promise((resolve) => {
+                                const reader = new FileReader()
+                                reader.onloadend = () => resolve(reader.result)
+                                reader.readAsDataURL(file)
+                              })
+                            })
+                            
+                            Promise.all(promises).then(dataUrls => {
+                              setCredentials({
+                                ...credentials,
+                                loginImages: [...(credentials.loginImages || []), ...dataUrls]
+                              })
+                            })
+                          }}
+                          maxFiles={3}
+                          maxSizeInMB={5}
+                          acceptedFileTypes={["image/jpeg", "image/png", "image/gif"]}
+                          label="Drag & drop credential images or click to browse"
+                        />
+                        
+                        {credentials.loginImages && credentials.loginImages.length > 0 && (
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2">
+                            {credentials.loginImages.map((image, index) => (
+                              <div key={index} className="relative group">
+                                <img 
+                                  src={image} 
+                                  alt={`Credential image ${index + 1}`} 
+                                  className="w-full h-24 object-cover rounded-lg border"
+                                />
+                                <button
+                                  type="button"
+                                  className="absolute top-1 right-1 bg-black/70 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                                  onClick={() => {
+                                    const updatedImages = [...(credentials.loginImages || [])]
+                                    updatedImages.splice(index, 1)
+                                    setCredentials({
+                                      ...credentials,
+                                      loginImages: updatedImages
+                                    })
+                                  }}
+                                >
+                                  <Trash className="h-4 w-4" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </TabsContent>
+                  
+                  <TabsContent value="recovery" className="space-y-4 mt-4">
+                    <div className="space-y-4">
+                      <div>
+                        <h3 className="text-md font-medium mb-2">Recovery Account Details</h3>
+                        <p className="text-sm text-muted-foreground mb-4">
+                          If this account uses a separate email (e.g., Gmail for a Facebook login), provide those credentials here.
+                        </p>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="recoveryAccountType">Recovery Account Type</Label>
+                          <Input 
+                            id="recoveryAccountType" 
+                            value={credentials.recoveryAccountType || ''}
+                            onChange={(e) => setCredentials({...credentials, recoveryAccountType: e.target.value})}
+                            placeholder="e.g., Gmail, Email provider, iCloud"
+                          />
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="recoveryEmail">Recovery Email</Label>
+                          <Input 
+                            id="recoveryEmail" 
+                            value={credentials.recoveryEmail || ''}
+                            onChange={(e) => setCredentials({...credentials, recoveryEmail: e.target.value})}
+                            placeholder="Recovery email address"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="recoveryPassword">Recovery Password</Label>
+                          <div className="relative">
+                            <Input 
+                              id="recoveryPassword" 
+                              type={showPassword.recoveryPassword ? "text" : "password"}
+                              value={credentials.recoveryPassword || ''}
+                              onChange={(e) => setCredentials({...credentials, recoveryPassword: e.target.value})}
+                              placeholder="Recovery account password"
+                            />
+                            <button
+                              type="button"
+                              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500"
+                              onClick={() => setShowPassword({...showPassword, recoveryPassword: !showPassword.recoveryPassword})}
+                            >
+                              {showPassword.recoveryPassword ? (
+                                <EyeOff className="h-5 w-5" />
+                              ) : (
+                                <Eye className="h-5 w-5" />
+                              )}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="recoveryImages">Recovery Images (Optional)</Label>
+                        <p className="text-xs text-muted-foreground">Upload screenshots of recovery information</p>
+                        
+                        <FileUploader
+                          onFilesSelected={(files) => {
+                            const promises = Array.from(files).map(file => {
+                              return new Promise((resolve) => {
+                                const reader = new FileReader()
+                                reader.onloadend = () => resolve(reader.result)
+                                reader.readAsDataURL(file)
+                              })
+                            })
+                            
+                            Promise.all(promises).then(dataUrls => {
+                              setCredentials({
+                                ...credentials,
+                                recoveryImages: [...(credentials.recoveryImages || []), ...dataUrls]
+                              })
+                            })
+                          }}
+                          maxFiles={3}
+                          maxSizeInMB={5}
+                          acceptedFileTypes={["image/jpeg", "image/png", "image/gif"]}
+                          label="Drag & drop recovery images or click to browse"
+                        />
+                        
+                        {credentials.recoveryImages && credentials.recoveryImages.length > 0 && (
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2">
+                            {credentials.recoveryImages.map((image, index) => (
+                              <div key={index} className="relative group">
+                                <img 
+                                  src={image} 
+                                  alt={`Recovery image ${index + 1}`} 
+                                  className="w-full h-24 object-cover rounded-lg border"
+                                />
+                                <button
+                                  type="button"
+                                  className="absolute top-1 right-1 bg-black/70 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                                  onClick={() => {
+                                    const updatedImages = [...(credentials.recoveryImages || [])]
+                                    updatedImages.splice(index, 1)
+                                    setCredentials({
+                                      ...credentials,
+                                      recoveryImages: updatedImages
+                                    })
+                                  }}
+                                >
+                                  <Trash className="h-4 w-4" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </TabsContent>
+                  
+                  <TabsContent value="additional" className="space-y-4 mt-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="transferInstructions">Transfer Instructions</Label>
+                      <Textarea 
+                        id="transferInstructions" 
+                        value={credentials.transferInstructions || ''}
+                        onChange={(e) => setCredentials({...credentials, transferInstructions: e.target.value})}
+                        placeholder="Detailed instructions for how to transfer this account"
+                        rows={3}
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="additionalInfo">Additional Information</Label>
+                      <Textarea 
+                        id="additionalInfo" 
+                        value={credentials.additionalInfo || ''}
+                        onChange={(e) => setCredentials({...credentials, additionalInfo: e.target.value})}
+                        placeholder="Any additional information the buyer needs to know"
+                        rows={3}
+                      />
+                    </div>
+                  </TabsContent>
+                </Tabs>
                 
                 <Button 
                   type="submit" 
-                  className="w-full text-xs sm:text-sm h-9 sm:h-10"
+                  className="w-full text-xs sm:text-sm h-9 sm:h-10 mt-4"
                   disabled={releasing || statusChangeLoading}
                 >
                   {releasing ? (
                     <span className="flex items-center">
                       <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                      Releasing...
+                      Releasing Credentials...
                     </span>
                   ) : (
-                    'Release Account Details'
+                    'Release Account Credentials'
                   )}
                 </Button>
               </form>

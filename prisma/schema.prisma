@@ -47,6 +47,8 @@ model User {
   following Follow[] @relation("UserFollowing")
 
   PushSubscription PushSubscription[]
+
+  CryptoPayment CryptoPayment[]
 }
 
 model Kyc {
@@ -159,6 +161,8 @@ model ChatMessage {
   order       Order?   @relation(fields: [orderId], references: [id])
   recipient   User     @relation("RecipientMessages", fields: [recipientId], references: [id])
   sender      User     @relation(fields: [senderId], references: [id])
+
+  @@index([createdAt])
 }
 
 model Device {
@@ -285,6 +289,8 @@ model Transaction {
   order               Order?             @relation(fields: [orderId], references: [id])
   user                User               @relation(fields: [userId], references: [id])
   withdrawalRequest   WithdrawalRequest? @relation(fields: [withdrawalRequestId], references: [id])
+
+  CryptoPayment CryptoPayment[]
 }
 
 model Dispute {
@@ -523,4 +529,25 @@ enum WithdrawalStatus {
   COMPLETED
   REJECTED
   CANCELLED
+}
+
+model CryptoPayment {
+  id            String   @id @default(cuid())
+  userId        String
+  paymentId     String
+  paymentStatus String
+  amount        Float
+  cryptoAmount  Float
+  currency      String
+  address       String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  provider      String
+  transactionId String?
+  transaction   Transaction? @relation(fields: [transactionId], references: [id])
+  user          User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([paymentId])
+  @@index([paymentStatus])
 }
