@@ -35,10 +35,10 @@ export function AccountPricingForm({ formData, updateFormData, onComplete }) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div>
-        <h3 className="text-lg font-medium mb-2">Pricing Details</h3>
-        <p className="text-sm text-muted-foreground mb-4">
+        <h3 className="text-base sm:text-lg font-medium mb-1 sm:mb-2">Pricing Details</h3>
+        <p className="text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-4">
           Update your price and decide if you're open to price negotiation.
         </p>
         <div className="text-xs text-muted-foreground flex items-center gap-1.5 mb-4">

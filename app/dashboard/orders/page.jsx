@@ -45,25 +45,25 @@ export default function OrdersPage() {
     return false
   })
   
-  // Replace the loading spinner with a skeleton loader
+  // Update the loading skeleton to be more responsive
   if (isLoading) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <h1 className="text-2xl font-bold mb-6">My Orders</h1>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-8">
+        <h1 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">My Orders</h1>
+        <div className="grid grid-cols-1 gap-4 sm:gap-6">
           {[...Array(6)].map((_, index) => (
             <div key={index} className="bg-card border border-border rounded-lg shadow-sm overflow-hidden animate-pulse">
-              <div className="p-4 border-b border-border">
-                <div className="h-6 bg-muted-foreground/20 rounded w-3/4 mb-2"></div>
-                <div className="h-4 bg-muted-foreground/20 rounded w-1/2"></div>
+              <div className="p-3 sm:p-4 border-b border-border">
+                <div className="h-5 sm:h-6 bg-muted-foreground/20 rounded w-3/4 mb-2"></div>
+                <div className="h-3 sm:h-4 bg-muted-foreground/20 rounded w-1/2"></div>
               </div>
-              <div className="p-4">
-                <div className="h-4 bg-muted-foreground/20 rounded w-full mb-3"></div>
-                <div className="h-4 bg-muted-foreground/20 rounded w-5/6 mb-3"></div>
-                <div className="h-4 bg-muted-foreground/20 rounded w-4/6 mb-4"></div>
+              <div className="p-3 sm:p-4">
+                <div className="h-3 sm:h-4 bg-muted-foreground/20 rounded w-full mb-3"></div>
+                <div className="h-3 sm:h-4 bg-muted-foreground/20 rounded w-5/6 mb-3"></div>
+                <div className="h-3 sm:h-4 bg-muted-foreground/20 rounded w-4/6 mb-4"></div>
                 <div className="flex justify-between items-center mt-4">
-                  <div className="h-8 bg-muted-foreground/20 rounded w-1/3"></div>
-                  <div className="h-8 bg-muted-foreground/20 rounded w-1/4"></div>
+                  <div className="h-6 sm:h-8 bg-muted-foreground/20 rounded w-1/3"></div>
+                  <div className="h-6 sm:h-8 bg-muted-foreground/20 rounded w-1/4"></div>
                 </div>
               </div>
             </div>
@@ -74,56 +74,57 @@ export default function OrdersPage() {
   }
   
   return (
-    <div className="container p-0">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">My Orders</h1>
+    <div className="container p-0 px-2 sm:px-4">
+      <div className="flex items-center justify-between mb-4 sm:mb-6">
+        <h1 className="text-xl sm:text-2xl font-bold">My Orders</h1>
       </div>
       
       <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="mb-6">
-          <TabsTrigger value="all" className="tabtext">All Orders</TabsTrigger>
-          <TabsTrigger value="active" className="tabtext">Active</TabsTrigger>
-          <TabsTrigger value="completed" className="tabtext">Completed</TabsTrigger>
-          <TabsTrigger value="disputed" className="tabtext">Disputed</TabsTrigger>
+        <TabsList className="mb-4 sm:mb-6 w-full overflow-x-auto flex-nowrap">
+          <TabsTrigger value="all" className="tabtext whitespace-nowrap min-w-[80px]">All Orders</TabsTrigger>
+          <TabsTrigger value="active" className="tabtext whitespace-nowrap min-w-[60px]">Active</TabsTrigger>
+          <TabsTrigger value="completed" className="tabtext whitespace-nowrap min-w-[80px]">Completed</TabsTrigger>
+          <TabsTrigger value="disputed" className="tabtext whitespace-nowrap min-w-[70px]">Disputed</TabsTrigger>
         </TabsList>
         
         <TabsContent value={activeTab}>
           {filteredOrders.length > 0 ? (
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               {filteredOrders.map(order => (
                 <Card key={order.id} className="hover:bg-muted/50 transition-colors cursor-pointer" onClick={() => router.push(`/dashboard/orders/${order.id}`)}>
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center gap-3">
-                        <div className={`h-10 w-10 rounded-full flex items-center justify-center ${getStatusBgColor(order.status)}`}>
+                  <CardContent className="p-3 sm:p-6">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 sm:mb-4 gap-2 sm:gap-0">
+                      <div className="flex items-center gap-2 sm:gap-3">
+                        <div className={`h-8 w-8 sm:h-10 sm:w-10 rounded-full flex items-center justify-center ${getStatusBgColor(order.status)}`}>
                           {getStatusIcon(order.status)}
                         </div>
                         <div>
-                          <h3 className="font-medium">{order.listing?.platform?.name || 'Account'} Purchase</h3>
-                          <p className="text-sm text-muted-foreground">
+                          <h3 className="font-medium text-sm sm:text-base">{order.listing?.platform?.name || 'Account'} Purchase</h3>
+                          <p className="text-xs sm:text-sm text-muted-foreground">
                             Order #{order.id.substring(0, 8)}
                           </p>
                         </div>
                       </div>
-                      <Badge variant={getStatusVariant(order.status)}>
+                      <Badge variant={getStatusVariant(order.status)} className="text-xs sm:text-sm self-start sm:self-center">
                         {formatStatus(order.status)}
                       </Badge>
                     </div>
                     
-                    <div className="flex items-center justify-between">
-                      <div className="text-sm text-muted-foreground">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-0">
+                      <div className="text-xs sm:text-sm text-muted-foreground order-2 sm:order-1">
                         {order.createdAt && (
                           <span>Created {formatDistance(new Date(order.createdAt), new Date(), { addSuffix: true })}</span>
                         )}
                       </div>
-                      <div className="flex items-center gap-4">
-                        <div className="font-medium">${order.price}</div>
+                      <div className="flex items-center justify-between sm:justify-end gap-2 sm:gap-4 order-1 sm:order-2">
+                        <div className="font-medium text-sm sm:text-base">${order.price}</div>
                         <Button 
                           variant="ghost" 
                           size="icon"
+                          className="h-8 w-8 sm:h-9 sm:w-9"
                           onClick={() => router.push(`/dashboard/orders/${order.id}`)}
                         >
-                          <ArrowRight className="h-4 w-4" />
+                          <ArrowRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                         </Button>
                       </div>
                     </div>
@@ -133,19 +134,22 @@ export default function OrdersPage() {
             </div>
           ) : (
             <Card>
-              <CardContent className="p-6 text-center">
-                <div className="mx-auto h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-4">
-                  <Package className="h-6 w-6 text-muted-foreground" />
+              <CardContent className="p-4 sm:p-6 text-center">
+                <div className="mx-auto h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-muted flex items-center justify-center mb-3 sm:mb-4">
+                  <Package className="h-5 w-5 sm:h-6 sm:w-6 text-muted-foreground" />
                 </div>
-                <h3 className="text-lg font-medium mb-2">No Orders Found</h3>
-                <p className="text-muted-foreground mb-4">
+                <h3 className="text-base sm:text-lg font-medium mb-2">No Orders Found</h3>
+                <p className="text-sm sm:text-base text-muted-foreground mb-4">
                   {activeTab === 'all' 
                     ? "You haven't made any orders yet." 
                     : activeTab === 'active'
                       ? "You don't have any active orders."
                       : "You don't have any completed orders."}
                 </p>
-                <Button onClick={() => router.push('/dashboard/marketplace')}>
+                <Button 
+                  onClick={() => router.push('/dashboard/marketplace')}
+                  className="text-xs sm:text-sm"
+                >
                   Browse Marketplace
                 </Button>
               </CardContent>

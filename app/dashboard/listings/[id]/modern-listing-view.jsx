@@ -200,7 +200,7 @@ export function ModernListingView({ listing, onBuyNow, isSubmitting, similarList
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-4 pb-16">
+    <div className="max-w-6xl mx-auto px-2 sm:px-4 pb-12 sm:pb-16">
       {/* Sticky header for mobile view that appears when scrolled */}
       <motion.div 
         className={cn(
@@ -234,7 +234,7 @@ export function ModernListingView({ listing, onBuyNow, isSubmitting, similarList
       </motion.div>
 
       {/* Breadcrumb */}
-      <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 my-4">
+      <div className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-gray-500 dark:text-gray-400 my-2 sm:my-4">
         <Button 
           variant="ghost" 
           size="sm" 
@@ -248,7 +248,7 @@ export function ModernListingView({ listing, onBuyNow, isSubmitting, similarList
       </div>
       
       {/* Main content grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 sm:gap-8">
         {/* Left column - Images */}
         <div className="lg:col-span-3">
           <div className="rounded-2xl overflow-hidden bg-gray-50 dark:bg-gray-900 relative aspect-[4/3] group">
@@ -338,7 +338,7 @@ export function ModernListingView({ listing, onBuyNow, isSubmitting, similarList
           
           {/* Thumbnail grid with skeleton loading */}
           {listing.mediaProof && listing.mediaProof.length > 1 && (
-            <div className="grid grid-cols-5 gap-2 mt-2">
+            <div className="grid grid-cols-4 sm:grid-cols-5 gap-1 sm:gap-2 mt-1 sm:mt-2">
               {listing.mediaProof.slice(0, 5).map((img, idx) => (
                 <div 
                   key={idx}
@@ -375,31 +375,39 @@ export function ModernListingView({ listing, onBuyNow, isSubmitting, similarList
         </div>
         
         {/* Right column - Listing details */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-2 space-y-4 sm:space-y-6">
           {/* Main info card with glassmorphism effect */}
           <Card className="overflow-hidden border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md shadow-lg">
-            <CardHeader className="pb-2">
-              <div className="flex justify-between items-start">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
+            <CardHeader className="pb-2 px-3 sm:px-6">
+              <div className="flex justify-between items-start gap-2">
+                <div className="space-y-1 min-w-0">
+                  <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
                     {listing.country && (
                       <ReactCountryFlag 
                         countryCode={getCountryCode(listing.country || listing.accountCountry)} 
                         svg 
-                        className="rounded-sm mr-1" 
-                        style={{ width: '1.2em', height: '1.2em' }} 
+                        className="rounded-sm" 
+                        style={{ width: '1em', height: '1em' }} 
                       />
                     )}
-                    <Badge variant="outline" className="font-normal text-xs">
-                      <CategoryIcon category={listing.category?.name} size="sm" className="mr-1" />
+                    <Badge variant="outline" className="font-normal text-[10px] sm:text-xs">
+                      <CategoryIcon category={listing.category?.name} size="sm" className="mr-1 h-3 w-3 sm:h-4 sm:w-4" />
                       {listing.category?.name || "Other"}
                     </Badge>
-                    <Badge variant="outline" className="font-normal text-xs">
-                     <Image src={listing.platform?.icon} alt={listing.platform?.name} width={16} height={16} />
+                    <Badge variant="outline" className="font-normal text-[10px] sm:text-xs">
+                      <Image 
+                        src={listing.platform?.icon} 
+                        alt={listing.platform?.name} 
+                        width={12} 
+                        height={12} 
+                        className="sm:w-4 sm:h-4" 
+                      />
                       {listing.platform?.name || "General"}
                     </Badge>
                   </div>
-                  <CardTitle className="text-2xl font-bold leading-tight">{listing.title || listing.username}</CardTitle>
+                  <CardTitle className="text-xl sm:text-2xl font-bold leading-tight truncate">
+                    {listing.title || listing.username}
+                  </CardTitle>
                 </div>
                 <div className="flex gap-2">
                   <TooltipProvider>
@@ -422,26 +430,23 @@ export function ModernListingView({ listing, onBuyNow, isSubmitting, similarList
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4 px-3 sm:px-6">
               <div className="flex justify-between items-end">
                 <div>
-                  <div className="text-sm text-gray-500 dark:text-gray-400">Price</div>
-                  <div className="text-3xl font-bold text-primary">{formattedPrice}</div>
+                  <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">Price</div>
+                  <div className="text-2xl sm:text-3xl font-bold text-primary">{formattedPrice}</div>
                 </div>
-                <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400 text-sm">
-                  <Clock className="h-4 w-4" />
-                  <span>
-                    {formatDistanceToNow(new Date(listing.createdAt), { addSuffix: true })}
-                  </span>
+                <div className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+                  <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  <span>{formatDistanceToNow(new Date(listing.createdAt), { addSuffix: true })}</span>
                 </div>
               </div>
               
-              <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-2 sm:gap-3">
                 <Button 
                   onClick={onBuyNow}
                   disabled={isSubmitting || listing.status !== "AVAILABLE"}
-                  className="relative overflow-hidden group font-medium"
-                  size="lg"
+                  className="relative overflow-hidden group font-medium h-10 sm:h-11"
                 >
                   <span className="absolute inset-0 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                   <span className="relative flex items-center gap-2">
@@ -459,71 +464,75 @@ export function ModernListingView({ listing, onBuyNow, isSubmitting, similarList
                 <Button 
                   variant="outline"
                   onClick={handleContactSeller}
-                  className="font-medium"
+                  className="font-medium h-9 sm:h-10 text-sm"
                 >
-                  <MessageSquare className="h-4 w-4 mr-2" />
+                  <MessageSquare className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />
                   Contact Seller
                 </Button>
               </div>
               
-              <div className="border-t border-gray-200 dark:border-gray-800 pt-4">
-                <div className="text-sm font-medium mb-2">Quick info</div>
-                <div className="grid grid-cols-2 gap-3">
+              <div className="border-t border-gray-200 dark:border-gray-800 pt-3 sm:pt-4">
+                <div className="text-xs sm:text-sm font-medium mb-2">Quick info</div>
+                <div className="grid grid-cols-2 gap-2 sm:gap-3">
                   {(listing.type || listing.category?.name) && (
-                    <div className="flex items-center gap-2 text-sm">
-                      <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                        <CategoryIcon category={listing.category?.name} size="sm" />
+                    <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm">
+                      <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                        <CategoryIcon category={listing.category?.name} className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                       </div>
                       <div>
-                        <div className="font-medium">
+                        <div className="font-medium text-xs sm:text-sm">
                           {listing.type === "gift_card" ? "Gift Card" : 
                            listing.type === "account" || listing.category?.name === "Account" ? "Account" : "Digital"}
                         </div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400">Type</div>
+                        <div className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">Type</div>
                       </div>
                     </div>
                   )}
                   
                   {listing.createdAt && (
-                    <div className="flex items-center gap-2 text-sm">
-                      <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                        <Calendar className="h-4 w-4" />
+                    <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm">
+                      <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                        <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                       </div>
                       <div>
-                        <div className="font-medium">{new Date(listing.createdAt).toLocaleDateString()}</div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400">Listed on</div>
+                        <div className="font-medium text-xs sm:text-sm">
+                          {new Date(listing.createdAt).toLocaleDateString()}
+                        </div>
+                        <div className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">Listed on</div>
                       </div>
                     </div>
                   )}
                   
                   {(listing.country || listing.accountCountry) && (
-                    <div className="flex items-center gap-2 text-sm">
-                      <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                        <Globe className="h-4 w-4" />
+                    <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm">
+                      <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                        <Globe className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                       </div>
                       <div>
-                        <div className="font-medium flex items-center gap-1">
-                          <ReactCountryFlag 
-                            countryCode={getCountryCode(listing.country || listing.accountCountry)} 
-                            svg 
-                            className="rounded-sm" 
-                            style={{ width: '1em', height: '1em' }} 
-                          />
+                        <div className="font-medium text-xs sm:text-sm">
                           {listing.country || listing.accountCountry}
                         </div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400">Country</div>
+                        <div className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">Country</div>
                       </div>
                     </div>
                   )}
                   
                   {listing.platform?.name && (
-                    <div className="flex items-center gap-2 text-sm">
-                      <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                       <Image src={listing.platform?.icon} alt={listing.platform?.name} width={16} height={16} />
+                    <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm">
+                      <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                        <Image 
+                          src={listing.platform?.icon} 
+                          alt={listing.platform?.name} 
+                          width={12} 
+                          height={12} 
+                          className="sm:w-4 sm:h-4" 
+                        />
                       </div>
                       <div>
-                        <div className="font-medium">{listing.platform?.name}</div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400">Platform</div>
+                        <div className="font-medium text-xs sm:text-sm">
+                          {listing.platform?.name}
+                        </div>
+                        <div className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">Platform</div>
                       </div>
                     </div>
                   )}
@@ -532,29 +541,6 @@ export function ModernListingView({ listing, onBuyNow, isSubmitting, similarList
             </CardContent>
           </Card>
           
-
-{/* Description Section */}
-<section>
-          <div className="flex items-center mb-4 w-full overflow-hidden">
-            <h2 className="text-2xl font-semibold flex-shrink-0 mr-4">Description</h2>
-            <Separator className="flex-grow" />
-          </div>
-          
-          <Card className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border shadow-sm">
-            <CardContent className="py-6">
-              {listing.description ? (
-                <div className="prose dark:prose-invert max-w-none prose-sm">
-                  <p className="whitespace-pre-line">{listing.description}</p>
-                </div>
-              ) : (
-                <div className="text-gray-500 dark:text-gray-400 text-sm italic">
-                  No description available for this listing.
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </section>
-
           {/* Updated seller card with trust indicators and other listings */}
           <Card className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-md overflow-hidden border shadow-sm">
             <div className="bg-gradient-to-r from-primary/5 to-primary/10 px-4 sm:px-6 py-3 sm:py-4 border-b dark:border-gray-800">
@@ -724,60 +710,60 @@ export function ModernListingView({ listing, onBuyNow, isSubmitting, similarList
             <Separator className="flex-grow" />
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             {/* Left column - Product details */}
             <Card className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border shadow-sm">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-xl font-semibold flex items-center gap-2">
-                  <Info className="h-5 w-5 text-primary" />
+              <CardHeader className="pb-2 px-3 sm:px-4">
+                <CardTitle className="text-base sm:text-lg font-semibold flex items-center gap-1.5 sm:gap-2">
+                  <Info className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
                   Account Details
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-6">
-                {/* Account metrics */}
-                <div className="grid grid-cols-2 gap-4">
+              <CardContent className="space-y-4 sm:space-y-6 px-3 sm:px-4">
+                {/* Account metrics grid */}
+                <div className="grid grid-cols-2 gap-2 sm:gap-4">
                   {shouldDisplay(listing.followers) && (
-                    <div className="bg-gray-50 dark:bg-gray-800/50 p-3 rounded-lg">
-                      <div className="text-sm text-gray-500 dark:text-gray-400">Followers</div>
-                      <div className="font-medium">{formatFollowers(listing.followers)}</div>
+                    <div className="bg-gray-50 dark:bg-gray-800/50 p-2 sm:p-3 rounded-lg">
+                      <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">Followers</div>
+                      <div className="font-medium text-sm sm:text-base">{formatFollowers(listing.followers)}</div>
                     </div>
                   )}
                   
                   {shouldDisplay(listing.engagement) && (
-                    <div className="bg-gray-50 dark:bg-gray-800/50 p-3 rounded-lg">
-                      <div className="text-sm text-gray-500 dark:text-gray-400">Engagement</div>
-                      <div className="font-medium">{listing.engagement}%</div>
+                    <div className="bg-gray-50 dark:bg-gray-800/50 p-2 sm:p-3 rounded-lg">
+                      <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">Engagement</div>
+                      <div className="font-medium text-sm sm:text-base">{listing.engagement}%</div>
                     </div>
                   )}
                   
                   {shouldDisplay(listing.accountAge) && (
-                    <div className="bg-gray-50 dark:bg-gray-800/50 p-3 rounded-lg">
-                      <div className="text-sm text-gray-500 dark:text-gray-400">Account Age</div>
-                      <div className="font-medium">{listing.accountAge} months</div>
+                    <div className="bg-gray-50 dark:bg-gray-800/50 p-2 sm:p-3 rounded-lg">
+                      <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">Account Age</div>
+                      <div className="font-medium text-sm sm:text-base">{listing.accountAge} months</div>
                     </div>
                   )}
                   
                   {shouldDisplay(listing.posts) && (
-                    <div className="bg-gray-50 dark:bg-gray-800/50 p-3 rounded-lg">
-                      <div className="text-sm text-gray-500 dark:text-gray-400">Posts</div>
-                      <div className="font-medium">{listing.posts.toLocaleString()}</div>
+                    <div className="bg-gray-50 dark:bg-gray-800/50 p-2 sm:p-3 rounded-lg">
+                      <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">Posts</div>
+                      <div className="font-medium text-sm sm:text-base">{listing.posts.toLocaleString()}</div>
                     </div>
                   )}
                 </div>
                 
-                {/* Additional details */}
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between text-sm border-b border-gray-100 dark:border-gray-800 pb-2">
+                {/* Additional details list */}
+                <div className="space-y-2 sm:space-y-3">
+                  <div className="flex items-center justify-between text-xs sm:text-sm border-b border-gray-100 dark:border-gray-800 pb-2">
                     <span className="text-gray-500 dark:text-gray-400">Listing ID</span>
                     <span className="font-medium">{listing.id?.substring(0, 8) || "Unknown"}</span>
                   </div>
                   
-                  <div className="flex items-center justify-between text-sm border-b border-gray-100 dark:border-gray-800 pb-2">
+                  <div className="flex items-center justify-between text-xs sm:text-sm border-b border-gray-100 dark:border-gray-800 pb-2">
                     <span className="text-gray-500 dark:text-gray-400">Category</span>
                     <span className="font-medium">{listing.category?.name || "Uncategorized"}</span>
                   </div>
                   
-                  <div className="flex items-center justify-between text-sm border-b border-gray-100 dark:border-gray-800 pb-2">
+                  <div className="flex items-center justify-between text-xs sm:text-sm border-b border-gray-100 dark:border-gray-800 pb-2">
                     <span className="text-gray-500 dark:text-gray-400">Platform</span>
                     <span className="font-medium flex items-center gap-1">
                       {(() => {
@@ -793,7 +779,7 @@ export function ModernListingView({ listing, onBuyNow, isSubmitting, similarList
                     </span>
                   </div>
                   
-                  <div className="flex items-center justify-between text-sm border-b border-gray-100 dark:border-gray-800 pb-2">
+                  <div className="flex items-center justify-between text-xs sm:text-sm border-b border-gray-100 dark:border-gray-800 pb-2">
                     <span className="text-gray-500 dark:text-gray-400">Transfer Method</span>
                     <span className="font-medium">
                       {listing.transferMethod === "email_password" 
@@ -806,7 +792,7 @@ export function ModernListingView({ listing, onBuyNow, isSubmitting, similarList
                     </span>
                   </div>
                   
-                  <div className="flex items-center justify-between text-sm">
+                  <div className="flex items-center justify-between text-xs sm:text-sm">
                     <span className="text-gray-500 dark:text-gray-400">Verified Account</span>
                     <span className="font-medium flex items-center">
                       {listing.verified ? (
@@ -822,14 +808,14 @@ export function ModernListingView({ listing, onBuyNow, isSubmitting, similarList
             
             {/* Right column - Features/Highlights */}
             <Card className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border shadow-sm">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-xl font-semibold flex items-center gap-2">
-                  <Sparkles className="h-5 w-5 text-amber-500" />
+              <CardHeader className="pb-2 px-3 sm:px-4">
+                <CardTitle className="text-base sm:text-lg font-semibold flex items-center gap-1.5 sm:gap-2">
+                  <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 text-amber-500" />
                   Features
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <ul className="space-y-3">
+              <CardContent className="space-y-3 sm:space-y-4 px-3 sm:px-4">
+                <ul className="space-y-2 sm:space-y-3">
                   {[
                     listing.verified && "Verified Account",
                     listing.transferMethod === "full_account" && "Original Email Access",
@@ -841,9 +827,9 @@ export function ModernListingView({ listing, onBuyNow, isSubmitting, similarList
                     listing.accountAge > 12 && "Aged Account",
                     "Clean Account History"
                   ].filter(Boolean).map((feature, index) => (
-                    <li key={index} className="flex items-start gap-2">
-                      <Check className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-                      <span className="text-sm">{feature}</span>
+                    <li key={index} className="flex items-start gap-1.5 sm:gap-2">
+                      <Check className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                      <span className="text-xs sm:text-sm">{feature}</span>
                     </li>
                   ))}
                 </ul>
@@ -929,16 +915,16 @@ export function ModernListingView({ listing, onBuyNow, isSubmitting, similarList
       </div>
       
       {/* Bottom CTA */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white/80 dark:bg-gray-950/80 backdrop-blur-lg border-t border-gray-200 dark:border-gray-800 py-3 px-4 lg:hidden z-40">
-        <div className="flex items-center justify-between gap-3 max-w-6xl mx-auto">
+      <div className="fixed bottom-0 left-0 right-0 bg-white/80 dark:bg-gray-950/80 backdrop-blur-lg border-t border-gray-200 dark:border-gray-800 py-2 sm:py-3 px-2 sm:px-4 lg:hidden z-40">
+        <div className="flex items-center justify-between gap-2 sm:gap-3 max-w-6xl mx-auto">
           <div>
-            <div className="text-sm text-gray-500 dark:text-gray-400">Price</div>
-            <div className="text-lg font-bold text-primary">{formattedPrice}</div>
+            <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">Price</div>
+            <div className="text-base sm:text-lg font-bold text-primary">{formattedPrice}</div>
           </div>
           <Button 
             onClick={onBuyNow}
             disabled={isSubmitting || listing.status !== "AVAILABLE"}
-            className="relative overflow-hidden group font-medium"
+            className="relative overflow-hidden group font-medium text-sm h-9 sm:h-10"
           >
             <span className="absolute inset-0 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
             <span className="relative flex items-center gap-2">

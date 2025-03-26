@@ -67,25 +67,25 @@ export function ReviewListing({ data }) {
   const isAccountCategory = category.name === "Account";
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div>
-        <h3 className="text-lg font-medium mb-2">Review Your Listing</h3>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+        <h3 className="text-base sm:text-lg font-medium mb-2">Review Your Listing</h3>
+        <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mb-3 sm:mb-4">
           Please review your listing details before creating it.
         </p>
       </div>
       
       {!isComplete && (
-        <div className="p-4 bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 rounded-lg flex items-start gap-2">
-          <AlertCircle className="h-5 w-5 mt-0.5 flex-shrink-0" />
-          <div>
+        <div className="p-3 sm:p-4 bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 rounded-lg flex items-start gap-2">
+          <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 mt-0.5 flex-shrink-0" />
+          <div className="text-xs sm:text-sm">
             <p className="font-medium">Some information is missing</p>
-            <p className="text-sm mt-1">Please go back and complete all required fields.</p>
+            <p className="mt-1">Please go back and complete all required fields.</p>
           </div>
         </div>
       )}
       
-      <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-6 space-y-6">
+      <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-3 sm:p-6 space-y-4 sm:space-y-6">
         {/* Platform & Category */}
         <div>
           <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">Listing Type</h4>
@@ -158,49 +158,56 @@ export function ReviewListing({ data }) {
         {/* Account Details */}
         {isAccountCategory && (
           <div>
-            <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">Account Metrics</h4>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="bg-white dark:bg-gray-900 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
-                <div className="flex items-center gap-2 mb-1 text-primary">
-                  <User className="h-4 w-4" />
-                  <p className="text-xs font-semibold uppercase">Followers</p>
+            <h4 className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 mb-2 sm:mb-3">Account Metrics</h4>
+            <div className="grid grid-cols-2 gap-2 sm:gap-4">
+              {/* Followers Card */}
+              <div className="bg-white dark:bg-gray-900 p-2 sm:p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+                <div className="flex items-center gap-1.5 sm:gap-2 mb-0.5 sm:mb-1 text-primary">
+                  <User className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  <p className="text-[10px] sm:text-xs font-semibold uppercase">Followers</p>
                 </div>
-                <p className="font-medium text-lg">{formatFollowers(data.followers)}</p>
+                <p className="font-medium text-sm sm:text-lg">{formatFollowers(data.followers)}</p>
               </div>
               
-              <div className="bg-white dark:bg-gray-900 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
-                <div className="flex items-center gap-2 mb-1 text-emerald-500">
-                  <BarChart className="h-4 w-4" />
-                  <p className="text-xs font-semibold uppercase">Engagement</p>
+              {/* Engagement Card */}
+              <div className="bg-white dark:bg-gray-900 p-2 sm:p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+                <div className="flex items-center gap-1.5 sm:gap-2 mb-0.5 sm:mb-1 text-emerald-500">
+                  <BarChart className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  <p className="text-[10px] sm:text-xs font-semibold uppercase">Engagement</p>
                 </div>
-                <p className="font-medium text-lg">{formatEngagement(data.engagement)}</p>
+                <p className="font-medium text-sm sm:text-lg">{formatEngagement(data.engagement)}</p>
               </div>
               
+              {/* Account Age Card */}
               {data.accountAge && (
-                <div className="bg-white dark:bg-gray-900 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
-                  <div className="flex items-center gap-2 mb-1 text-amber-500">
-                    <Clock className="h-4 w-4" />
-                    <p className="text-xs font-semibold uppercase">Account Age</p>
+                <div className="bg-white dark:bg-gray-900 p-2 sm:p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center gap-1.5 sm:gap-2 mb-0.5 sm:mb-1 text-amber-500">
+                    <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                    <p className="text-[10px] sm:text-xs font-semibold uppercase">Account Age</p>
                   </div>
-                  <p className="font-medium text-lg">{data.accountAge} months</p>
+                  <p className="font-medium text-sm sm:text-lg">
+                    {data.accountAge} <span className="text-xs sm:text-base">mo</span>
+                  </p>
                 </div>
               )}
               
+              {/* Posts Card */}
               {data.posts && (
-                <div className="bg-white dark:bg-gray-900 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
-                  <div className="flex items-center gap-2 mb-1 text-blue-500">
-                    <Hash className="h-4 w-4" />
-                    <p className="text-xs font-semibold uppercase">Posts</p>
+                <div className="bg-white dark:bg-gray-900 p-2 sm:p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center gap-1.5 sm:gap-2 mb-0.5 sm:mb-1 text-blue-500">
+                    <Hash className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                    <p className="text-[10px] sm:text-xs font-semibold uppercase">Posts</p>
                   </div>
-                  <p className="font-medium text-lg">{data.posts?.toLocaleString() || "0"}</p>
+                  <p className="font-medium text-sm sm:text-lg">{data.posts?.toLocaleString() || "0"}</p>
                 </div>
               )}
             </div>
             
+            {/* Username section */}
             {data.username && (
-              <div className="mt-4">
-                <p className="text-xs text-gray-500 dark:text-gray-400">Username</p>
-                <p className="text-sm font-medium mt-1">{data.username}</p>
+              <div className="mt-3 sm:mt-4">
+                <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">Username</p>
+                <p className="text-xs sm:text-sm font-medium mt-0.5 sm:mt-1">{data.username}</p>
               </div>
             )}
           </div>
@@ -210,7 +217,7 @@ export function ReviewListing({ data }) {
         <div>
           <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">Media & Proof</h4>
           {data.media.length > 0 ? (
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               {data.media.slice(0, 4).map((url, index) => (
                 <div key={index} className="aspect-square rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800">
                   {isImageUrl(url) ? (

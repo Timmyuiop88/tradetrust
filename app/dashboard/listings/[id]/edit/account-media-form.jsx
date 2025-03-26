@@ -96,7 +96,7 @@ export function AccountMediaForm({ formData, updateFormData, onComplete, isEdit 
         </label>
         
         {/* Upload area */}
-        <div className="border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-xl p-8 text-center">
+        <div className="border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-xl p-4 sm:p-8 text-center">
           <input
             type="file"
             id="media-upload"
@@ -142,7 +142,7 @@ export function AccountMediaForm({ formData, updateFormData, onComplete, isEdit 
       {formData.mediaProof && formData.mediaProof.length > 0 && (
         <div className="mt-6">
           <h4 className="text-sm font-medium mb-3">Uploaded Media ({formData.mediaProof.length})</h4>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-4">
             {formData.mediaProof.map((url, index) => (
               <div key={index} className="relative group">
                 <div className="aspect-square rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
@@ -162,9 +162,9 @@ export function AccountMediaForm({ formData, updateFormData, onComplete, isEdit 
                 </div>
                 <button
                   onClick={() => removeMedia(index)}
-                  className="absolute top-2 right-2 bg-black/70 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                  className="absolute top-1 sm:top-2 right-1 sm:right-2 bg-black/70 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                 >
-                  <X className="h-4 w-4" />
+                  <X className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 </button>
               </div>
             ))}

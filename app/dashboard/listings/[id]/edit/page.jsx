@@ -166,28 +166,28 @@ export default function EditListingPage() {
   const progressPercentage = ((activeStep + 1) / steps.length) * 100
 
   return (
-    <div className="max-w-5xl mx-auto py-8 px-4">
-      <div className="mb-8">
+    <div className="max-w-5xl mx-auto py-4 sm:py-8 px-2 sm:px-4">
+      <div className="mb-6 sm:mb-8">
         <Button 
           variant="ghost" 
           className="px-0 mb-2"
           onClick={() => router.back()}
         >
-          <ChevronLeft className="h-4 w-4 mr-2" />
+          <ChevronLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
           Back
         </Button>
-        <h1 className="text-3xl font-bold mb-2">Edit Listing</h1>
-        <p className="text-muted-foreground">
+        <h1 className="text-2xl sm:text-3xl font-bold mb-1 sm:mb-2">Edit Listing</h1>
+        <p className="text-sm text-muted-foreground">
           Update your listing information to keep it accurate and attractive to potential buyers.
         </p>
       </div>
 
-      <div className="mb-6">
+      <div className="mb-4 sm:mb-6 overflow-x-auto -mx-2 px-2">
         <Progress steps={STEP_TITLES} currentStep={activeStep} />
       </div>
 
       <Card>
-        <CardHeader>
+        <CardHeader className="px-3 sm:px-6">
           <CardTitle>
             {activeStep === 0 && "Account Details"}
             {activeStep === 1 && "Account Metrics"}
@@ -205,7 +205,7 @@ export default function EditListingPage() {
             {activeStep === 5 && "Review all information before submitting"}
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-3 sm:px-6">
           <Tabs value={steps[activeStep]} className="mt-4">
             <TabsContent value="details" className="pt-4">
               <AccountDetailsForm
@@ -251,28 +251,30 @@ export default function EditListingPage() {
             </TabsContent>
           </Tabs>
         </CardContent>
-        <CardFooter className="flex justify-between pt-6">
+        <CardFooter className="flex justify-between pt-6 px-3 sm:px-6">
           <Button 
             variant="outline" 
             onClick={handlePrevious}
             disabled={activeStep === 0}
+            className="text-sm"
           >
-            <ChevronLeft className="h-4 w-4 mr-2" />
+            <ChevronLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
             Previous
           </Button>
           {activeStep < steps.length - 1 ? (
-            <Button onClick={handleNext}>
+            <Button onClick={handleNext} className="text-sm">
               Next
-              <ChevronRight className="h-4 w-4 ml-2" />
+              <ChevronRight className="h-3.5 w-3.5 sm:h-4 sm:w-4 ml-1 sm:ml-2" />
             </Button>
           ) : (
             <Button 
               onClick={handleSubmit}
               disabled={isSubmitting}
+              className="text-sm"
             >
               {isSubmitting ? (
                 <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2 animate-spin" />
                   Updating...
                 </>
               ) : (

@@ -68,17 +68,16 @@ export function MediaUpload({ data, onUpdate }) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div>
-        <h3 className="text-lg font-medium mb-2">Account Media</h3>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-          Upload screenshots of your account to showcase its value to potential buyers.
-          Include follower count, engagement metrics, and content examples.
+        <h3 className="text-base sm:text-lg font-medium mb-2">Account Media</h3>
+        <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mb-3 sm:mb-4">
+          Upload screenshots of your account to showcase its value.
         </p>
       </div>
       
       {/* Upload area */}
-      <div className="border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-xl p-8 text-center">
+      <div className="border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-xl p-4 sm:p-8 text-center">
         <input
           type="file"
           id="media-upload"
@@ -92,9 +91,9 @@ export function MediaUpload({ data, onUpdate }) {
           htmlFor="media-upload"
           className="flex flex-col items-center justify-center cursor-pointer"
         >
-          <Upload className="h-10 w-10 text-gray-400 dark:text-gray-500 mb-2" />
-          <p className="text-sm font-medium mb-1">Drag and drop or click to upload</p>
-          <p className="text-xs text-gray-500 dark:text-gray-400">
+          <Upload className="h-8 w-8 sm:h-10 sm:w-10 text-gray-400 dark:text-gray-500 mb-2" />
+          <p className="text-xs sm:text-sm font-medium mb-1">Drag and drop or click to upload</p>
+          <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">
             Supports images and videos up to 10MB
           </p>
           
@@ -121,9 +120,11 @@ export function MediaUpload({ data, onUpdate }) {
       
       {/* Media preview */}
       {data.media.length > 0 && (
-        <div className="mt-6">
-          <h4 className="text-sm font-medium mb-3">Uploaded Media ({data.media.length})</h4>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+        <div className="mt-4 sm:mt-6">
+          <h4 className="text-xs sm:text-sm font-medium mb-2 sm:mb-3">
+            Uploaded Media ({data.media.length})
+          </h4>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-4">
             {data.media.map((url, index) => (
               <div key={index} className="relative group">
                 <div className="aspect-square rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
