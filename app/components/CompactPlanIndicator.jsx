@@ -64,7 +64,7 @@ export function CompactPlanIndicator() {
             className="h-8 px-2 tabtext gap-1 hover:bg-transparent hover:text-primary"
             onClick={() => router.push('/dashboard/subscription')}
           >
-            Manage
+           <p className="hidden xs:block sm:text-sm"> Manage</p>
             <ArrowRight className="h-3 w-3" />
           </Button>
         </div>
