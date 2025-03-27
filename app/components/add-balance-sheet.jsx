@@ -54,31 +54,28 @@ export function AddBalanceSheet({ children }) {
           }),
         })
         
-        if (!response.ok) {
-          const error = await response.json()
-          throw new Error(error.message || 'Failed to create payment')
+        if (response.ok) {
+          const data = await response.json()
+          
+          if (data.success) {
+            // Store the payment info for when we return
+            sessionStorage.setItem('pendingPaymentId', data.paymentId)
+            sessionStorage.setItem('pendingTransactionId', data.transactionId)
+            
+            // Use the returnUrl if provided, otherwise use the paymentUrl
+            const paymentUrl = data.returnUrl || data.paymentUrl
+            
+            // Navigate to the payment URL
+            window.location.href = paymentUrl
+            
+            setOxaPaymentData(data)
+            setPaymentStep('oxapay')
+          } else {
+            throw new Error(data.message || 'Failed to create payment')
+          }
+        } else {
+          throw new Error('Failed to create payment')
         }
-        
-        const data = await response.json()
-        
-        if (!data.paymentUrl) {
-          throw new Error('No payment URL received from Oxapay')
-        }
-        
-        setOxaPaymentData(data)
-        
-        // Open payment URL in new tab
-        window.open(data.paymentUrl, '_blank')
-        
-        // Close the sheet and redirect to balance page
-        setOpen(false)
-        
-        // Show a toast message
-        toast.success("Payment initiated! Complete the payment in the new tab.")
-        
-        // Redirect to balance page
-        router.push('/dashboard/balance')
-        
       } catch (error) {
         console.error('Error creating Oxapay payment:', error)
         toast.error(error.message || 'Failed to create payment')

@@ -87,6 +87,116 @@ const PaginationEllipsis = ({
   </span>
 )
 
+export function PaginationControl({ 
+  currentPage, 
+  totalPages, 
+  onPageChange,
+  maxVisiblePages = 5
+}) {
+  if (totalPages <= 1) return null
+  
+  const renderPageNumbers = () => {
+    const pages = []
+    
+    // Always show first page
+    pages.push(
+      <Button
+        key={1}
+        variant={currentPage === 1 ? "default" : "outline"}
+        size="sm"
+        onClick={() => onPageChange(1)}
+        className="h-8 w-8 p-0"
+      >
+        1
+      </Button>
+    )
+    
+    // Calculate range of visible pages
+    let startPage = Math.max(2, currentPage - Math.floor(maxVisiblePages / 2))
+    let endPage = Math.min(totalPages - 1, startPage + maxVisiblePages - 3)
+    
+    if (endPage - startPage < maxVisiblePages - 3) {
+      startPage = Math.max(2, endPage - (maxVisiblePages - 3) + 1)
+    }
+    
+    // Add ellipsis if needed before visible range
+    if (startPage > 2) {
+      pages.push(
+        <Button key="start-ellipsis" variant="ghost" size="sm" disabled className="h-8 w-8 p-0">
+          <MoreHorizontal className="h-4 w-4" />
+        </Button>
+      )
+    }
+    
+    // Add visible page numbers
+    for (let i = startPage; i <= endPage; i++) {
+      pages.push(
+        <Button
+          key={i}
+          variant={currentPage === i ? "default" : "outline"}
+          size="sm"
+          onClick={() => onPageChange(i)}
+          className="h-8 w-8 p-0"
+        >
+          {i}
+        </Button>
+      )
+    }
+    
+    // Add ellipsis if needed after visible range
+    if (endPage < totalPages - 1) {
+      pages.push(
+        <Button key="end-ellipsis" variant="ghost" size="sm" disabled className="h-8 w-8 p-0">
+          <MoreHorizontal className="h-4 w-4" />
+        </Button>
+      )
+    }
+    
+    // Always show last page
+    if (totalPages > 1) {
+      pages.push(
+        <Button
+          key={totalPages}
+          variant={currentPage === totalPages ? "default" : "outline"}
+          size="sm"
+          onClick={() => onPageChange(totalPages)}
+          className="h-8 w-8 p-0"
+        >
+          {totalPages}
+        </Button>
+      )
+    }
+    
+    return pages
+  }
+  
+  return (
+    <div className="flex items-center justify-center gap-1 mt-4">
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => onPageChange(currentPage - 1)}
+        disabled={currentPage === 1}
+        className="h-8 w-8 p-0"
+      >
+        <ChevronLeft className="h-4 w-4" />
+      </Button>
+      
+      {renderPageNumbers()}
+      
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => onPageChange(currentPage + 1)}
+        disabled={currentPage === totalPages}
+        className="h-8 w-8 p-0"
+      >
+        <ChevronRight className="h-4 w-4" />
+      </Button>
+    </div>
+  )
+}
+
 export {
   Pagination,
   PaginationContent,

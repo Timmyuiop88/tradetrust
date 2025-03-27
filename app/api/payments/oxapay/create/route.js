@@ -170,6 +170,7 @@ async function continueWithTrackId(trackId, paymentData, session, amount, curren
               type: 'DEPOSIT',
               description: `Pending deposit via Oxapay (${currency})`,
               status: 'PENDING',
+              trackId: trackId,
               createdAt: new Date()
             }
           })
@@ -232,7 +233,8 @@ async function continueWithTrackId(trackId, paymentData, session, amount, curren
         type: 'DEPOSIT',
         description: `Pending deposit via Oxapay (${currency})`,
         status: 'PENDING',
-        createdAt: new Date()
+        createdAt: new Date(),
+        trackId: trackId
       }
     })
     
