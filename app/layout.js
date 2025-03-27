@@ -9,11 +9,11 @@ import { ThemeProvider } from "@/app/components/theme-provider"
 import { CookieConsent } from "./components/cookie-consent"
 
 export const metadata = {
-  title: "TradeVero - Safe Social Media Account Trading",
+  title: "TradeVero - Safe Digital Trading",
   description: "Safe and Secure digital asset trading platform",
   icons: {
     icon: [
-      { url: '/favicon.ico', sizes: 'any' },
+      { url: '/images/icon-192x192.png', sizes: 'any' },
       { url: '/images/icon-192x192.png', type: 'image/png', sizes: '192x192' },
       { url: '/images/icon-512x512.png', type: 'image/png', sizes: '512x512' },
     ],
