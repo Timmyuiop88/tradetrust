@@ -10,7 +10,15 @@ import { CookieConsent } from "./components/cookie-consent"
 
 export const metadata = {
   title: "TradeVero - Safe Social Media Account Trading",
-  description: "Buy and sell social media accounts safely with TradeVero's secure escrow platform",
+  description: "Safe and Secure digital asset trading platform",
+  icons: {
+    icon: [
+      { url: '/favicon.ico', sizes: 'any' },
+      { url: '/images/icon-192x192.png', type: 'image/png', sizes: '192x192' },
+      { url: '/images/icon-512x512.png', type: 'image/png', sizes: '512x512' },
+    ],
+    apple: { url: '/images/icon-192x192.png' },
+  },
 }
 
 export default function RootLayout({ children }) {

@@ -1,7 +1,7 @@
 {
   "name": "TradeVero",
   "short_name": "TradeVero",
-  "description": "Secure P2P platform for social media account trading",
+  "description": "Safe and Secure digital asset trading platform",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#000000",
