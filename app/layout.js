@@ -9,8 +9,8 @@ import { ThemeProvider } from "@/app/components/theme-provider"
 import { CookieConsent } from "./components/cookie-consent"
 
 export const metadata = {
-  title: "TrustTrade - Safe Social Media Account Trading",
-  description: "Buy and sell social media accounts safely with TrustTrade's secure escrow platform",
+  title: "TradeVero - Safe Social Media Account Trading",
+  description: "Buy and sell social media accounts safely with TradeVero's secure escrow platform",
 }
 
 export default function RootLayout({ children }) {

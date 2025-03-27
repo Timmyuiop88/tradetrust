@@ -37,7 +37,7 @@ export default function IOSGuide() {
       </CardHeader>
       <CardContent className="space-y-6">
         <p className="text-center text-sm text-muted-foreground">
-          Follow these steps to install TrustTrade as an app on your home screen and enable notifications
+          Follow these steps to install TradeVero as an app on your home screen and enable notifications
         </p>
         
         <div className="space-y-8">
@@ -104,7 +104,7 @@ export default function IOSGuide() {
       </CardContent>
       <CardFooter className="flex justify-center border-t pt-4">
         <p className="text-xs text-center text-muted-foreground max-w-[90%]">
-          Opening TrustTrade from your home screen will provide a full-screen app experience and enable push notifications
+          Opening TradeVero from your home screen will provide a full-screen app experience and enable push notifications
         </p>
       </CardFooter>
     </Card>

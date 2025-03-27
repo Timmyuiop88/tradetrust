@@ -17,11 +17,11 @@ export function Footer() {
             <Link href="/" className="flex items-center space-x-2">
               <Image
                 src="/images/logo.png"
-                alt="TrustTrade"
+                alt="TradeVero"
                 width={28}
                 height={28}
               />
-              <span className="font-bold text-lg sm:text-xl">TrustTrade</span>
+              <span className="font-bold text-lg sm:text-xl">TradeVero</span>
             </Link>
             <p className="text-muted-foreground text-sm max-w-[300px]">
               Secure P2P platform for social media account trading.
@@ -80,13 +80,13 @@ export function Footer() {
                 <Send className="h-5 w-5" />
               </Link>
             </div>
-            <p className="text-sm text-muted-foreground">help@TrustTrade.com</p>
+            <p className="text-sm text-muted-foreground">help@TradeVero.com</p>
           </div>
         </div>
 
         <div className="flex justify-between items-center mt-8 pt-8 border-t">
           <p className="text-sm text-muted-foreground">
-            © {currentYear} TrustTrade. All rights reserved.
+            © {currentYear} TradeVero. All rights reserved.
           </p>
           <div className="flex space-x-6">
             <Link

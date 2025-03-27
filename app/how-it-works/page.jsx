@@ -66,7 +66,7 @@ export default function HowItWorksPage() {
             <AnimateOnScroll variants={fadeInUp} className="max-w-[800px] mx-auto text-center">
               <div className="inline-flex items-center rounded-lg bg-primary/10 px-4 py-2 text-sm font-medium text-primary mb-6">
                 <ShieldCheck className="mr-2 h-4 w-4" />
-                How TrustTrade Works
+                How TradeVero Works
               </div>
               <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl mb-6">
                 Safe & Secure <span className="text-primary">Account Trading</span>
@@ -107,7 +107,7 @@ export default function HowItWorksPage() {
                       </div>
                       <h3 className="text-2xl font-bold mb-4">Create an Account & Verify</h3>
                       <p className="text-muted-foreground mb-6">
-                        Sign up for TrustTrade and complete the verification process. This helps us maintain a secure marketplace and protect all users.
+                        Sign up for TradeVero and complete the verification process. This helps us maintain a secure marketplace and protect all users.
                       </p>
                       <div className="space-y-3">
                         <div className="flex items-start">
@@ -258,7 +258,7 @@ export default function HowItWorksPage() {
                       <div>
                         <h4 className="font-semibold mb-2">How do I know the account metrics are real?</h4>
                         <p className="text-muted-foreground">
-                          All accounts on TrustTrade go through our verification process where we validate followers, engagement, and other key metrics. We provide detailed analytics and transparent account history.
+                          All accounts on TradeVero go through our verification process where we validate followers, engagement, and other key metrics. We provide detailed analytics and transparent account history.
                         </p>
                       </div>
                       <div>
@@ -270,7 +270,7 @@ export default function HowItWorksPage() {
                       <div>
                         <h4 className="font-semibold mb-2">Is buying social media accounts against platform terms?</h4>
                         <p className="text-muted-foreground">
-                          We recommend reviewing each platform's terms of service. TrustTrade ensures the transfer process follows best practices to maintain account stability during ownership changes.
+                          We recommend reviewing each platform's terms of service. TradeVero ensures the transfer process follows best practices to maintain account stability during ownership changes.
                         </p>
                       </div>
                     </div>
@@ -294,7 +294,7 @@ export default function HowItWorksPage() {
                       </div>
                       <h3 className="text-2xl font-bold mb-4">Create an Account & Verify</h3>
                       <p className="text-muted-foreground mb-6">
-                        Sign up for TrustTrade and complete the seller verification process. This builds trust with potential buyers and verifies your ownership.
+                        Sign up for TradeVero and complete the seller verification process. This builds trust with potential buyers and verifies your ownership.
                       </p>
                       <div className="space-y-3">
                         <div className="flex items-start">
@@ -445,7 +445,7 @@ export default function HowItWorksPage() {
                       <div>
                         <h4 className="font-semibold mb-2">How is my account valued?</h4>
                         <p className="text-muted-foreground">
-                          TrustTrade provides valuation guidance based on follower count, engagement rate, niche, account age, and recent sales of similar accounts. You always have the final say on your listing price.
+                          TradeVero provides valuation guidance based on follower count, engagement rate, niche, account age, and recent sales of similar accounts. You always have the final say on your listing price.
                         </p>
                       </div>
                       <div>
@@ -455,9 +455,9 @@ export default function HowItWorksPage() {
                         </p>
                       </div>
                       <div>
-                        <h4 className="font-semibold mb-2">What fees does TrustTrade charge?</h4>
+                        <h4 className="font-semibold mb-2">What fees does TradeVero charge?</h4>
                         <p className="text-muted-foreground">
-                          TrustTrade charges a small commission on successful sales. The fee is based on the final sale price and covers our escrow service, transfer assistance, and platform maintenance.
+                          TradeVero charges a small commission on successful sales. The fee is based on the final sale price and covers our escrow service, transfer assistance, and platform maintenance.
                         </p>
                       </div>
                     </div>

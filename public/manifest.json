@@ -1,6 +1,6 @@
 {
-  "name": "TrustTrade",
-  "short_name": "TrustTrade",
+  "name": "TradeVero",
+  "short_name": "TradeVero",
   "description": "Secure P2P platform for social media account trading",
   "start_url": "/",
   "display": "standalone",

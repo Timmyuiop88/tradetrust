@@ -23,7 +23,7 @@ export function Layout({ children }) {
               <rect width="18" height="18" x="3" y="3" rx="2" />
               <circle cx="12" cy="10" r="3" />
             </svg>
-            <span className="font-bold">TrustTrade</span>
+            <span className="font-bold">TradeVero</span>
           </Link>
           <nav className="ml-auto flex items-center space-x-4 sm:space-x-6">
             <Link href="/about" className="text-sm font-medium hover:underline underline-offset-4">

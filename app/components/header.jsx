@@ -43,8 +43,8 @@ export function Header() {
         {/* Logo and Brand */}
         <div className="flex items-center">
           <Link href="/" className="flex items-center space-x-2">
-           <Image src="/images/logo.png" alt="TrustTrade" width={28} height={28} />
-            <span className="font-bold text-lg sm:text-xl">TrustTrade</span>
+           <Image src="/images/logo.png" alt="TradeVero" width={28} height={28} />
+            <span className="font-bold text-lg sm:text-xl">TradeVero</span>
           </Link>
         </div>
         

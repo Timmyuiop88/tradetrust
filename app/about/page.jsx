@@ -25,8 +25,8 @@ import {
 } from "@/app/components/animate"
 
 export const metadata = {
-  title: "About Us | TrustTrade",
-  description: "Learn about TrustTrade's mission, values, and the team behind the most secure social media account marketplace."
+  title: "About Us | TradeVero",
+  description: "Learn about TradeVero's mission, values, and the team behind the most secure social media account marketplace."
 }
 
 export default function AboutPage() {
@@ -40,7 +40,7 @@ export default function AboutPage() {
             <AnimateOnScroll variants={fadeInUp} className="max-w-[800px] mx-auto text-center">
               <div className="inline-flex items-center rounded-lg bg-primary/10 px-4 py-2 text-sm font-medium text-primary mb-6">
                 <ShieldCheck className="mr-2 h-4 w-4" />
-                About TrustTrade
+                About TradeVero
               </div>
               <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl mb-6">
                 Redefining Social Media <span className="text-primary">Account Trading</span>
@@ -69,13 +69,13 @@ export default function AboutPage() {
               <AnimateOnScroll variants={fadeInRight}>
                 <h2 className="text-3xl font-bold mb-6">Our Story</h2>
                 <p className="text-muted-foreground mb-4">
-                  TrustTrade was founded in 2022 by a team of social media experts and security professionals who recognized a major problem in the creator economy: the lack of a safe, reliable way to buy and sell social media accounts.
+                  TradeVero was founded in 2022 by a team of social media experts and security professionals who recognized a major problem in the creator economy: the lack of a safe, reliable way to buy and sell social media accounts.
                 </p>
                 <p className="text-muted-foreground mb-4">
                   We witnessed too many scams, fraud cases, and failed transfers in the growing market for social media accounts. Buyers were getting accounts that didn't match descriptions, and sellers were not receiving payment after transferring their accounts.
                 </p>
                 <p className="text-muted-foreground mb-6">
-                  That's why we created TrustTrade - a secure platform with advanced verification technology and an escrow system that protects both parties throughout the entire transaction process.
+                  That's why we created TradeVero - a secure platform with advanced verification technology and an escrow system that protects both parties throughout the entire transaction process.
                 </p>
                 <AnimateStagger className="flex flex-wrap gap-4">
                   <StaggerItem className="flex items-center space-x-2">
@@ -214,7 +214,7 @@ export default function AboutPage() {
         <AnimateOnScroll variants={zoomIn} className="py-20 bg-gradient-to-br from-primary/10 via-primary/5 to-background">
           <div className="container px-4 md:px-6">
             <div className="max-w-[800px] mx-auto text-center">
-              <h2 className="text-3xl font-bold mb-4">Join the TrustTrade Community</h2>
+              <h2 className="text-3xl font-bold mb-4">Join the TradeVero Community</h2>
               <p className="text-lg text-muted-foreground mb-8">
                 Whether you're looking to buy or sell social media accounts, we're here to make the process safe and easy
               </p>

@@ -109,7 +109,7 @@ export default function AccountDetailsPage() {
                 <p className="text-4xl font-bold">${DEMO_ACCOUNT.price}</p>
                 <Button className="w-full">Purchase Now</Button>
                 <p className="text-sm text-muted-foreground">
-                  Protected by TrustTrade Escrow
+                  Protected by TradeVero Escrow
                 </p>
               </div>
             </CardContent>

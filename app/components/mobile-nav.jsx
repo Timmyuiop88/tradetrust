@@ -61,8 +61,8 @@ export function MobileNav() {
                 className="flex items-center space-x-2"
                 onClick={() => setOpen(false)}
               >
-                <Image src="/images/logo.png" alt="TrustTrade" width={20} height={20} />
-                <span className="font-bold">TrustTrade</span>
+                <Image src="/images/logo.png" alt="TradeVero" width={20} height={20} />
+                <span className="font-bold">TradeVero</span>
               </Link>
             </div>
           </div>

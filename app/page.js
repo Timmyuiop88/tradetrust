@@ -127,7 +127,7 @@ export default function LandingPage() {
         <section className="py-24 bg-gradient-to-b from-muted to-background">
           <div className="container px-4 md:px-6">
             <AnimateOnScroll variants={fadeInUp} className="text-center max-w-[800px] mx-auto mb-16">
-              <h2 className="text-3xl font-bold mb-4">How TrustTrade Works</h2>
+              <h2 className="text-3xl font-bold mb-4">How TradeVero Works</h2>
               <p className="text-muted-foreground text-lg">Our escrow platform makes trading social media accounts simple and secure</p>
             </AnimateOnScroll>
             <AnimateStagger className="grid md:grid-cols-3 gap-8">
@@ -183,7 +183,7 @@ export default function LandingPage() {
         <section className="py-24">
           <div className="container px-4 md:px-6">
             <AnimateOnScroll variants={fadeInUp} className="text-center max-w-[800px] mx-auto mb-16">
-              <h2 className="text-3xl font-bold mb-4">Why Choose TrustTrade</h2>
+              <h2 className="text-3xl font-bold mb-4">Why Choose TradeVero</h2>
               <p className="text-muted-foreground text-lg">Industry-leading security and support for safe trading</p>
             </AnimateOnScroll>
             <AnimateStagger className="grid md:grid-cols-3 gap-8">

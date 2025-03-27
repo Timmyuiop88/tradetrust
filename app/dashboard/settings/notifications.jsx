@@ -54,7 +54,7 @@ export default function NotificationSettings() {
           {isIOS ? (
             <>
               <p className="text-sm text-muted-foreground">
-                Push notifications require installing TrustTrade as an app on your iOS device.
+                Push notifications require installing TradeVero as an app on your iOS device.
               </p>
               <Button 
                 variant="outline" 

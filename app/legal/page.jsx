@@ -56,45 +56,45 @@ export default function LegalPage() {
                         <h2 className="text-2xl font-bold">Terms of Service</h2>
                         <p className="text-muted-foreground text-sm mb-6">Last updated: May 1, {currentYear}</p>
                         
-                        <p>Welcome to TrustTrade. These Terms of Service ("Terms") govern your use of the TrustTrade website and services. By accessing or using TrustTrade, you agree to be bound by these Terms.</p>
+                        <p>Welcome to TradeVero. These Terms of Service ("Terms") govern your use of the TradeVero website and services. By accessing or using TradeVero, you agree to be bound by these Terms.</p>
                       </StaggerItem>
                       
                       <StaggerItem>
                         <h3 className="text-xl font-bold">1. Account Terms</h3>
                         <div className="space-y-4 mt-4">
-                          <p>1.1 You must create an account to use certain features of TrustTrade. You are responsible for maintaining the security of your account and password.</p>
+                          <p>1.1 You must create an account to use certain features of TradeVero. You are responsible for maintaining the security of your account and password.</p>
                           
                           <p>1.2 You must provide accurate, complete, and up-to-date information when creating your account. You are responsible for any activity that occurs under your account.</p>
                           
-                          <p>1.3 You must be at least 18 years old to create an account and use TrustTrade services.</p>
+                          <p>1.3 You must be at least 18 years old to create an account and use TradeVero services.</p>
                           
-                          <p>1.4 TrustTrade reserves the right to suspend or terminate accounts that violate these Terms or for any other reason at our sole discretion.</p>
+                          <p>1.4 TradeVero reserves the right to suspend or terminate accounts that violate these Terms or for any other reason at our sole discretion.</p>
                         </div>
                       </StaggerItem>
                       
                       <StaggerItem>
                         <h3 className="text-xl font-bold">2. Platform Rules</h3>
                         <div className="space-y-4 mt-4">
-                          <p>2.1 You agree not to use TrustTrade for any illegal purposes or in violation of any applicable laws or regulations.</p>
+                          <p>2.1 You agree not to use TradeVero for any illegal purposes or in violation of any applicable laws or regulations.</p>
                           
                           <p>2.2 You agree not to misrepresent social media accounts you list for sale, including but not limited to followers, engagement, or account history.</p>
                           
-                          <p>2.3 You agree not to attempt to circumvent our escrow system or make arrangements outside the platform for transactions initiated on TrustTrade.</p>
+                          <p>2.3 You agree not to attempt to circumvent our escrow system or make arrangements outside the platform for transactions initiated on TradeVero.</p>
                           
-                          <p>2.4 You agree not to use TrustTrade to sell accounts that contain illegal content or violate the terms of service of the social media platform.</p>
+                          <p>2.4 You agree not to use TradeVero to sell accounts that contain illegal content or violate the terms of service of the social media platform.</p>
                         </div>
                       </StaggerItem>
                       
                       <StaggerItem>
                         <h3 className="text-xl font-bold">3. Escrow Service</h3>
                         <div className="space-y-4 mt-4">
-                          <p>3.1 TrustTrade provides an escrow service to facilitate transactions between buyers and sellers.</p>
+                          <p>3.1 TradeVero provides an escrow service to facilitate transactions between buyers and sellers.</p>
                           
                           <p>3.2 Buyers agree to deposit funds into escrow before the account transfer process begins.</p>
                           
                           <p>3.3 Funds will be released to sellers only after the buyer confirms receipt of the account and verifies access.</p>
                           
-                          <p>3.4 If a dispute arises during the transaction, TrustTrade reserves the right to make the final decision regarding the disbursement of escrow funds based on the evidence provided by both parties.</p>
+                          <p>3.4 If a dispute arises during the transaction, TradeVero reserves the right to make the final decision regarding the disbursement of escrow funds based on the evidence provided by both parties.</p>
                         </div>
                       </StaggerItem>
                       
@@ -102,11 +102,11 @@ export default function LegalPage() {
                         <div>
                           <h3 className="text-xl font-bold">4. Fees and Payments</h3>
                           <div className="space-y-4 mt-4">
-                            <p>4.1 TrustTrade charges a commission fee on successful transactions. The fee structure is available on our website and may be updated from time to time.</p>
+                            <p>4.1 TradeVero charges a commission fee on successful transactions. The fee structure is available on our website and may be updated from time to time.</p>
                             
                             <p>4.2 All fees are non-refundable once a transaction is successfully completed.</p>
                             
-                            <p>4.3 TrustTrade is not responsible for any taxes that may apply to your transactions. Users are responsible for determining and paying any applicable taxes.</p>
+                            <p>4.3 TradeVero is not responsible for any taxes that may apply to your transactions. Users are responsible for determining and paying any applicable taxes.</p>
                           </div>
                         </div>
                         
@@ -115,38 +115,38 @@ export default function LegalPage() {
                           <div className="space-y-4 mt-4">
                             <p>5.1 Sellers are responsible for ensuring they have the right to sell the social media account and that the transfer does not violate the terms of service of the respective social media platform.</p>
                             
-                            <p>5.2 Buyers and sellers agree to follow TrustTrade's transfer process to ensure a secure transfer of account ownership.</p>
+                            <p>5.2 Buyers and sellers agree to follow TradeVero's transfer process to ensure a secure transfer of account ownership.</p>
                             
-                            <p>5.3 TrustTrade does not guarantee that the transfer of social media accounts will not result in penalties from the respective social media platforms. Users acknowledge that buying and selling social media accounts may be against the terms of service of some platforms.</p>
+                            <p>5.3 TradeVero does not guarantee that the transfer of social media accounts will not result in penalties from the respective social media platforms. Users acknowledge that buying and selling social media accounts may be against the terms of service of some platforms.</p>
                           </div>
                         </div>
                         
                         <div>
                           <h3 className="text-xl font-bold">6. Disclaimer of Warranties</h3>
                           <div className="space-y-4 mt-4">
-                            <p>6.1 TrustTrade provides its services "as is" and "as available" without warranties of any kind, either express or implied.</p>
+                            <p>6.1 TradeVero provides its services "as is" and "as available" without warranties of any kind, either express or implied.</p>
                             
-                            <p>6.2 TrustTrade does not warrant that the service will be uninterrupted, timely, secure, or error-free.</p>
+                            <p>6.2 TradeVero does not warrant that the service will be uninterrupted, timely, secure, or error-free.</p>
                             
-                            <p>6.3 TrustTrade does not guarantee the accuracy or completeness of any information provided by sellers regarding their social media accounts.</p>
+                            <p>6.3 TradeVero does not guarantee the accuracy or completeness of any information provided by sellers regarding their social media accounts.</p>
                           </div>
                         </div>
                         
                         <div>
                           <h3 className="text-xl font-bold">7. Limitation of Liability</h3>
                           <div className="space-y-4 mt-4">
-                            <p>7.1 In no event shall TrustTrade be liable for any indirect, incidental, special, consequential, or punitive damages arising out of or related to your use of the service.</p>
+                            <p>7.1 In no event shall TradeVero be liable for any indirect, incidental, special, consequential, or punitive damages arising out of or related to your use of the service.</p>
                             
-                            <p>7.2 TrustTrade's liability to you for any cause whatsoever, regardless of the form of the action, will always be limited to the amount you paid to TrustTrade.</p>
+                            <p>7.2 TradeVero's liability to you for any cause whatsoever, regardless of the form of the action, will always be limited to the amount you paid to TradeVero.</p>
                           </div>
                         </div>
                         
                         <div>
                           <h3 className="text-xl font-bold">8. Modifications to Terms</h3>
                           <div className="space-y-4 mt-4">
-                            <p>8.1 TrustTrade reserves the right to modify these Terms at any time. We will notify users of significant changes through our website or by email.</p>
+                            <p>8.1 TradeVero reserves the right to modify these Terms at any time. We will notify users of significant changes through our website or by email.</p>
                             
-                            <p>8.2 Your continued use of TrustTrade after any changes indicates your acceptance of the modified Terms.</p>
+                            <p>8.2 Your continued use of TradeVero after any changes indicates your acceptance of the modified Terms.</p>
                           </div>
                         </div>
                         
@@ -162,7 +162,7 @@ export default function LegalPage() {
                         <div>
                           <h3 className="text-xl font-bold">10. Contact Information</h3>
                           <div className="space-y-4 mt-4">
-                            <p>10.1 If you have any questions about these Terms, please contact us at legal@TrustTrade.com.</p>
+                            <p>10.1 If you have any questions about these Terms, please contact us at legal@TradeVero.com.</p>
                           </div>
                         </div>
                       </AnimateOnScroll>
@@ -176,7 +176,7 @@ export default function LegalPage() {
                         <h2 className="text-2xl font-bold">Privacy Policy</h2>
                         <p className="text-muted-foreground text-sm mb-6">Last updated: May 1, {currentYear}</p>
                         
-                        <p>At TrustTrade, we take your privacy seriously. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our website and services.</p>
+                        <p>At TradeVero, we take your privacy seriously. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our website and services.</p>
                       </StaggerItem>
                       
                       <StaggerItem>
@@ -233,7 +233,7 @@ export default function LegalPage() {
                             
                             <p><strong>3.3 For Legal Purposes:</strong> We may disclose information if required by law, regulation, legal process, or governmental request, or to protect our rights, property, or safety, or the rights, property, or safety of others.</p>
                             
-                            <p><strong>3.4 Business Transfers:</strong> If TrustTrade is involved in a merger, acquisition, or sale of assets, your information may be transferred as part of that transaction.</p>
+                            <p><strong>3.4 Business Transfers:</strong> If TradeVero is involved in a merger, acquisition, or sale of assets, your information may be transferred as part of that transaction.</p>
                           </div>
                         </div>
                         
@@ -299,8 +299,8 @@ export default function LegalPage() {
                           <h3 className="text-xl font-bold">10. Contact Us</h3>
                           <div className="space-y-4 mt-4">
                             <p>If you have any questions about this Privacy Policy, please contact us at:</p>
-                            <p>Email: privacy@TrustTrade.com</p>
-                            <p>Address: 123 TrustTrade Way, San Francisco, CA 94105, USA</p>
+                            <p>Email: privacy@TradeVero.com</p>
+                            <p>Address: 123 TradeVero Way, San Francisco, CA 94105, USA</p>
                           </div>
                         </div>
                       </AnimateOnScroll>

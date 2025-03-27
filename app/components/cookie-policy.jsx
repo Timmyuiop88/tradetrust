@@ -32,7 +32,7 @@ export function CookiePolicy() {
       <div>
         <h2 className="text-2xl font-bold mb-4">Cookie Policy</h2>
         <p className="text-muted-foreground mb-4">
-          This Cookie Policy explains how TrustTrade uses cookies and similar technologies to recognize you when you 
+          This Cookie Policy explains how TradeVero uses cookies and similar technologies to recognize you when you 
           visit our website. It explains what these technologies are and why we use them, as well as your rights to 
           control our use of them.
         </p>
@@ -46,7 +46,7 @@ export function CookiePolicy() {
           as to provide reporting information.
         </p>
         <p className="text-muted-foreground mb-4">
-          Cookies set by the website owner (in this case, TrustTrade) are called "first-party cookies". Cookies set 
+          Cookies set by the website owner (in this case, TradeVero) are called "first-party cookies". Cookies set 
           by parties other than the website owner are called "third-party cookies". Third-party cookies enable 
           third-party features or functionality to be provided on or through the website (e.g., advertising, interactive 
           content, and analytics).
