@@ -282,6 +282,7 @@ model Transaction {
   userId              String
   withdrawalRequestId String?
   balanceId           String?
+  trackId     String?
   listingId           String?
   orderId             String?
   balance             Balance?           @relation(fields: [balanceId], references: [id])
