@@ -16,18 +16,18 @@ export function MobileNav() {
   const [open, setOpen] = useState(false)
   const { theme, setTheme } = useTheme()
   const pathname = usePathname()
-  
+
   // Function to check if a link is active
   const isActive = (path) => {
     // For exact matches
     if (pathname === path) return true
-    
+
     // For nested paths (e.g. /how-it-works/something should highlight the /how-it-works link)
     if (path !== '/' && pathname.startsWith(path)) return true
-    
+
     return false
   }
-  
+
   const { data: session } = useSession()
   const router = useRouter()
 
@@ -36,8 +36,6 @@ export function MobileNav() {
     { name: 'Home', href: '/', icon: Home },
     { name: 'About Us', href: '/about', icon: Info },
     { name: 'How it Works', href: '/how-it-works', icon: HelpCircle },
-    { name: 'Browse', href: '/dashboard', icon: LayoutGrid },
-    { name: 'Become a Seller', href: '/dashboard/sell', icon: ShoppingBag },
   ]
 
   return (
@@ -58,9 +56,9 @@ export function MobileNav() {
           {/* Header */}
           <div className="border-b py-4 px-6">
             <div className="flex items-center justify-between">
-              <Link 
-                href="/" 
-                className="flex items-center space-x-2" 
+              <Link
+                href="/"
+                className="flex items-center space-x-2"
                 onClick={() => setOpen(false)}
               >
                 <Image src="/images/logo.png" alt="TrustTrade" width={20} height={20} />
@@ -68,20 +66,20 @@ export function MobileNav() {
               </Link>
             </div>
           </div>
-          
+
           {/* Hidden title for accessibility */}
           <div className="sr-only">
             <h2 id="navigation-title">Navigation Menu</h2>
           </div>
-          
+
           {/* Nav Links - Public Pages Only */}
           <nav className="flex-1 overflow-auto py-4">
             <div className="space-y-1 px-2">
               {publicNavItems.map((item, index) => (
-                <NavLink 
+                <NavLink
                   key={index}
-                  href={item.href} 
-                  icon={item.icon} 
+                  href={item.href}
+                  icon={item.icon}
                   onClick={() => setOpen(false)}
                   isActive={isActive(item.href)}
                 >
@@ -89,26 +87,23 @@ export function MobileNav() {
                 </NavLink>
               ))}
             </div>
-            
-            {/* Authentication buttons for non-authenticated users */}
-            {!session && (
-              <div className="mt-6 px-3">
-                <div className="flex flex-col gap-2">
-                  <Button asChild variant="outline" className="justify-start w-full" onClick={() => router.push('/login')}>
-                      <User className="mr-2 h-4 w-4" /> Sign In
-                  </Button>
-                  <Button asChild className="justify-start w-full" onClick={() => router.push('/signup')}>
-                      Get Started
-                  </Button>
-                </div>
+
+            <div className="mt-6 px-3">
+              <div className="flex flex-col gap-2">
+                <Button asChild variant="outline" className="justify-start w-full" onClick={() => router.push('/login')}>
+                  <User className="mr-2 h-4 w-4" /> Sign In
+                </Button>
+                <Button asChild className="justify-start w-full" onClick={() => router.push('/signup')}>
+                  Get Started
+                </Button>
               </div>
-            )}
+            </div>
           </nav>
-          
+
           {/* Footer */}
           <div className="border-t p-4">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               className="w-full justify-between"
               onClick={() => {
                 setTheme(theme === "dark" ? "light" : "dark")
@@ -135,8 +130,8 @@ function NavLink({ href, children, icon: Icon, onClick, isActive }) {
       href={href}
       className={cn(
         "flex items-center py-2 px-3 text-sm rounded-md transition-colors relative",
-        isActive 
-          ? "bg-primary/10 text-primary font-semibold" 
+        isActive
+          ? "bg-primary/10 text-primary font-semibold"
           : "hover:bg-accent"
       )}
       onClick={onClick}

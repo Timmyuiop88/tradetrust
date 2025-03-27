@@ -80,7 +80,7 @@ export default function OrdersPage() {
       </div>
       
       <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="mb-4 sm:mb-6 w-full overflow-x-auto flex-nowrap">
+        <TabsList className="mb-4 sm:mb-6 w-full overflow-x-auto flex-nowrap scrollbar-none">
           <TabsTrigger value="all" className="tabtext whitespace-nowrap min-w-[80px]">All Orders</TabsTrigger>
           <TabsTrigger value="active" className="tabtext whitespace-nowrap min-w-[60px]">Active</TabsTrigger>
           <TabsTrigger value="completed" className="tabtext whitespace-nowrap min-w-[80px]">Completed</TabsTrigger>
@@ -105,9 +105,9 @@ export default function OrdersPage() {
                           </p>
                         </div>
                       </div>
-                      <Badge variant={getStatusVariant(order.status)} className="text-xs sm:text-sm self-start sm:self-center">
+                      <p className={`text-xs sm:text-sm text-muted-foreground `} style={{color: getStatusBgColor(order.status)}}>
                         {formatStatus(order.status)}
-                      </Badge>
+                      </p>
                     </div>
                     
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-0">
