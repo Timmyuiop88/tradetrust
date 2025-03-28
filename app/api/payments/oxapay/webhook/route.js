@@ -201,16 +201,29 @@ async function processCompletedPayment(payment) {
     
     // Send deposit confirmation email and notifications
     try {
-      const { sendDepositConfirmation, notifyTransactionUpdate } = await import('@/lib/services/notificationService')
+      // Import the notification service
+      const { sendDepositConfirmation } = await import('@/lib/services/notificationService')
+      const { PushNotificationService } = await import('@/lib/services/pushNotificationService')
       
       if (payment.transactionId) {
-        await sendDepositConfirmation(payment.userId, payment.transactionId)
-        await notifyTransactionUpdate(
-          payment.userId,
-          'DEPOSIT_COMPLETED',
-          { id: payment.transactionId, amount: payment.amount }
-        )
-        console.log(`Deposit notifications sent for payment ${payment.paymentId}`)
+        // Get the transaction details for the notification
+        const transaction = await prisma.transaction.findUnique({
+          where: { id: payment.transactionId }
+        })
+        
+        if (transaction) {
+          // Send email notification
+          await sendDepositConfirmation(payment.userId, payment.transactionId)
+          
+          // Send push notification using PushNotificationService
+          await PushNotificationService.notifyTransactionUpdate(
+            payment.userId,
+            'DEPOSIT_COMPLETED',
+            transaction
+          )
+          
+          console.log(`Deposit notifications sent for payment ${payment.paymentId}`)
+        }
       }
     } catch (notificationError) {
       // Don't fail the payment processing if notifications fail
