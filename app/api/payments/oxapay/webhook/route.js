@@ -199,6 +199,24 @@ async function processCompletedPayment(payment) {
       })
     }
     
+    // Send deposit confirmation email and notifications
+    try {
+      const { sendDepositConfirmation, notifyTransactionUpdate } = await import('@/lib/services/notificationService')
+      
+      if (payment.transactionId) {
+        await sendDepositConfirmation(payment.userId, payment.transactionId)
+        await notifyTransactionUpdate(
+          payment.userId,
+          'DEPOSIT_COMPLETED',
+          { id: payment.transactionId, amount: payment.amount }
+        )
+        console.log(`Deposit notifications sent for payment ${payment.paymentId}`)
+      }
+    } catch (notificationError) {
+      // Don't fail the payment processing if notifications fail
+      console.error('Error sending deposit notifications:', notificationError)
+    }
+    
     console.log(`Successfully processed payment ${payment.paymentId} for user ${payment.userId}`)
   } catch (error) {
     console.error('Error processing completed payment:', error)

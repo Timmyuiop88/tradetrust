@@ -310,6 +310,7 @@ export default function ProfilePage() {
           <div className="flex justify-between items-start mb-4">
             <h2 className="text-1xl md:text-2xl font-bold">Your Profile</h2>
             <div className="flex items-center gap-2">
+              <NotificationBell />
             <Button
             variant="ghost"
             size="sm"
