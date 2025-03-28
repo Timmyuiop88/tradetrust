@@ -372,6 +372,34 @@ export function ModernListingView({ listing, onBuyNow, isSubmitting, similarList
               )}
             </div>
           )}
+          
+          {/* Description Section */}
+          <Card className="mt-4 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border shadow-sm">
+            <CardHeader className="pb-2 px-3 sm:px-4">
+              <CardTitle className="text-base sm:text-lg font-semibold flex items-center gap-1.5 sm:gap-2">
+                <Info className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+                Description
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="px-3 sm:px-4">
+              <div className={cn(
+                "text-sm text-muted-foreground whitespace-pre-line",
+                !showFullDescription && "line-clamp-4"
+              )}>
+                {listing.description || "No description available"}
+              </div>
+              {listing.description && listing.description.length > 200 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowFullDescription(!showFullDescription)}
+                  className="mt-2 h-8 text-xs"
+                >
+                  {showFullDescription ? "Show less" : "Read more"}
+                </Button>
+              )}
+            </CardContent>
+          </Card>
         </div>
         
         {/* Right column - Listing details */}
@@ -461,14 +489,14 @@ export function ModernListingView({ listing, onBuyNow, isSubmitting, similarList
                   </span>
                 </Button>
                 
-                <Button 
+                {/*<Button 
                   variant="outline"
                   onClick={handleContactSeller}
                   className="font-medium h-9 sm:h-10 text-sm"
                 >
                   <MessageSquare className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />
                   Contact Seller
-                </Button>
+                </Button>*/}
               </div>
               
               <div className="border-t border-gray-200 dark:border-gray-800 pt-3 sm:pt-4">

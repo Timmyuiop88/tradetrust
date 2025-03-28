@@ -114,7 +114,8 @@ export default function IdentityVerificationPage() {
         setInitialLastName(lastName);
         setNamesChanged(false);
         
-        toast.success("Your name has been updated successfully.");
+        toast.success("Your ID verification has been submitted successfully.");
+        router.push('/dashboard/sell');
         
         return true;
       } else {
