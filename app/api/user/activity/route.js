@@ -3,13 +3,21 @@ import { prisma } from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 
-export async function GET() {
+export async function GET(request) {
   try {
     const session = await getServerSession(authOptions)
     
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+    
+    // Get pagination parameters from URL
+    const { searchParams } = new URL(request.url)
+    const page = parseInt(searchParams.get('page') || '1')
+    const limit = parseInt(searchParams.get('limit') || '10')
+    
+    // Calculate skip value
+    const skip = (page - 1) * limit
     
     // Get recent transactions
     const transactions = await prisma.transaction.findMany({
@@ -128,9 +136,16 @@ export async function GET() {
       ...formattedListings
     ].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
     
+    // Apply pagination to the combined activities
+    const totalCount = allActivities.length
+    const paginatedItems = allActivities.slice(skip, skip + limit)
+    
     return NextResponse.json({
-      items: allActivities.slice(0, 10),
-      totalCount: allActivities.length
+      items: paginatedItems,
+      totalCount,
+      page,
+      limit,
+      hasNextPage: skip + limit < totalCount
     })
   } catch (error) {
     console.error('Error fetching user activity:', error)
