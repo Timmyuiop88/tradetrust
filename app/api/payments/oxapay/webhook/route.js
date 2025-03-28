@@ -1,19 +1,84 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import crypto from 'crypto'
+
+// Oxapay API configuration
+const OXAPAY_MERCHANT_API_KEY = process.env.OXAPAY_API_KEY
+const OXAPAY_PAYOUT_API_KEY = process.env.OXAPAY_PAYOUT_API_KEY || process.env.OXAPAY_API_KEY
 
 export async function POST(request) {
   try {
-    // Get the request body
-    const body = await request.json()
-    console.log('Oxapay webhook payload:', body)
+    // Get the raw request body for signature verification
+    const rawBody = await request.text()
+    let data = null
     
-    // Extract payment information - handle different possible field names
-    const trackId = body.trackId || body.track_id || ''
-    const status = body.status || ''
+    try {
+      data = JSON.parse(rawBody)
+    } catch (error) {
+      console.error('Invalid JSON data:', rawBody)
+      return NextResponse.json({ error: 'Invalid JSON data' }, { status: 400 })
+    }
+    
+    console.log('Oxapay webhook payload:', data)
+    
+    // Determine which API key to use based on the callback type
+    const apiSecretKey = (data.type === 'payment') 
+      ? OXAPAY_MERCHANT_API_KEY 
+      : OXAPAY_PAYOUT_API_KEY
+    
+    // Get the HMAC signature from headers
+    const hmacHeader = request.headers.get('hmac')
+    
+    if (!hmacHeader) {
+      console.error('No HMAC signature in webhook request')
+      return NextResponse.json({ error: 'Missing HMAC signature' }, { status: 400 })
+    }
+    
+    // Calculate the expected HMAC signature
+    const calculatedHmac = crypto
+      .createHmac('sha512', apiSecretKey)
+      .update(rawBody)
+      .digest('hex')
+    
+    // Verify the HMAC signature
+    if (calculatedHmac !== hmacHeader) {
+      console.error('Invalid HMAC signature')
+      console.error('Received:', hmacHeader)
+      console.error('Calculated:', calculatedHmac)
+      return NextResponse.json({ error: 'Invalid HMAC signature' }, { status: 400 })
+    }
+    
+    // HMAC signature is valid, process the callback data based on the type
+    if (data.type === 'payment') {
+      await handlePaymentCallback(data)
+    } else if (data.type === 'payout') {
+      await handlePayoutCallback(data)
+    } else {
+      console.warn('Unknown callback type:', data.type)
+    }
+    
+    // Return HTTP Response 200 with content "OK" as required by Oxapay
+    return new Response('OK', { status: 200 })
+  } catch (error) {
+    console.error('Error processing Oxapay webhook:', error)
+    return NextResponse.json(
+      { error: 'Failed to process webhook', message: error.message },
+      { status: 500 }
+    )
+  }
+}
+
+async function handlePaymentCallback(data) {
+  try {
+    // Extract payment information
+    const trackId = data.trackId || ''
+    const status = data.status || ''
+    const amount = data.amount || 0
+    const currency = data.currency || ''
     
     if (!trackId) {
-      console.error('No trackId found in webhook payload:', body)
-      return NextResponse.json({ error: 'Missing trackId' }, { status: 400 })
+      console.error('No trackId found in webhook payload:', data)
+      throw new Error('Missing trackId')
     }
     
     // Find the payment in our database
@@ -29,7 +94,7 @@ export async function POST(request) {
     
     if (!payment) {
       console.error(`Payment not found: ${trackId}`)
-      return NextResponse.json({ error: 'Payment not found' }, { status: 404 })
+      throw new Error('Payment not found')
     }
     
     // Map Oxapay status to our status
@@ -90,52 +155,50 @@ export async function POST(request) {
       await processCompletedPayment(payment)
     }
     
-    return NextResponse.json({ success: true })
+    console.log(`Successfully processed payment callback for trackId: ${trackId}, status: ${status}`)
   } catch (error) {
-    console.error('Error processing Oxapay webhook:', error)
-    return NextResponse.json(
-      { error: 'Failed to process webhook', message: error.message },
-      { status: 500 }
-    )
+    console.error('Error handling payment callback:', error)
+    throw error
   }
 }
 
+async function handlePayoutCallback(data) {
+  // Implement payout handling if needed
+  console.log('Received payout callback:', data)
+  // For now, just log it as we don't have payout implementation yet
+}
+
 async function processCompletedPayment(payment) {
-  // Get user balance
-  const balance = await prisma.balance.findUnique({
-    where: { userId: payment.userId }
-  })
-  
-  if (!balance) {
-    // Create balance if it doesn't exist
-    await prisma.balance.create({
-      data: {
-        userId: payment.userId,
-        buyingBalance: payment.amount,
-        sellingBalance: 0
-      }
-    })
-  } else {
-    // Update existing balance
-    await prisma.balance.update({
-      where: { id: balance.id },
-      data: {
-        buyingBalance: {
-          increment: payment.amount
-        }
-      }
-    })
-  }
-  
-  // Send deposit confirmation email if available
   try {
-    const { sendDepositConfirmation, notifyTransactionUpdate } = require('@/lib/services/notificationService')
+    // Get user balance
+    const balance = await prisma.balance.findUnique({
+      where: { userId: payment.userId }
+    })
     
-    if (payment.transactionId) {
-      await sendDepositConfirmation(payment.userId, payment.transactionId)
-      await notifyTransactionUpdate(payment.userId, 'DEPOSIT_COMPLETED', { id: payment.transactionId })
+    if (!balance) {
+      // Create balance if it doesn't exist
+      await prisma.balance.create({
+        data: {
+          userId: payment.userId,
+          buyingBalance: payment.amount,
+          sellingBalance: 0
+        }
+      })
+    } else {
+      // Update existing balance
+      await prisma.balance.update({
+        where: { id: balance.id },
+        data: {
+          buyingBalance: {
+            increment: payment.amount
+          }
+        }
+      })
     }
+    
+    console.log(`Successfully processed payment ${payment.paymentId} for user ${payment.userId}`)
   } catch (error) {
-    console.error('Error sending notifications:', error)
+    console.error('Error processing completed payment:', error)
+    throw error
   }
 } 
