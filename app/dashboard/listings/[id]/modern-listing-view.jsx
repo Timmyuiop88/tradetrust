@@ -489,14 +489,14 @@ export function ModernListingView({ listing, onBuyNow, isSubmitting, similarList
                   </span>
                 </Button>
                 
-                <Button 
+                {/*<Button 
                   variant="outline"
                   onClick={handleContactSeller}
                   className="font-medium h-9 sm:h-10 text-sm"
                 >
                   <MessageSquare className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />
                   Contact Seller
-                </Button>
+                </Button>*/}
               </div>
               
               <div className="border-t border-gray-200 dark:border-gray-800 pt-3 sm:pt-4">

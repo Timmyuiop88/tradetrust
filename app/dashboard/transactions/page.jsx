@@ -6,13 +6,15 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/app
 import { Button } from "@/app/components/button"
 import { Badge } from "@/app/components/badge"
 import { Separator } from "@/app/components/ui/separator"
-import { ChevronLeft, ChevronRight, Wallet, ArrowUpRight, ArrowDownLeft, Loader2 } from "lucide-react"
+import { ChevronLeft, ChevronRight, Wallet, ArrowUpRight, ArrowDownLeft, Loader2, ChevronDown } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
 import { cn } from "@/app/lib/utils"
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel } from "@/app/components/ui/dropdown-menu"
 
 export default function TransactionsPage() {
   const [page, setPage] = useState(1)
   const [limit] = useState(5)
+  const [status, setStatus] = useState("")
   
   const { 
     data, 
@@ -20,7 +22,13 @@ export default function TransactionsPage() {
     isFetching,
     isError,
     error 
-  } = useTransactions({ page, limit })
+  } = useTransactions({ page, limit, status })
+
+  // Reset page when status changes
+  const handleStatusChange = (newStatus) => {
+    setStatus(newStatus)
+    setPage(1)
+  }
 
   const handlePreviousPage = () => {
     setPage(old => Math.max(old - 1, 1))
@@ -70,6 +78,65 @@ export default function TransactionsPage() {
             </div>
           </CardContent>
         </Card>
+      </div>
+
+      {/* Filter Section */}
+      <div className="flex items-center justify-between gap-2">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button 
+              variant="outline" 
+              className="w-[180px] h-8 sm:h-9 text-xs sm:text-sm justify-between"
+            >
+              {status ? status.charAt(0) + status.slice(1).toLowerCase() : "All Transactions"}
+              <ChevronDown className="h-3.5 w-3.5 ml-2 opacity-50" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-[180px]">
+            <DropdownMenuLabel className="text-xs">Filter by Status</DropdownMenuLabel>
+            <DropdownMenuItem 
+              onClick={() => handleStatusChange("")}
+              className="text-xs sm:text-sm"
+            >
+              All Transactions
+            </DropdownMenuItem>
+            <DropdownMenuItem 
+              onClick={() => handleStatusChange("COMPLETED")}
+              className="text-xs sm:text-sm"
+            >
+              Completed
+            </DropdownMenuItem>
+            <DropdownMenuItem 
+              onClick={() => handleStatusChange("PENDING")}
+              className="text-xs sm:text-sm"
+            >
+              Pending
+            </DropdownMenuItem>
+            <DropdownMenuItem 
+              onClick={() => handleStatusChange("FAILED")}
+              className="text-xs sm:text-sm"
+            >
+              Failed
+            </DropdownMenuItem>
+            <DropdownMenuItem 
+              onClick={() => handleStatusChange("CANCELLED")}
+              className="text-xs sm:text-sm"
+            >
+              Cancelled
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        {status && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => handleStatusChange("")}
+            className="h-8 sm:h-9 text-xs sm:text-sm"
+          >
+            Clear Filter
+          </Button>
+        )}
       </div>
 
       <Card>
@@ -155,6 +222,31 @@ export default function TransactionsPage() {
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+          
+          {/* Add empty state when no transactions match the filter */}
+          {!isLoading && !isError && data?.transactions.length === 0 && (
+            <div className="py-12 text-center">
+              <div className="flex flex-col items-center justify-center gap-2">
+                <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
+                  <Wallet className="h-6 w-6 text-muted-foreground/50" />
+                </div>
+                <div className="space-y-1">
+                  <p className="font-medium text-sm">
+                    {status 
+                      ? `No ${status.toLowerCase()} transactions`
+                      : "No transactions found"
+                    }
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {status 
+                      ? `There are no transactions with ${status.toLowerCase()} status`
+                      : "You haven't made any transactions yet"
+                    }
+                  </p>
+                </div>
+              </div>
             </div>
           )}
         </CardContent>

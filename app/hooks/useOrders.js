@@ -1,8 +1,10 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/app/components/custom-toast";
+import { useRouter } from "next/navigation";
 
 export function useCreateOrder() {
   const queryClient = useQueryClient();
+  const router = useRouter();
   
   return useMutation({
     mutationFn: async ({ listingId }) => {
@@ -26,6 +28,7 @@ export function useCreateOrder() {
     },
     onSuccess: (data) => {
       toast.success("Order created successfully!");
+      router.push(`/dashboard/orders/${data.orderId}`);
       // Invalidate orders queries
       queryClient.invalidateQueries({ queryKey: ['orders'] });
       return data;
