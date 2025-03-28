@@ -6,100 +6,124 @@ import { addMinutes } from 'date-fns'
 import { encrypt } from '@/lib/encryption'
 import { PushNotificationService } from '@/lib/services/pushNotificationService'
 
+async function validateSession(session) {
+  if (!session?.user?.id) {
+    throw { status: 401, message: 'Unauthorized' }
+  }
+}
+
+async function getOrderById(orderId) {
+  const order = await prisma.order.findUnique({
+    where: { id: orderId },
+    include: {
+      listing: {
+        include: {
+          platform: true
+        }
+      }
+    }
+  })
+  
+  if (!order) {
+    throw { status: 404, message: 'Order not found' }
+  }
+  
+  return order;
+}
+
+async function validateSeller(order, session) {
+  if (order.sellerId !== session.user.id) {
+    throw { status: 403, message: 'Only the seller can release credentials' }
+  }
+}
+
+async function validateOrderState(order) {
+  if (order.status !== 'WAITING_FOR_SELLER') {
+    throw { status: 400, message: 'Cannot release credentials in the current order state' }
+  }
+}
+
+async function validateRequestBody(request) {
+  let body;
+  try {
+    body = await request.json();
+  } catch (error) {
+    throw { status: 400, message: 'Invalid request body. Please provide valid JSON data.' }
+  }
+  return body;
+}
+
+function encryptCredentials(body) {
+  return {
+    email: encrypt(body.email || ''),
+    password: encrypt(body.password || ''),
+    serialKey: body.serialKey ? encrypt(body.serialKey) : null,
+    loginImages: body.loginImages || [],
+    recoveryAccountType: body.recoveryAccountType ? encrypt(body.recoveryAccountType) : null,
+    recoveryEmail: body.recoveryEmail ? encrypt(body.recoveryEmail) : null,
+    recoveryPassword: body.recoveryPassword ? encrypt(body.recoveryPassword) : null,
+    recoveryPhone: body.recoveryPhone ? encrypt(body.recoveryPhone) : null,
+    securityQuestions: body.securityQuestions ? encrypt(body.securityQuestions) : null,
+    recoveryImages: body.recoveryImages || [],
+    transferInstructions: body.transferInstructions ? encrypt(body.transferInstructions) : null,
+    additionalInfo: body.additionalInfo ? encrypt(body.additionalInfo) : null,
+    additionalImages: body.additionalImages || []
+  }
+}
+
 export async function POST(request, { params }) {
   try {
     const session = await getServerSession(authOptions)
-    
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    await validateSession(session)
     
     const orderId = params.id
-    
     if (!orderId) {
-      return NextResponse.json({ error: 'Order ID is required' }, { status: 400 })
+      throw { status: 400, message: 'Order ID is required' }
     }
-    
-    // Get the order with listing and platform details for notification
-    const order = await prisma.order.findUnique({
-      where: { id: orderId },
-      include: {
-        listing: {
-          include: {
-            platform: true
-          }
-        }
-      }
-    })
-    
-    if (!order) {
-      return NextResponse.json({ error: 'Order not found' }, { status: 404 })
-    }
-    
-    // Check if user is the seller
-    if (order.sellerId !== session.user.id) {
-      return NextResponse.json({ error: 'Only the seller can release credentials' }, { status: 403 })
-    }
-    
-    // Check if order is in the correct state
-    if (order.status !== 'WAITING_FOR_SELLER') {
-      return NextResponse.json({ 
-        error: 'Cannot release credentials in the current order state' 
-      }, { status: 400 })
-    }
-    
-    // Get credentials from request body with error handling
-    let email, password, additionalInfo;
-    try {
-      const body = await request.json();
-      email = body.email;
-      password = body.password;
-      additionalInfo = body.additionalInfo;
-    } catch (error) {
-      return NextResponse.json({ 
-        error: 'Invalid request body. Please provide valid JSON data.' 
-      }, { status: 400 })
-    }
-    
-    if (!email || !password) {
-      return NextResponse.json({ error: 'Email and password are required' }, { status: 400 })
-    }
-    
-    // Encrypt sensitive data
-    const encryptedCredentials = {
-      email: encrypt(email),
-      password: encrypt(password),
-      additionalInfo: additionalInfo ? encrypt(additionalInfo) : null
-    }
-    
+
+    const order = await getOrderById(orderId)
+    await validateSeller(order, session)
+    await validateOrderState(order)
+
+    const body = await validateRequestBody(request)
+
+    const encryptedCredentials = encryptCredentials(body)
+
     // Set buyer deadline (20 minutes from now)
     const buyerDeadline = addMinutes(new Date(), 20)
-    
+
     // Update order status and store credentials
     const updatedOrder = await prisma.order.update({
       where: { id: orderId },
       data: {
         status: 'WAITING_FOR_BUYER',
         buyerDeadline,
+      }
+    })
+
+    const updatedCredentials = await prisma.listing.update({
+      where: { id: order.listingId },
+      data: {
         credentials: encryptedCredentials
       }
     })
-    
+
     // Send push notification to buyer
     await PushNotificationService.notifyOrderUpdate(
-      order, // Pass the order with included listing and platform
+      order,
       'SELLER_PROVIDED_DETAILS'
     )
-    
+
     return NextResponse.json({
       success: true,
       message: 'Account credentials released. Waiting for buyer confirmation.'
     })
+    
   } catch (error) {
-    console.error('Error releasing credentials:', error)
-    return NextResponse.json(
-      { error: error.message || 'Failed to release credentials' },
-      { status: 500 }
-    )
+    const statusCode = error.status || 500
+    const message = error.message || 'Failed to release credentials'
+    console.error(`Error releasing credentials: ${message}`, error)
+
+    return NextResponse.json({ error: message }, { status: statusCode })
   }
-} 
+}

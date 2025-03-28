@@ -28,6 +28,7 @@ import { cn } from "@/lib/utils"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/app/components/tabs"
 import { FileUploader } from "@/app/components/file-uploader"
 import { Trash } from "lucide-react"
+import { useUnreadMessageCount } from '@/lib/hooks/useUnreadMessageCount'
 
 // Fetch function for the order
 const fetchOrder = async (orderId) => {
@@ -285,34 +286,36 @@ export default function OrderDetailPage() {
     toast.success('Order ID copied to clipboard');
   }, [params.id]);
   
-  const handleReleaseCredentials = async (e) => {
-    e.preventDefault();
-    setReleasing(true);
+  const handleReleaseCredentials = useCallback(async (e) => {
+    if (e) e.preventDefault();
     
-    try {
-      const response = await fetch(`/api/orders/${order.id}/release-credentials`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(credentials),
-      });
+    // Collect all credential data from the form
+    const credentialsToSubmit = {
+      // Login details
+      email: credentials.email || '',
+      password: credentials.password || '',
+      serialKey: credentials.serialKey || '',
+      loginImages: credentials.loginImages || [],
       
-      const data = await response.json();
+      // Recovery info
+      recoveryAccountType: credentials.recoveryAccountType || '',
+      recoveryEmail: credentials.recoveryEmail || '',
+      recoveryPassword: credentials.recoveryPassword || '',
+      recoveryImages: credentials.recoveryImages || [],
       
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to release credentials');
-      }
-      
-      // Success
-      toast.success('Credentials released successfully');
-      setTimeout(() => router.reload(), 1000);
-    } catch (error) {
-      toast.error(error.message);
-    } finally {
-      setReleasing(false);
-    }
-  };
+      // Additional info
+      transferInstructions: credentials.transferInstructions || '',
+      additionalInfo: credentials.additionalInfo || '',
+      additionalImages: credentials.additionalImages || []
+    };
+    
+  
+    // Submit to API
+    releaseMutation.mutate({
+      orderId: params.id,
+      credentials: credentialsToSubmit
+    });
+  }, [params.id, credentials, releaseMutation, toast]);
   
   const handleConfirmReceived = useCallback(async () => {
     if (!confirm('Are you sure you want to confirm receipt? This will release the payment to the seller and cannot be undone.')) {
@@ -399,6 +402,9 @@ export default function OrderDetailPage() {
       }
     }
   }, [order]);
+  
+  // Inside your component
+  const { count: unreadCount, isLoading: loadingMessages } = useUnreadMessageCount(params.id)
   
   if (showLoading) {
     return (
@@ -625,29 +631,39 @@ export default function OrderDetailPage() {
           <div className="bg-muted/30 rounded-lg p-3 sm:p-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 sm:mb-4 gap-2 sm:gap-0">
               <h3 className="font-medium text-sm sm:text-base">Transaction Progress</h3>
-              <Button variant="outline" size="sm" onClick={handleOpenChat} className="w-full sm:w-auto">
+              <Button variant="outline" size="sm" onClick={handleOpenChat} className="w-full sm:w-auto relative">
                 <MessageSquare className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />
                 <span className="text-xs sm:text-sm font-medium">Contact {isBuyer ? 'Seller' : 'Buyer'}</span>
+                
+                {unreadCount > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
               </Button>
             </div>
             
             <div className="relative pl-6 sm:pl-8">
               <div className="absolute left-2.5 sm:left-3.5 top-0 bottom-0 w-0.5 bg-muted-foreground/20" />
               
-              <div className="relative pb-4 sm:pb-6">
-                <div className={`absolute left-0 h-5 w-5 sm:h-7 sm:w-7 rounded-full flex items-center justify-center`}>
+              <div className="flex relative pb-4 sm:pb-6">
+                <div className={` left-0 h-5 w-5 sm:h-7 sm:w-7 rounded-full flex items-center justify-center`}>
                   <span className="text-[10px] sm:text-xs text-white font-medium">1</span>
                 </div>
+                <div className="flex flex-col">
                 <h4 className="font-medium text-sm sm:text-base">Order Created</h4>
                 <p className="text-xs sm:text-sm text-muted-foreground">
                   {formatDistance(new Date(order.createdAt), new Date(), { addSuffix: true })}
                 </p>
+                </div>
+               
               </div>
               
-              <div className="relative pb-4 sm:pb-6">
-                <div className={`absolute left-0 h-5 w-5 sm:h-7 sm:w-7 rounded-full flex items-center justify-center`}>
+              <div className="flex relative pb-4 sm:pb-6">
+                <div className={` left-0 h-5 w-5 sm:h-7 sm:w-7 rounded-full flex items-center justify-center`}>
                   <span className="text-[10px] sm:text-xs text-white font-medium">2</span>
                 </div>
+                <div className="flex flex-col">
                 <h4 className="font-medium text-sm sm:text-base">Account Details Provided</h4>
                 <p className="text-xs sm:text-sm text-muted-foreground">
                   {order.status === 'WAITING_FOR_SELLER' 
@@ -658,18 +674,21 @@ export default function OrderDetailPage() {
                         ? 'Account details were provided'
                         : 'Not completed'}
                 </p>
+                </div>
               </div>
               
-              <div className="relative pb-4 sm:pb-6">
-                <div className={`absolute left-0 h-5 w-5 sm:h-7 sm:w-7 rounded-full flex items-center justify-center`}>
+              <div className="flex relative pb-4 sm:pb-6">
+                <div className={` left-0 h-5 w-5 sm:h-7 sm:w-7 rounded-full flex items-center justify-center`}>
                   <span className="text-[10px] sm:text-xs text-white font-medium">3</span>
                 </div>
+                <div className="flex flex-col">
                 <h4 className="font-medium text-sm sm:text-base">Transaction Completed</h4>
                 <p className="text-xs sm:text-sm text-muted-foreground">
                   {order.status === 'COMPLETED'
                     ? 'Transaction successfully completed'
                     : 'Waiting for transaction completion'}
                 </p>
+                </div>
               </div>
             </div>
           </div>
@@ -728,7 +747,7 @@ export default function OrderDetailPage() {
                 </div>
               </div>
               
-              {order.listing?.credentials && (
+              {/* {order.listing?.credentials && (
                 <div className="bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 rounded-lg p-4 mb-4 flex gap-2 items-start">
                   <div className="h-5 w-5 mt-0.5">✓</div>
                   <div className="text-sm">
@@ -736,7 +755,7 @@ export default function OrderDetailPage() {
                     <p>You provided credentials when creating this listing. You can review and edit them below.</p>
                   </div>
                 </div>
-              )}
+              )} */}
               
               <form onSubmit={handleReleaseCredentials} className="space-y-4">
                 <Tabs defaultValue="login" className="w-full">
@@ -755,7 +774,7 @@ export default function OrderDetailPage() {
                           value={credentials.email || ''}
                           onChange={(e) => setCredentials({...credentials, email: e.target.value})}
                           placeholder="Account email or username"
-                          required
+                          
                         />
                       </div>
                       
@@ -768,7 +787,7 @@ export default function OrderDetailPage() {
                             value={credentials.password || ''}
                             onChange={(e) => setCredentials({...credentials, password: e.target.value})}
                             placeholder="Account password"
-                            required
+                            
                           />
                           <button
                             type="button"
@@ -991,7 +1010,7 @@ export default function OrderDetailPage() {
                   </TabsContent>
                 </Tabs>
                 
-                <Button 
+                {/* <Button 
                   type="submit" 
                   className="w-full text-xs sm:text-sm h-9 sm:h-10 mt-4"
                   disabled={releasing || statusChangeLoading}
@@ -1004,7 +1023,7 @@ export default function OrderDetailPage() {
                   ) : (
                     'Release Account Credentials'
                   )}
-                </Button>
+                </Button> */}
               </form>
             </div>
           )}
@@ -1024,53 +1043,299 @@ export default function OrderDetailPage() {
               </div>
               
               {showCredentials ? (
-                <div className="space-y-3">
-                  <div>
-                    <Label>Email/Username</Label>
-                    <div className="flex items-center mt-1">
-                      <div className="bg-muted p-2 rounded-md w-full font-mono text-sm">
-                        {order.credentials.email}
-                      </div>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="ml-2"
-                        onClick={() => {
-                          navigator.clipboard.writeText(order.credentials.email)
-                          toast.success('Email copied to clipboard')
-                        }}
-                      >
-                        <Copy className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <Label>Password</Label>
-                    <div className="flex items-center mt-1">
-                      <div className="bg-muted p-2 rounded-md w-full font-mono text-sm">
-                        {order.credentials.password}
-                      </div>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="ml-2"
-                        onClick={() => {
-                          navigator.clipboard.writeText(order.credentials.password)
-                          toast.success('Password copied to clipboard')
-                        }}
-                      >
-                        <Copy className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                  
-                  {order.credentials.additionalInfo && (
+                <div className="space-y-4">
+                  {/* Login Details Section */}
+                  <div className="space-y-3">
+                    <h4 className="font-medium text-sm text-muted-foreground">Login Details</h4>
+                    {order.listing.credentials.email && (
                     <div>
-                      <Label>Additional Information</Label>
-                      <div className="bg-muted p-2 rounded-md w-full text-sm mt-1 whitespace-pre-wrap">
-                        {order.credentials.additionalInfo}
+                      <Label>Email/Username</Label>
+                      <div className="flex items-center mt-1">
+                        <div className="bg-muted p-2 rounded-md w-full font-mono text-sm">
+                          {order.listing.credentials.email}
+                        </div>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="ml-2"
+                          onClick={() => {
+                            navigator.clipboard.writeText(order.credentials.email)
+                            toast.success('Email copied to clipboard')
+                          }}
+                        >
+                          <Copy className="h-4 w-4" />
+                        </Button>
                       </div>
+                    </div>
+                    )}
+                    
+                    {order.listing.credentials.password && (
+                    <div>
+                      <Label>Password</Label>
+                      <div className="flex items-center mt-1">
+                        <div className="bg-muted p-2 rounded-md w-full font-mono text-sm">
+                          {order.listing.credentials.password}
+                        </div>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="ml-2"
+                          onClick={() => {
+                            navigator.clipboard.writeText(order.listing.credentials.password)
+                            toast.success('Password copied to clipboard')
+                          }}
+                        >
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                    )}
+                    
+                    {order.listing.credentials.serialKey && (
+                      <div>
+                        <Label>Serial Key</Label>
+                        <div className="flex items-center mt-1">
+                          <div className="bg-muted p-2 rounded-md w-full font-mono text-sm truncate">
+                            {order.listing.credentials.serialKey}
+                          </div>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="ml-2"
+                            onClick={() => {
+                              navigator.clipboard.writeText(order.listing.credentials.serialKey)
+                              toast.success('Serial key copied to clipboard')
+                            }}
+                          >
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {order.listing.credentials.loginImages && order.listing.credentials.loginImages.length > 0 && (
+                      <div>
+                        <Label>Login Images</Label>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-1">
+                          {order.listing.credentials.loginImages.map((image, index) => (
+                            <div key={`login-image-${index}`} className="relative group">
+                              <img 
+                                src={image} 
+                                alt={`Login image ${index + 1}`} 
+                                className="w-full h-24 object-cover rounded-lg border cursor-pointer"
+                                onClick={() => window.open(image, '_blank')}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Recovery Info Section */}
+                  {(order.listing.credentials.recoveryEmail || order.listing.credentials.recoveryPassword || 
+                    order.listing.credentials.recoveryPhone || order.listing.credentials.securityQuestions || 
+                    (order.listing.credentials.recoveryImages && order.listing.credentials.recoveryImages.length > 0)) && (
+                    <div className="space-y-3 pt-3 border-t">
+                      <h4 className="font-medium text-sm text-muted-foreground">Recovery Information</h4>
+                      
+                      {order.listing.credentials.recoveryAccountType && (
+                        <div>
+                          <Label>Recovery Account Type</Label>
+                          <div className="flex items-center mt-1">
+                            <div className="bg-muted p-2 rounded-md w-full text-sm">
+                              {order.listing.credentials.recoveryAccountType}
+                            </div>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="ml-2"
+                              onClick={() => {
+                                navigator.clipboard.writeText(order.listing.credentials.recoveryAccountType)
+                                toast.success('Recovery account type copied to clipboard')
+                              }}
+                            >
+                              <Copy className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {order.listing.credentials.recoveryEmail && (
+                        <div>
+                          <Label>Recovery Email</Label>
+                          <div className="flex items-center mt-1">
+                            <div className="bg-muted p-2 rounded-md w-full font-mono text-sm">
+                              {order.listing.credentials.recoveryEmail}
+                            </div>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="ml-2"
+                              onClick={() => {
+                                navigator.clipboard.writeText(order.listing.credentials.recoveryEmail)
+                                toast.success('Recovery email copied to clipboard')
+                              }}
+                            >
+                              <Copy className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {order.listing.credentials.recoveryPassword && (
+                        <div>
+                          <Label>Recovery Password</Label>
+                          <div className="flex items-center mt-1">
+                            <div className="bg-muted p-2 rounded-md w-full font-mono text-sm">
+                              {order.listing.credentials.recoveryPassword}
+                            </div>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="ml-2"
+                              onClick={() => {
+                                navigator.clipboard.writeText(order.listing.credentials.recoveryPassword)
+                                toast.success('Recovery password copied to clipboard')
+                              }}
+                            >
+                              <Copy className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {order.listing.credentials.recoveryPhone && (
+                        <div>
+                          <Label>Recovery Phone</Label>
+                          <div className="flex items-center mt-1">
+                            <div className="bg-muted p-2 rounded-md w-full font-mono text-sm">
+                              {order.listing.credentials.recoveryPhone}
+                            </div>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="ml-2"
+                              onClick={() => {
+                                navigator.clipboard.writeText(order.listing.credentials.recoveryPhone)
+                                toast.success('Recovery phone copied to clipboard')
+                              }}
+                            >
+                              <Copy className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {order.listing.credentials.securityQuestions && (
+                        <div>
+                          <Label>Security Questions</Label>
+                          <div className="flex items-center mt-1">
+                            <div className="bg-muted p-2 rounded-md w-full text-sm whitespace-pre-wrap">
+                              {order.listing.credentials.securityQuestions}
+                            </div>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="ml-2"
+                              onClick={() => {
+                                navigator.clipboard.writeText(order.listing.credentials.securityQuestions)
+                                toast.success('Security questions copied to clipboard')
+                              }}
+                            >
+                              <Copy className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {order.listing.credentials.recoveryImages && order.listing.credentials.recoveryImages.length > 0 && (
+                        <div>
+                          <Label>Recovery Images</Label>
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-1">
+                            {order.listing.credentials.recoveryImages.map((image, index) => (
+                              <div key={`recovery-image-${index}`} className="relative group">
+                                <img 
+                                  src={image} 
+                                  alt={`Recovery image ${index + 1}`} 
+                                  className="w-full h-24 object-cover rounded-lg border cursor-pointer"
+                                  onClick={() => window.open(image, '_blank')}
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  
+                  {/* Additional Info Section */}
+                  {(order.listing.credentials.transferInstructions || order.listing.credentials.additionalInfo || 
+                    (order.listing.credentials.additionalImages && order.listing.credentials.additionalImages.length > 0)) && (
+                    <div className="space-y-3 pt-3 border-t">
+                      <h4 className="font-medium text-sm text-muted-foreground">Additional Information</h4>
+                      
+                      {order.listing.credentials.transferInstructions && (
+                        <div>
+                          <Label>Transfer Instructions</Label>
+                          <div className="flex items-center mt-1">
+                            <div className="bg-muted p-2 rounded-md w-full text-sm whitespace-pre-wrap">
+                              {order.listing.credentials.transferInstructions}
+                            </div>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="ml-2"
+                              onClick={() => {
+                                navigator.clipboard.writeText(order.listing.credentials.transferInstructions)
+                                toast.success('Transfer instructions copied to clipboard')
+                              }}
+                            >
+                              <Copy className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {order.listing.credentials.additionalInfo && (
+                        <div>
+                          <Label>Additional Information</Label>
+                          <div className="flex items-center mt-1">
+                            <div className="bg-muted p-2 rounded-md w-full text-sm whitespace-pre-wrap">
+                              {order.listing.credentials.additionalInfo}
+                            </div>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="ml-2"
+                              onClick={() => {
+                                navigator.clipboard.writeText(order.listing.credentials.additionalInfo)
+                                toast.success('Additional information copied to clipboard')
+                              }}
+                            >
+                              <Copy className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {order.listing.credentials.additionalImages && order.listing.credentials.additionalImages.length > 0 && (
+                        <div>
+                          <Label>Additional Images</Label>
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-1">
+                            {order.listing.credentials.additionalImages.map((image, index) => (
+                              <div key={`additional-image-${index}`} className="relative group">
+                                <img 
+                                  src={image} 
+                                  alt={`Additional image ${index + 1}`} 
+                                  className="w-full h-24 object-cover rounded-lg border cursor-pointer"
+                                  onClick={() => window.open(image, '_blank')}
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -1092,7 +1357,7 @@ export default function OrderDetailPage() {
           {isSeller && order.status === 'WAITING_FOR_SELLER' && (
             <div className="flex flex-col gap-3 w-full">
               <div className="flex gap-3">
-            <Button 
+                <Button 
                   className="flex-1" 
                   onClick={() => setShowDeclineConfirmation(true)}
                   variant="outline"
@@ -1105,19 +1370,26 @@ export default function OrderDetailPage() {
                     </span>
                   ) : (
                     'Decline Order'
-              )}
-            </Button>
+                  )}
+                </Button>
                 <Button 
                   className="flex-1" 
-                  onClick={() => document.getElementById('credential-form').scrollIntoView({ behavior: 'smooth' })}
+                  onClick={() => {
+                   handleReleaseCredentials()
+                  }}
+                  loading={releaseMutation.isPending}
                   disabled={releaseMutation.isPending}
                 >
-                  Release Credentials
+                  {releaseMutation.isPending ? (
+                    <span className="flex items-center">
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      Processing...
+                    </span>
+                  ) : (
+                    'Release Credentials'
+                  )}
                 </Button>
               </div>
-              <p className="text-xs text-muted-foreground text-center">
-                Declining the order will refund the buyer and make your listing available again.
-              </p>
             </div>
           )}
           
