@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma'
 import crypto from 'crypto'
 
 // Oxapay API configuration
-const OXAPAY_MERCHANT_API_KEY = process.env.OXAPAY_API_KEY
+const OXAPAY_MERCHANT_API_KEY = process.env.OXAPAY_MERCHANT_ID
 const OXAPAY_PAYOUT_API_KEY = process.env.OXAPAY_PAYOUT_API_KEY 
 
 export async function POST(request) {
