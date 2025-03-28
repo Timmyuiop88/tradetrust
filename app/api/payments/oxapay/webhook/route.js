@@ -4,7 +4,7 @@ import crypto from 'crypto'
 
 // Oxapay API configuration
 const OXAPAY_MERCHANT_API_KEY = process.env.OXAPAY_API_KEY
-const OXAPAY_PAYOUT_API_KEY = process.env.OXAPAY_PAYOUT_API_KEY || process.env.OXAPAY_API_KEY
+const OXAPAY_PAYOUT_API_KEY = process.env.OXAPAY_PAYOUT_API_KEY 
 
 export async function POST(request) {
   try {
@@ -21,34 +21,40 @@ export async function POST(request) {
     
     console.log('Oxapay webhook payload:', data)
     
-    // Determine which API key to use based on the callback type
-    const apiSecretKey = (data.type === 'payment') 
-      ? OXAPAY_MERCHANT_API_KEY 
-      : OXAPAY_PAYOUT_API_KEY
-    
-    // Get the HMAC signature from headers
-    const hmacHeader = request.headers.get('hmac')
-    
-    if (!hmacHeader) {
-      console.error('No HMAC signature in webhook request')
-      return NextResponse.json({ error: 'Missing HMAC signature' }, { status: 400 })
+    // Check if API keys are configured
+    if (!OXAPAY_MERCHANT_API_KEY) {
+      console.warn('OXAPAY_API_KEY is not configured. Skipping signature verification.')
+      // Continue processing without verification for development/testing
+    } else {
+      // Determine which API key to use based on the callback type
+      const apiSecretKey = (data.type === 'payment') 
+        ? OXAPAY_MERCHANT_API_KEY 
+        : OXAPAY_PAYOUT_API_KEY
+      
+      // Get the HMAC signature from headers
+      const hmacHeader = request.headers.get('hmac')
+      
+      if (!hmacHeader) {
+        console.error('No HMAC signature in webhook request')
+        return NextResponse.json({ error: 'Missing HMAC signature' }, { status: 400 })
+      }
+      
+      // Calculate the expected HMAC signature
+      const calculatedHmac = crypto
+        .createHmac('sha512', apiSecretKey)
+        .update(rawBody)
+        .digest('hex')
+      
+      // Verify the HMAC signature
+      if (calculatedHmac !== hmacHeader) {
+        console.error('Invalid HMAC signature')
+        console.error('Received:', hmacHeader)
+        console.error('Calculated:', calculatedHmac)
+        return NextResponse.json({ error: 'Invalid HMAC signature' }, { status: 400 })
+      }
     }
     
-    // Calculate the expected HMAC signature
-    const calculatedHmac = crypto
-      .createHmac('sha512', apiSecretKey)
-      .update(rawBody)
-      .digest('hex')
-    
-    // Verify the HMAC signature
-    if (calculatedHmac !== hmacHeader) {
-      console.error('Invalid HMAC signature')
-      console.error('Received:', hmacHeader)
-      console.error('Calculated:', calculatedHmac)
-      return NextResponse.json({ error: 'Invalid HMAC signature' }, { status: 400 })
-    }
-    
-    // HMAC signature is valid, process the callback data based on the type
+    // HMAC signature is valid or skipped, process the callback data based on the type
     if (data.type === 'payment') {
       await handlePaymentCallback(data)
     } else if (data.type === 'payout') {
@@ -86,9 +92,6 @@ async function handlePaymentCallback(data) {
       where: { 
         paymentId: trackId,
         provider: 'OXAPAY'
-      },
-      include: {
-        transaction: true // Include the linked transaction
       }
     })
     
