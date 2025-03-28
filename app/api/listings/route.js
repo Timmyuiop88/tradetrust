@@ -216,7 +216,7 @@ export async function POST(request) {
     
     // Get max listings from subscription plan or default to FREE tier limit
     const subscriptionTier = subscription?.plan?.tier || "FREE"
-    const maxActiveListings = subscription?.plan?.maxListings || 4 // Default to FREE tier limit
+    const maxActiveListings = subscription?.plan?.maxListings || 2 // Default to FREE tier limit
     
     // Determine if this listing should be active or inactive based on limits
     const isActive = activeListingsCount < maxActiveListings

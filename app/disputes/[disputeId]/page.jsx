@@ -685,6 +685,11 @@ export default function DisputeDetailPage() {
                   <p className="text-sm text-muted-foreground">Order ID</p>
                   <p className="text-sm font-medium truncate">{disputeData?.orderId}</p>
                 </div>
+
+                <div>
+                  <p className="text-sm text-muted-foreground">Dispute Description </p>
+                  <div className="mt-1 capitalize">{disputeData?.description}</div>
+                </div>
                 
                 <div>
                   <p className="text-sm text-muted-foreground">Reason</p>
