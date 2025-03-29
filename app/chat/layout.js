@@ -8,11 +8,7 @@ export const metadata = {
 
 export default function ChatLayout({ children }) {
   return (
-    <Suspense fallback={
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-      </div>
-    }>
+    <Suspense>
       {children}
     </Suspense>
   );
