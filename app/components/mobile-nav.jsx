@@ -4,39 +4,52 @@ import { useState } from "react"
 import Link from "next/link"
 import { Button } from "./button"
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "./sheet"
-import { Menu, X, User, ShieldCheck, Sun, Moon, LayoutGrid, Info, HelpCircle, ShoppingBag, Home, Settings, LogOut, User2, Bell, Wallet } from "lucide-react"
+import { 
+  Menu, Home, ShoppingBag, PlusSquare, User2, 
+  Info, HelpCircle, LogOut, Sun, Moon 
+} from "lucide-react"
 import { useTheme } from "next-themes"
 import { cn } from "@/app/lib/utils"
 import { usePathname } from "next/navigation"
-
 import { useSession, signOut } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
+
 export function MobileNav() {
   const [open, setOpen] = useState(false)
   const { theme, setTheme } = useTheme()
   const pathname = usePathname()
-
-  // Function to check if a link is active
-  const isActive = (path) => {
-    // For exact matches
-    if (pathname === path) return true
-
-    // For nested paths (e.g. /how-it-works/something should highlight the /how-it-works link)
-    if (path !== '/' && pathname.startsWith(path)) return true
-
-    return false
-  }
-
   const { data: session } = useSession()
   const router = useRouter()
 
-  // Public navigation items only - no auth required
+  // Function to check if a link is active
+  const isActive = (path) => {
+    if (pathname === path) return true
+    if (path !== '/' && pathname.startsWith(path)) return true
+    return false
+  }
+
+  // Public navigation items - when not logged in
   const publicNavItems = [
     { name: 'Home', href: '/', icon: Home },
     { name: 'About Us', href: '/about', icon: Info },
     { name: 'How it Works', href: '/how-it-works', icon: HelpCircle },
   ]
+
+  // Protected navigation items - when logged in
+  const protectedNavItems = [
+    { name: 'Dashboard', href: '/dashboard', icon: Home },
+    { name: 'Orders', href: '/dashboard/orders', icon: ShoppingBag },
+    { name: 'Sell', href: '/dashboard/sell', icon: PlusSquare },
+    { name: 'Profile', href: '/dashboard/profile', icon: User2 },
+  ]
+
+  // Handle logout
+  const handleLogout = async () => {
+    await signOut({ redirect: false })
+    router.push('/')
+    setOpen(false)
+  }
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -51,13 +64,13 @@ export function MobileNav() {
           <span className="sr-only">Toggle menu</span>
         </Button>
       </SheetTrigger>
-      <SheetContent side="right" className="w-[280px] p-0" aria-labelledby="navigation-title">
+      <SheetContent side="right" className="w-[280px] p-0">
         <div className="flex flex-col h-full">
           {/* Header */}
           <div className="border-b py-4 px-6">
             <div className="flex items-center justify-between">
               <Link
-                href="/"
+                href={session ? "/dashboard" : "/"}
                 className="flex items-center space-x-2"
                 onClick={() => setOpen(false)}
               >
@@ -67,15 +80,10 @@ export function MobileNav() {
             </div>
           </div>
 
-          {/* Hidden title for accessibility */}
-          <div className="sr-only">
-            <h2 id="navigation-title">Navigation Menu</h2>
-          </div>
-
-          {/* Nav Links - Public Pages Only */}
+          {/* Nav Links */}
           <nav className="flex-1 overflow-auto py-4">
             <div className="space-y-1 px-2">
-              {publicNavItems.map((item, index) => (
+              {(session ? protectedNavItems : publicNavItems).map((item, index) => (
                 <NavLink
                   key={index}
                   href={item.href}
@@ -88,26 +96,49 @@ export function MobileNav() {
               ))}
             </div>
 
+            {/* Auth Buttons */}
             <div className="mt-6 px-3">
-              <div className="flex flex-col gap-2">
-                <Button asChild variant="outline" className="justify-start w-full" onClick={() => router.push('/login')}>
-                  <User className="mr-2 h-4 w-4" /> Sign In
+              {session ? (
+                <Button 
+                  className="w-full justify-start" 
+                  onClick={handleLogout}
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Logout
                 </Button>
-                <Button asChild className="justify-start w-full" onClick={() => router.push('/signup')}>
-                  Get Started
-                </Button>
-              </div>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  <Button 
+                    variant="outline" 
+                    className="justify-start w-full" 
+                    onClick={() => {
+                      router.push('/login')
+                      setOpen(false)
+                    }}
+                  >
+                    <User2 className="mr-2 h-4 w-4" /> 
+                    Sign In
+                  </Button>
+                  <Button 
+                    className="justify-start w-full" 
+                    onClick={() => {
+                      router.push('/signup')
+                      setOpen(false)
+                    }}
+                  >
+                    Get Started
+                  </Button>
+                </div>
+              )}
             </div>
           </nav>
 
-          {/* Footer */}
+          {/* Theme Toggle */}
           <div className="border-t p-4">
             <Button
               variant="outline"
               className="w-full justify-between"
-              onClick={() => {
-                setTheme(theme === "dark" ? "light" : "dark")
-              }}
+              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
             >
               <span>Switch to {theme === "dark" ? "Light" : "Dark"} Mode</span>
               {theme === "dark" ? (
@@ -123,7 +154,7 @@ export function MobileNav() {
   )
 }
 
-// Helper component for navigation links
+// NavLink component remains the same
 function NavLink({ href, children, icon: Icon, onClick, isActive }) {
   return (
     <Link
