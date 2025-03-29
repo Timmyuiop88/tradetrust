@@ -7,6 +7,7 @@ import "./globals.css"
 import { Providers } from "./providers"
 import { ThemeProvider } from "@/app/components/theme-provider"
 import { CookieConsent } from "./components/cookie-consent"
+import Script from "next/script"
 
 export const metadata = {
   title: "TradeVero - Safe Digital Trading",
@@ -48,6 +49,21 @@ export default function RootLayout({ children }) {
           {children}
           <CookieConsent />
         </Providers>
+        
+        {/* Contentsquare (Hotjar) Tracking Script */}
+        <Script id="contentsquare-script" strategy="afterInteractive">
+          {`
+            (function (c, s, q, u, a, r, e) {
+              c.hj=c.hj||function(){(c.hj.q=c.hj.q||[]).push(arguments)};
+              c._hjSettings = { hjid: 5354912 };
+              r = s.getElementsByTagName('head')[0];
+              e = s.createElement('script');
+              e.async = true;
+              e.src = q + c._hjSettings.hjid + u;
+              r.appendChild(e);
+            })(window, document, 'https://static.hj.contentsquare.net/c/csq-', '.js');
+          `}
+        </Script>
       </body>
     </html>
   )
