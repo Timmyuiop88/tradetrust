@@ -130,10 +130,10 @@ export function ListingCard({ listing }) {
               </span>
             </div>
             <Badge 
-              variant={isActive ? "success" : "secondary"}
+              variant={listing?.status === "AVAILABLE" ? "default" : "secondary"}
               className="text-[10px] sm:text-xs"
             >
-              {isActive ? "Active" : "Inactive"}
+              {listing?.status}
             </Badge>
           </div>
         </div>

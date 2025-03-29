@@ -310,7 +310,7 @@ export default function BalancePage() {
                 </div>
                 
                 <div className={`font-medium whitespace-nowrap text-sm ${
-                  transaction.status === 'COMPLETED' ? 'text-green-600' : 'text-orange-600'
+                  transaction.status !== 'COMPLETED' | transaction.type !== 'DEPOSIT' ? 'text-red-600' : 'text-green-600'
                 }`}>
                   {transaction.type === 'DEPOSIT' ? '+' : '-'}
                   {formatCurrency(transaction.amount)}

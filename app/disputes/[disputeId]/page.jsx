@@ -685,6 +685,11 @@ export default function DisputeDetailPage() {
                   <p className="text-sm text-muted-foreground">Order ID</p>
                   <p className="text-sm font-medium truncate">{disputeData?.orderId}</p>
                 </div>
+
+                <div>
+                  <p className="text-sm text-muted-foreground">Dispute Description </p>
+                  <div className="mt-1 capitalize">{disputeData?.description}</div>
+                </div>
                 
                 <div>
                   <p className="text-sm text-muted-foreground">Reason</p>
@@ -804,41 +809,38 @@ export default function DisputeDetailPage() {
           <div className="md:col-span-2">
             <div className="bg-card rounded-lg shadow-sm border border-border overflow-hidden flex flex-col h-[600px]">
               {/* Chat header */}
-              <div className="p-4 border-b flex items-center justify-between bg-background">
-                <div className="flex items-center gap-2">
-                  <MessageSquare className="h-5 w-5 text-muted-foreground" />
-                  <h3 className="font-medium">
-                    {otherUser ? `Chat with ${otherUser.email}` : 'Dispute Communication'}
-                  </h3>
-                </div>
-                
-                {/* Action buttons */}
-                <div className="flex items-center gap-2">
-                  {/* Full screen chat button */}
-                  <Link
-                    href={`/chat/${disputeData?.orderId}`}
-                    className={cn(
-                      "p-2 rounded-full hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
-                    )}
-                    aria-label="Open full chat"
-                  >
-                    <Maximize2 className="h-4 w-4" />
-                  </Link>
-                  
-                  {/* Refresh button */}
-                  <button 
-                    onClick={handleManualRefresh}
-                    className={cn(
-                      "p-2 rounded-full hover:bg-muted transition-colors",
-                      isRefreshing && "animate-spin text-primary"
-                    )}
-                    disabled={isRefreshing}
-                    aria-label="Refresh messages"
-                  >
-                    <RefreshCw className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
+              <div className="p-4 border-b flex flex-col sm:flex-row items-center justify-between bg-background gap-3 sm:gap-2">
+  {/* Title Section */}
+  <div className="flex items-center gap-2 w-full sm:w-auto">
+    <MessageSquare className="h-5 w-5 text-muted-foreground" />
+    <h3 className="font-medium truncate">
+      {otherUser ? `Chat with ${otherUser.email}` : 'Dispute Communication'}
+    </h3>
+  </div>
+
+  {/* Action Buttons */}
+  <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+    {/* Full-screen chat button */}
+    <Link
+      href={`/chat/${disputeData?.orderId}`}
+      className="p-2 rounded-full hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+      aria-label="Open full chat"
+    >
+      <Maximize2 className="h-4 w-4" />
+    </Link>
+    
+    {/* Refresh button */}
+    <button 
+      onClick={handleManualRefresh}
+      className={`p-2 rounded-full hover:bg-muted transition-colors ${isRefreshing ? "animate-spin text-primary" : ""}`}
+      disabled={isRefreshing}
+      aria-label="Refresh messages"
+    >
+      <RefreshCw className="h-4 w-4" />
+    </button>
+  </div>
+</div>
+
               
               {/* Messages container */}
               <div className="flex-1 overflow-y-auto bg-muted/5 p-4">

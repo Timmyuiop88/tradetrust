@@ -1,9 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: {
-    // Updated to use the correct key name
-    serverExternalPackages: ['@prisma/client', '@auth/prisma-adapter'],
-  },
+
   images: {
     domains: ['files.edgestore.dev'],
 },

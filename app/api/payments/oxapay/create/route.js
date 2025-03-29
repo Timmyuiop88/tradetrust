@@ -41,7 +41,7 @@ export async function POST(request) {
       lifeTime: 60,
       feePaidByPayer: 0,
       underPaidCover: 1,
-      callbackUrl: `${process.env.NEXT_PUBLIC_APP_URL}/api/payments/oxapay/webhook`,
+      callbackUrl: `https://beta.tradevero.io/api/payments/oxapay/webhook`,
       returnUrl: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/balance?payment=success`,
       description: `Deposit of $${amount} to account balance`,
       orderId: orderId,

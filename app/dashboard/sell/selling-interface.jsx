@@ -49,7 +49,7 @@ export function SellingInterface() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto space-y-4 sm:space-y-6 px-3 sm:px-4">
+    <div className="max-w-2xl mx-auto space-y-4 sm:space-y-6 px-0 sm:px-4">
       {/* Start Selling Card */}
       <Card>
         <CardHeader className="p-4 sm:p-6">

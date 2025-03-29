@@ -55,6 +55,7 @@ import { FollowersCount } from "@/app/components/followers-count";
 import NotificationSettings from "@/app/dashboard/settings/notifications";
 import { NotificationBell } from "@/app/components/notification-bell";
 import { useTheme } from "next-themes";
+import { NotificationsSheet } from "@/app/components/notifications-sheet";
 export default function ProfilePage() {
   const router = useRouter();
   const {
@@ -310,6 +311,7 @@ export default function ProfilePage() {
           <div className="flex justify-between items-start mb-4">
             <h2 className="text-1xl md:text-2xl font-bold">Your Profile</h2>
             <div className="flex items-center gap-2">
+              <NotificationBell />
             <Button
             variant="ghost"
             size="sm"
@@ -434,6 +436,7 @@ export default function ProfilePage() {
 
       {/* Main Content Tabs */}
       <Tabs
+      className="mb-6"
         defaultValue="overview"
         value={activeTab}
         onValueChange={setActiveTab}
@@ -995,7 +998,7 @@ export default function ProfilePage() {
           </Card>
         </TabsContent>
       </Tabs>
-
+      <NotificationSettings />
       {/* Add the UserReviews component at the bottom of the page if has verified KYC */}
       {userData.kyc && <UserReviews />}
     </div>

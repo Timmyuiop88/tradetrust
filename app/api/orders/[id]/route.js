@@ -73,11 +73,18 @@ export async function GET(request, { params }) {
     }
     
     // Decrypt credentials if they exist and user is buyer or seller
-    if (order.credentials) {
-      order.credentials = {
-        email: decrypt(order.credentials.email),
-        password: decrypt(order.credentials.password),
-        additionalInfo: order.credentials.additionalInfo ? decrypt(order.credentials.additionalInfo) : null
+    if (order.listing.credentials) {
+      order.listing.credentials = {
+        email: decrypt(order.listing.credentials.email),
+        password: decrypt(order.listing.credentials.password),
+        serialKey: decrypt(order.listing.credentials.serialKey),
+        recoveryAccountType: decrypt(order.listing.credentials.recoveryAccountType),
+        recoveryEmail: decrypt(order.listing.credentials.recoveryEmail),
+        recoveryPassword: decrypt(order.listing.credentials.recoveryPassword),
+        recoveryPhone: decrypt(order.listing.credentials.recoveryPhone),
+        securityQuestions: decrypt(order.listing.credentials.securityQuestions),
+        transferInstructions: decrypt(order.listing.credentials.transferInstructions),
+        additionalInfo: order.listing.credentials.additionalInfo ? decrypt(order.listing.credentials.additionalInfo) : null
       }
     }
     

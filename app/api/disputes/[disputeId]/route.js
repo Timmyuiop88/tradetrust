@@ -70,6 +70,7 @@ export async function GET(request, { params }) {
       orderId: dispute.orderId,
       reason: dispute.reason,
       status: dispute.status,
+      description: dispute.description,
       resolution: dispute.resolution,
       createdAt: dispute.createdAt,
       updatedAt: dispute.updatedAt,

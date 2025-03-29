@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { sendDepositConfirmation, notifyTransactionUpdate } from '@/lib/services/notificationService'
+import { sendDepositConfirmation } from '@/lib/services/notificationService'
+import { PushNotificationService } from '@/lib/services/pushNotificationService'
 
 export async function POST(request) {
   try {
@@ -12,32 +13,28 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
     
-    const { amount, paymentMethod } = await request.json()
+    const { amount, paymentMethod = 'card' } = await request.json()
     
     if (!amount || amount <= 0) {
       return NextResponse.json({ error: 'Invalid amount' }, { status: 400 })
     }
     
     try {
-      // Start a transaction to ensure data consistency
-      const result = await prisma.$transaction(async (tx) => {
-        // Get or create user balance
-        let balance = await tx.balance.findUnique({
-          where: { userId: session.user.id }
+      // Get or create user balance
+      let balance = await prisma.balance.findUnique({
+        where: { userId: session.user.id }
+      })
+      
+      if (!balance) {
+        balance = await prisma.balance.create({
+          data: {
+            userId: session.user.id,
+            buyingBalance: amount,
+            sellingBalance: 0
+          }
         })
-        
-        if (!balance) {
-          balance = await tx.balance.create({
-            data: {
-              userId: session.user.id,
-              buyingBalance: 0,
-              sellingBalance: 0
-            }
-          })
-        }
-        
-        // Update buying balance
-        const updatedBalance = await tx.balance.update({
+      } else {
+        balance = await prisma.balance.update({
           where: { id: balance.id },
           data: {
             buyingBalance: {
@@ -45,41 +42,46 @@ export async function POST(request) {
             }
           }
         })
-        
-        // Create transaction record
-        const transaction = await tx.transaction.create({
-          data: {
-            userId: session.user.id,
-            balanceId: balance.id,
-            amount,
-            type: 'DEPOSIT',
-            description: `Funds added to buying balance via ${paymentMethod || 'card'}`,
-            status: 'COMPLETED'
-          }
-        })
-        
-        return { balance: updatedBalance, transaction }
+      }
+      
+      // Create transaction record
+      const transaction = await prisma.transaction.create({
+        data: {
+          userId: session.user.id,
+          balanceId: balance.id,
+          amount: amount,
+          type: 'DEPOSIT',
+          description: `Funds added to buying balance via ${paymentMethod}`,
+          status: 'COMPLETED',
+          createdAt: new Date(),
+          completedAt: new Date()
+        }
       })
+      
+      const result = {
+        balance,
+        transaction
+      }
       
       // Send deposit confirmation email
       try {
-        await sendDepositConfirmation(session.user.id, result.transaction.id);
-        console.log('Deposit confirmation email sent successfully');
+        await sendDepositConfirmation(session.user.id, transaction.id)
+        console.log('Deposit confirmation email sent successfully')
       } catch (emailError) {
-        console.error('Error sending deposit confirmation email:', emailError);
+        console.error('Error sending deposit confirmation email:', emailError)
         // Don't fail the request if email sending fails
       }
       
-      // Send push notification using the correct function
+      // Send push notification using PushNotificationService
       try {
-        await notifyTransactionUpdate(
+        await PushNotificationService.notifyTransactionUpdate(
           session.user.id,
           'DEPOSIT_COMPLETED',
-          result.transaction
-        );
-        console.log('Deposit push notification sent successfully');
+          transaction
+        )
+        console.log('Deposit push notification sent successfully')
       } catch (pushError) {
-        console.error('Error sending push notification:', pushError);
+        console.error('Error sending push notification:', pushError)
         // Don't fail the request if push notification fails
       }
       
