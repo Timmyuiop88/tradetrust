@@ -407,9 +407,9 @@ export default function ChatPage() {
   const otherUser = session?.user?.id === order.buyer.id ? order.listing.seller : order.buyer;
 
   return (
-    <div className="flex flex-col h-[100vh] overflow-hidden">
-      {/* Header - now fixed height */}
-      <div className="flex-none border-b p-2 sm:p-4 bg-background">
+    <div className="flex flex-col h-screen max-h-screen bg-background">
+      {/* Header */}
+      <div className="border-b p-2 sm:p-4 bg-background sticky top-0 z-10">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             <button 
@@ -505,9 +505,13 @@ export default function ChatPage() {
         </div>
       </div>
       
-      {/* Dispute Warning Banner - fixed height if present */}
+      {/* Dispute Warning Banner (if applicable) */}
       {activeDispute && (
-        <div className="flex-none border-b bg-amber-50 p-3">
+        <motion.div 
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="border-b bg-amber-50 p-3"
+        >
           <div className="flex items-center gap-2 text-amber-800 max-w-3xl mx-auto">
             <AlertTriangle className="h-5 w-5 flex-shrink-0" />
             <div>
@@ -520,12 +524,12 @@ export default function ChatPage() {
               </p>
             </div>
           </div>
-        </div>
+        </motion.div>
       )}
       
-      {/* Messages - flexible height and scrollable */}
+      {/* Messages */}
       <div 
-        className="flex-1 overflow-y-auto bg-muted/5 scroll-smooth min-h-0" 
+        className="flex-1 overflow-y-auto bg-muted/5 scroll-smooth" 
         ref={chatContainerRef}
       >
         {messages.error ? (
@@ -670,8 +674,8 @@ export default function ChatPage() {
         )}
       </div>
       
-      {/* Message Input - now fixed height */}
-      <div className="flex-none border-t bg-background p-4">
+      {/* Message Input */}
+      <div className="border-t bg-background p-4 fixed bottom-0 w-full">
         <form onSubmit={handleSendMessage} className="flex flex-col gap-2">
           {/* Image preview */}
           {imagePreview && (
