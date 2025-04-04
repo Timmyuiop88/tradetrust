@@ -675,7 +675,7 @@ export default function OrderStreamChat() {
     };
     
     return (
-      <div className="px-2 sm:px-4 py-2 sm:py-3 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 sticky bottom-0 w-full">
+      <div className="px-2 sm:px-4 py-2 sm:py-3 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 sticky bottom-0 w-full fixed">
         <form onSubmit={handleSubmit} className="flex items-center gap-2">
           <button
             type="button"
