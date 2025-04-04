@@ -38,7 +38,66 @@ import Link from 'next/link';
 import { Button } from '@/app/components/button';
 import { Badge } from '@/app/components/badge';
 import { cn } from '@/app/lib/utils';
+import { Skeleton } from '@/app/components/ui/skeleton';
 import 'stream-chat-react/dist/css/v2/index.css';
+
+// Create a skeleton loader for the chat interface
+const ChatSkeleton = () => {
+  return (
+    <div className="flex flex-col h-[100dvh] bg-gray-50 dark:bg-gray-900">
+      {/* Header skeleton */}
+      <div className="p-3 sm:p-4 border-b dark:border-gray-800 bg-white dark:bg-gray-950 sticky top-0 z-10 shadow-sm">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="h-8 w-8 rounded-full bg-gray-200 dark:bg-gray-800 animate-pulse"></div>
+            <div className="space-y-2">
+              <Skeleton className="h-5 w-32 bg-gray-200 dark:bg-gray-800" />
+              <Skeleton className="h-4 w-20 bg-gray-200 dark:bg-gray-800" />
+            </div>
+          </div>
+          <Skeleton className="h-8 w-20 rounded-md bg-gray-200 dark:bg-gray-800" />
+        </div>
+      </div>
+      
+      {/* Messages skeleton */}
+      <div className="flex-1 overflow-hidden p-4">
+        <div className="space-y-4">
+          {[...Array(5)].map((_, index) => (
+            <div 
+              key={index} 
+              className={`flex ${index % 2 === 0 ? 'justify-start' : 'justify-end'}`}
+            >
+              <div className="flex gap-2">
+                {index % 2 === 0 && (
+                  <Skeleton className="h-8 w-8 rounded-full flex-shrink-0 bg-gray-200 dark:bg-gray-800" />
+                )}
+                <div className="space-y-2">
+                  <Skeleton className={`h-10 ${index % 2 === 0 ? 'w-52' : 'w-40'} rounded-2xl bg-gray-200 dark:bg-gray-800`} />
+                  <Skeleton className={`h-4 w-16 ${index % 2 === 0 ? 'ml-0' : 'ml-auto'} bg-gray-200 dark:bg-gray-800`} />
+                </div>
+                {index % 2 === 1 && (
+                  <Skeleton className="h-8 w-8 rounded-full flex-shrink-0 bg-gray-200 dark:bg-gray-800" />
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+      
+      {/* Input skeleton */}
+      <div className="px-2 sm:px-4 py-3 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950">
+        <div className="flex items-center gap-2">
+          <Skeleton className="h-10 w-10 rounded-full bg-gray-200 dark:bg-gray-800" />
+          <Skeleton className="h-10 flex-1 rounded-full bg-gray-200 dark:bg-gray-800" />
+          <Skeleton className="h-10 w-10 rounded-full bg-gray-200 dark:bg-gray-800" /> 
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Create a global cache for Stream chat clients
+const clientCache = new Map();
 
 export default function OrderStreamChat() {
   const { data: session, status } = useSession();
@@ -53,6 +112,8 @@ export default function OrderStreamChat() {
   const [orderDetails, setOrderDetails] = useState(null);
   const [apiKey, setApiKey] = useState(null);
   const [infoModalOpen, setInfoModalOpen] = useState(false);
+  const [connecting, setConnecting] = useState(false);
+  const hasInitialized = useRef(false);
   
   // Token Provider function
   const tokenProvider = useCallback(async () => {
@@ -71,35 +132,59 @@ export default function OrderStreamChat() {
     }
   }, []);
   
-  // Initialize Stream client
+  // Initialize Stream client - optimized to avoid unnecessary reconnections
   useEffect(() => {
-    if (status === 'authenticated' && session?.user?.id) {
-      // Get API key first (only needs to be done once)
-      const getApiKey = async () => {
-        try {
+    if (status !== 'authenticated' || !session?.user?.id || hasInitialized.current) {
+      if (status === 'unauthenticated') {
+        router.push('/login');
+      }
+      return;
+    }
+    
+    // Set initialization flag to avoid duplicate initializations
+    hasInitialized.current = true;
+    
+    const initializeChat = async () => {
+      setConnecting(true);
+      
+      try {
+        // Get API key
+        let streamApiKey;
+        
+        // Check if we have the API key in cache
+        if (!apiKey) {
           const response = await fetch('/api/chat/stream/token');
           if (!response.ok) throw new Error('Failed to get API key');
           
           const data = await response.json();
+          streamApiKey = data.apiKey;
           setApiKey(data.apiKey);
-          return data.apiKey;
-        } catch (err) {
-          console.error('Error getting API key:', err);
-          setError('Failed to initialize chat: Could not get API key');
-          setLoading(false);
+        } else {
+          streamApiKey = apiKey;
         }
-      };
-      
-      getApiKey().then(key => {
-        if (key) {
-          initChat(key);
-          fetchOrderDetails();
-        }
-      });
-    } else if (status === 'unauthenticated') {
-      router.push('/login');
-    }
-  }, [status, session, orderId, router, tokenProvider]);
+        
+        // Fetch order details
+        await fetchOrderDetails();
+        
+        // Initialize the chat client
+        await initChat(streamApiKey);
+        
+      } catch (err) {
+        console.error('Failed to initialize chat:', err);
+        setError(err.message);
+      } finally {
+        setConnecting(false);
+      }
+    };
+    
+    initializeChat();
+    
+    // Return cleanup function
+    return () => {
+      // We don't disconnect the client on unmount to persist connection
+      // The client will be reused if the user navigates back
+    };
+  }, [status, session, router]);
   
   const initChat = async (streamApiKey) => {
     try {
@@ -129,20 +214,33 @@ export default function OrderStreamChat() {
         throw new Error('Order is missing buyer or seller information');
       }
       
-      // Initialize StreamChat client with API key
-      const chatClient = StreamChat.getInstance(streamApiKey);
+      // Check if we have a cached client for this user
+      const cacheKey = `${session.user.id}-${streamApiKey}`;
+      let chatClient;
       
-      // Connect user with token provider (handles token refreshing)
-      await chatClient.connectUser(
-        {
-          id: session.user.id,
-          name: session.user.name || session.user.email,
-          image: session.user.image,
-        },
-        tokenProvider
-      );
+      if (clientCache.has(cacheKey)) {
+        chatClient = clientCache.get(cacheKey);
+        console.log('Using cached Stream client');
+      } else {
+        // Initialize StreamChat client with API key
+        chatClient = StreamChat.getInstance(streamApiKey);
+        
+        // Connect user with token provider
+        await chatClient.connectUser(
+          {
+            id: session.user.id,
+            name: session.user.name || session.user.email,
+            image: session.user.image,
+          },
+          tokenProvider
+        );
+        
+        // Cache the client for future use
+        clientCache.set(cacheKey, chatClient);
+        console.log('Created new Stream client and cached it');
+      }
       
-      // Create or get channel for this order - IMPORTANT: include both users as members
+      // Create or get channel for this order
       const orderChannel = chatClient.channel(
         'messaging',
         `order-${orderId}`,
@@ -225,31 +323,32 @@ export default function OrderStreamChat() {
     }
   };
   
-  // Clean up on component unmount
+  // Handle connection state visibility changes to avoid unnecessary reconnections
   useEffect(() => {
-    return () => {
-      if (client) {
-        client.disconnectUser().catch(err => {
-          console.error('Error disconnecting user:', err);
-        });
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && client) {
+        // If the tab becomes visible and we already have a client,
+        // just refresh the channel data without reconnecting
+        if (channel) {
+          channel.watch().catch(err => {
+            console.error('Error refreshing channel:', err);
+          });
+        }
       }
     };
-  }, [client]);
-  
-  if (status === 'loading' || loading) {
-    return (
-      <div className="flex flex-col justify-center items-center min-h-[80dvh] px-4 text-center">
-        <Loader2 className="h-10 w-10 sm:h-12 sm:w-12 animate-spin text-primary mb-4" />
-        <p className="text-sm sm:text-base text-muted-foreground">Connecting to chat...</p>
-      </div>
-    );
-  }
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [client, channel]);
   
   // Add a help component to render in error cases
   const ErrorHelp = ({ error, orderId, retry }) => {
     return (
-      <div className="mt-6 bg-gray-50 dark:bg-gray-800/50 p-4 rounded-lg border border-gray-200 dark:border-gray-800">
-        <h3 className="text-sm font-medium mb-2">Troubleshooting Tips</h3>
+      <div className="mt-6 bg-gray-50 dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
+        <h3 className="text-sm font-medium mb-2 dark:text-gray-200">Troubleshooting Tips</h3>
         <ul className="text-xs space-y-2 text-gray-600 dark:text-gray-300">
           {error.includes("permission") && (
             <>
@@ -290,7 +389,7 @@ export default function OrderStreamChat() {
           >
             <ArrowLeft className="h-4 w-4" />
           </button>
-          <h1 className="text-xl sm:text-2xl font-bold">Chat Error</h1>
+          <h1 className="text-xl sm:text-2xl font-bold dark:text-gray-200">Chat Error</h1>
         </div>
         
         <div className="bg-destructive/10 border border-destructive text-destructive px-4 py-4 rounded-lg mb-4">
@@ -322,28 +421,49 @@ export default function OrderStreamChat() {
           retry={() => {
             setError(null);
             setLoading(true);
-            getApiKey().then(key => {
-              if (key) initChat(key);
-            });
+            // Retry initialization
+            if (apiKey) {
+              initChat(apiKey);
+            } else {
+              fetch('/api/chat/stream/token')
+                .then(res => res.json())
+                .then(data => {
+                  setApiKey(data.apiKey);
+                  initChat(data.apiKey);
+                })
+                .catch(err => {
+                  console.error('Error fetching API key:', err);
+                  setError('Failed to get API key');
+                  setLoading(false);
+                });
+            }
           }} 
         />
       </div>
     );
   }
   
+  if (status === 'loading' || loading) {
+    return <ChatSkeleton />;
+  }
+  
   if (!client || !channel) {
-    return (
-      <div className="flex flex-col justify-center items-center min-h-[80dvh] px-4 text-center">
-        <Loader2 className="h-10 w-10 sm:h-12 sm:w-12 animate-spin text-primary mb-4" />
-        <p className="text-sm sm:text-base text-muted-foreground">Establishing secure connection...</p>
-      </div>
-    );
+    return <ChatSkeleton />;
   }
 
   // Custom Components for Stream Chat
   const CustomChannelHeader = () => {
+    const [updating, setUpdating] = useState(false);
+    
+    // Refresh order details when clicked
+    const handleRefresh = async () => {
+      setUpdating(true);
+      await fetchOrderDetails();
+      setTimeout(() => setUpdating(false), 1000); // Ensure the spinner shows for at least 1 second
+    };
+    
     return (
-      <div className="flex items-center justify-between p-3 sm:p-4 border-b dark:border-gray-800 bg-white dark:bg-gray-950 sticky top-0 z-10 shadow-sm">
+      <div className="flex items-center justify-between p-3 sm:p-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 sticky top-0 z-10 shadow-sm">
         <div className="flex items-center gap-2 sm:gap-3 min-w-0">
           <button 
             onClick={() => router.push('/dashboard/orders')}
@@ -354,22 +474,31 @@ export default function OrderStreamChat() {
           </button>
           
           <div className="overflow-hidden">
-            <h3 className="font-medium text-sm sm:text-base truncate">
+            <h3 className="font-medium text-sm sm:text-base truncate dark:text-gray-200">
               {orderDetails ? `Order #${orderDetails.orderNumber || orderId.substring(0, 8)}` : `Order Chat`}
             </h3>
             {orderDetails && (
               <div className="flex items-center text-xs text-gray-500 dark:text-gray-400">
-                <span>
-                  {orderDetails.status === 'COMPLETED' ? (
-                    <Badge variant="success" className="text-[10px] h-5 px-1.5">Completed</Badge>
-                  ) : orderDetails.status === 'PENDING' ? (
-                    <Badge variant="warning" className="text-[10px] h-5 px-1.5">Pending</Badge>
-                  ) : orderDetails.status === 'CANCELLED' ? (
-                    <Badge variant="destructive" className="text-[10px] h-5 px-1.5">Cancelled</Badge>
+                <button
+                  onClick={handleRefresh}
+                  className="flex items-center gap-1 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none"
+                >
+                  {updating ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
                   ) : (
-                    <Badge className="text-[10px] h-5 px-1.5">{orderDetails.status}</Badge>
+                    <span>
+                      {orderDetails.status === 'COMPLETED' ? (
+                        <Badge variant="success" className="text-[10px] h-5 px-1.5">Completed</Badge>
+                      ) : orderDetails.status === 'PENDING' ? (
+                        <Badge variant="warning" className="text-[10px] h-5 px-1.5">Pending</Badge>
+                      ) : orderDetails.status === 'CANCELLED' ? (
+                        <Badge variant="destructive" className="text-[10px] h-5 px-1.5">Cancelled</Badge>
+                      ) : (
+                        <Badge className="text-[10px] h-5 px-1.5">{orderDetails.status}</Badge>
+                      )}
+                    </span>
                   )}
-                </span>
+                </button>
               </div>
             )}
           </div>
@@ -426,11 +555,11 @@ export default function OrderStreamChat() {
             "max-w-[85%] sm:max-w-[75%] rounded-2xl px-3 py-2 break-words",
             isMyMessage 
               ? "bg-primary text-primary-foreground rounded-tr-sm" 
-              : "bg-gray-100 dark:bg-gray-800 text-foreground rounded-tl-sm"
+              : "bg-gray-100 dark:bg-gray-800 text-foreground dark:text-gray-200 rounded-tl-sm"
           )}
         >
           {!isMyMessage && message.user?.name && (
-            <div className="text-xs font-medium mb-1 dark:text-gray-300">
+            <div className="text-xs font-medium mb-1 dark:text-gray-200">
               {message.user.name}
             </div>
           )}
@@ -462,7 +591,7 @@ export default function OrderStreamChat() {
           
           <div className={cn(
             "text-[10px] mt-1 flex items-center",
-            isMyMessage ? "justify-end text-white/70" : "justify-end text-gray-500"
+            isMyMessage ? "justify-end text-white/70" : "justify-end text-gray-500 dark:text-gray-400"
           )}>
             {new Date(message.created_at).toLocaleTimeString([], { 
               hour: '2-digit', 
@@ -546,7 +675,7 @@ export default function OrderStreamChat() {
     };
     
     return (
-      <div className="px-2 sm:px-4 py-2 sm:py-3 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 sticky bottom-0 w-full">
+      <div className="px-2 sm:px-4 py-2 sm:py-3 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 sticky bottom-0 w-full">
         <form onSubmit={handleSubmit} className="flex items-center gap-2">
           <button
             type="button"
@@ -568,7 +697,7 @@ export default function OrderStreamChat() {
             value={text}
             onChange={(e) => setText(e.target.value)}
             placeholder="Type your message..."
-            className="flex-1 py-2 px-3 text-sm rounded-full border border-gray-300 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-transparent"
+            className="flex-1 py-2 px-3 text-sm rounded-full border border-gray-300 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-transparent dark:text-gray-200 dark:placeholder-gray-500"
           />
           
           <button
@@ -594,13 +723,13 @@ export default function OrderStreamChat() {
     return (
       <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
         <div className="bg-white dark:bg-gray-900 rounded-lg shadow-lg w-full max-w-md">
-          <div className="flex justify-between items-center p-4 border-b dark:border-gray-800">
-            <h3 className="font-semibold text-lg">Chat Information</h3>
+          <div className="flex justify-between items-center p-4 border-b dark:border-gray-700">
+            <h3 className="font-semibold text-lg dark:text-gray-200">Chat Information</h3>
             <button 
               onClick={onClose}
               className="hover:bg-gray-100 dark:hover:bg-gray-800 p-1 rounded-full"
             >
-              <XCircle className="h-5 w-5" />
+              <XCircle className="h-5 w-5 dark:text-gray-400" />
             </button>
           </div>
           
@@ -609,12 +738,12 @@ export default function OrderStreamChat() {
               <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Order Details</h4>
               <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg space-y-2">
                 <div className="flex justify-between">
-                  <span className="text-sm">Order ID:</span>
-                  <span className="text-sm font-medium">{orderDetails?.orderNumber || orderId.substring(0, 8)}</span>
+                  <span className="text-sm dark:text-gray-300">Order ID:</span>
+                  <span className="text-sm font-medium dark:text-gray-200">{orderDetails?.orderNumber || orderId.substring(0, 8)}</span>
                 </div>
                 {orderDetails?.status && (
                   <div className="flex justify-between">
-                    <span className="text-sm">Status:</span>
+                    <span className="text-sm dark:text-gray-300">Status:</span>
                     <Badge 
                       variant={
                         orderDetails.status === 'COMPLETED' ? 'success' : 
@@ -629,8 +758,8 @@ export default function OrderStreamChat() {
                 )}
                 {orderDetails?.createdAt && (
                   <div className="flex justify-between">
-                    <span className="text-sm">Date:</span>
-                    <span className="text-sm font-medium">
+                    <span className="text-sm dark:text-gray-300">Date:</span>
+                    <span className="text-sm font-medium dark:text-gray-200">
                       {new Date(orderDetails.createdAt).toLocaleDateString()}
                     </span>
                   </div>
@@ -642,11 +771,11 @@ export default function OrderStreamChat() {
               <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Channel Information</h4>
               <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg space-y-2">
                 <div className="flex justify-between">
-                  <span className="text-sm">Channel Type:</span>
-                  <span className="text-sm font-medium">Order Chat</span>
+                  <span className="text-sm dark:text-gray-300">Channel Type:</span>
+                  <span className="text-sm font-medium dark:text-gray-200">Order Chat</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm">Message Delivery:</span>
+                  <span className="text-sm dark:text-gray-300">Message Delivery:</span>
                   <Badge className="text-xs" variant="outline">End-to-End</Badge>
                 </div>
               </div>
@@ -657,7 +786,7 @@ export default function OrderStreamChat() {
             </div>
           </div>
           
-          <div className="p-4 border-t dark:border-gray-800 flex justify-end">
+          <div className="p-4 border-t dark:border-gray-700 flex justify-end">
             <Button 
               variant="outline" 
               size="sm" 
@@ -687,7 +816,7 @@ export default function OrderStreamChat() {
       
       {/* Main chat container */}
       <div className="flex-1 overflow-hidden">
-        <StreamChatComponent client={client} theme="messaging light" className="h-full">
+        <StreamChatComponent client={client} theme="messaging light dark:messaging dark" className="h-full dark:text-white">
           <StreamChannel channel={channel} Message={CustomMessage}>
             <StreamWindow hideOnThread>
               <StreamMessageList />
