@@ -12,150 +12,82 @@ export async function POST(request) {
     }
 
     const data = await request.json()
-    console.log('KYC data received:', data) // Debug log
+    console.log('KYC data received:', data)
     
     const existingKyc = await prisma.kyc.findUnique({
       where: { userId: session.user.id }
     })
 
-    // Get user info for required fields if not provided
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: { firstName: true, lastName: true }
-    })
-
-    if (existingKyc?.verified) {
-      return NextResponse.json({ error: 'KYC already verified' }, { status: 400 })
+    // Initialize or parse existing documents
+    let currentDocs = {}
+    if (existingKyc?.idDocUrl) {
+      try {
+        currentDocs = JSON.parse(existingKyc.idDocUrl)
+      } catch (e) {
+        console.warn('Failed to parse existing idDocUrl:', e)
+      }
     }
 
-    // Handle document URLs as JSON
-    if (data.governmentIdUrl || data.faceImageUrl || data.addressDocUrl) {
-      // Safely parse existing idDocUrl
-      let currentDocs = {}
-      
-      if (existingKyc?.idDocUrl) {
-        try {
-          // Check if the string is already a URL (not JSON)
-          if (typeof existingKyc.idDocUrl === 'string' && 
-              (existingKyc.idDocUrl.startsWith('http') || !existingKyc.idDocUrl.startsWith('{'))) {
-            // Legacy format - single URL string
-            currentDocs = { governmentId: existingKyc.idDocUrl }
-          } else {
-            // Try to parse as JSON
-            currentDocs = JSON.parse(existingKyc.idDocUrl)
-          }
-        } catch (e) {
-          console.warn('Failed to parse idDocUrl as JSON, treating as string URL:', e)
-          // If parsing fails, assume it's a direct URL string
-          currentDocs = { governmentId: existingKyc.idDocUrl }
-        }
+    // Handle document updates based on the type of document being submitted
+    if (data.idType === "government_id" && data.idDocUrl) {
+      currentDocs.governmentId = {
+        url: data.idDocUrl,
+        verified: false
       }
-
-      const updatedDocs = {
-        ...currentDocs,
-        ...(data.governmentIdUrl && { governmentId: data.governmentIdUrl }),
-        ...(data.faceImageUrl && { faceScan: data.faceImageUrl }),
-        ...(data.addressDocUrl && { addressProof: data.addressDocUrl })
+    } else if (data.idType === "address_proof" && data.addressDocUrl) {
+      currentDocs.addressProof = {
+        url: data.addressDocUrl,
+        verified: false
       }
-
-      // Store as JSON string
-      data.idDocUrl = JSON.stringify(updatedDocs)
-      
-      // Log the updated documents object for debugging
-      console.log('Updated document URLs:', updatedDocs)
+    } else if (data.idType === "face_photo" && data.faceImageUrl) {
+      currentDocs.faceScan = {
+        url: data.faceImageUrl,
+        verified: false
+      }
     }
 
-    // Check if we have a valid fullName from the request
-    const fullName = data.fullName?.trim() || null;
-    
-    // Construct user's full name from first and last name if available
-    const userFullName = user?.firstName && user?.lastName 
-      ? `${user.firstName} ${user.lastName}`.trim() 
-      : null;
-    
-    // Get a valid fullName from existing sources if not provided
-    const validFullName = fullName || 
-                          existingKyc?.fullName || 
-                          userFullName ||
-                          'Unknown';
+    // Log the current documents state for debugging
+    console.log('Current docs before save:', currentDocs)
 
-    // Create base data with only fields that exist in the KYC model
+    // Create base data with the new document structure
     const baseData = {
       userId: session.user.id,
-      verified: false, // Always set to false on update, admin must verify
-      // Include required fields with defaults if not provided
-      fullName: validFullName,
+      verified: false,
+      fullName: data.fullName || existingKyc?.fullName || '',
       address: data.address || existingKyc?.address || '',
       country: data.country || existingKyc?.country || '',
       idNumber: data.idNumber || existingKyc?.idNumber || '',
       idType: data.idType || existingKyc?.idType || '',
-      idDocUrl: data.idDocUrl || existingKyc?.idDocUrl || ''
+      idDocUrl: JSON.stringify(currentDocs) // Store the updated document structure
     }
 
-    // Allow only fields that exist in the Prisma KYC model
-    // Remove fields that are not in the model
-    delete data.email; // Email is not in the KYC model
-    delete data.governmentIdUrl;
-    delete data.faceImageUrl;
-    delete data.addressDocUrl;
-
-    // Create the final upsert data
-    const upsertData = {
-      ...baseData
-    }
-
-    // Log the data being used for upsert (for debugging)
-    console.log('Upserting KYC with data:', {
-      userId: upsertData.userId,
-      hasIdDocUrl: !!upsertData.idDocUrl,
-      fullName: upsertData.fullName,
-      // Other fields could be logged here
+    // Log the final data being saved
+    console.log('Final KYC data being saved:', {
+      ...baseData,
+      documents: currentDocs
     })
 
     // Upsert the KYC record
     const kycResult = await prisma.kyc.upsert({
       where: { userId: session.user.id },
-      update: upsertData,
-      create: upsertData
+      update: baseData,
+      create: baseData
     })
 
-    // Check if we need to update the user's name in the User model to keep it in sync
-    if (fullName && fullName !== userFullName) {
-      try {
-        // Parse the fullName into firstName and lastName
-        const nameParts = fullName.split(' ');
-        const firstName = nameParts[0] || "";
-        const lastName = nameParts.slice(1).join(' ') || "";
-        
-        // Update the user record if the name has changed
-        await prisma.user.update({
-          where: { id: session.user.id },
-          data: { 
-            firstName: firstName,
-            lastName: lastName,
-            isKycVerified: kycResult.verified,
-          }
-        })
-        
-        console.log('Updated user firstName and lastName to match KYC fullName:', fullName);
-      } catch (error) {
-        console.error('Error updating user name:', error);
-        // Continue with the KYC update even if user name update fails
+    // Update user verification status
+    await prisma.user.update({
+      where: { id: session.user.id },
+      data: { 
+        isKycVerified: kycResult.verified,
       }
-    } else {
-      // Just update the KYC verification status if needed
-      await prisma.user.update({
-        where: { id: session.user.id },
-        data: { 
-          isKycVerified: kycResult.verified,
-        }
-      })
-    }
+    })
 
     return NextResponse.json({
       success: true,
-      message: 'KYC information updated successfully'
+      message: 'KYC information updated successfully',
+      documents: currentDocs // Return the current state of documents
     })
+
   } catch (error) {
     console.error('KYC update error:', error)
     return NextResponse.json(
