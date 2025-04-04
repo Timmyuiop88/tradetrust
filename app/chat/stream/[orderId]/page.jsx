@@ -44,7 +44,7 @@ import 'stream-chat-react/dist/css/v2/index.css';
 // Create a skeleton loader for the chat interface
 const ChatSkeleton = () => {
   return (
-    <div className="flex flex-col h-[100dvh] bg-gray-50 dark:bg-gray-900">
+    <div className="flex flex-col h-[100vh] bg-gray-50 dark:bg-gray-900">
       {/* Header skeleton */}
       <div className="p-3 sm:p-4 border-b dark:border-gray-800 bg-white dark:bg-gray-950 sticky top-0 z-10 shadow-sm">
         <div className="flex items-center justify-between">
@@ -675,7 +675,7 @@ export default function OrderStreamChat() {
     };
     
     return (
-      <div className="px-2 sm:px-4 py-2 sm:py-3 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 sticky bottom-0 w-full fixed">
+      <div className="px-2 sm:px-4 py-2 sm:py-3 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900  bottom-0 w-full fixed">
         <form onSubmit={handleSubmit} className="flex items-center gap-2">
           <button
             type="button"
@@ -802,7 +802,7 @@ export default function OrderStreamChat() {
   };
 
   return (
-    <div className="flex flex-col h-[100dvh] bg-gray-50 dark:bg-gray-900">
+    <div className="flex flex-col h-[100vh] bg-gray-50 dark:bg-gray-900">
       {/* Info modal */}
       <InfoModal 
         isOpen={infoModalOpen} 
