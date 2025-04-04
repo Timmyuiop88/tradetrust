@@ -48,9 +48,9 @@ export default async function GET(request, context) {
     // Check if the user is either the buyer or seller of this order
     const isBuyer = order.buyer.id === session.user.id;
     const isSeller = order.listing.seller.id === session.user.id;
-    const isAdmin = session.user.role === 'ADMIN';
     
-    if (!isBuyer && !isSeller && !isAdmin) {
+    
+    if (!isBuyer && !isSeller) {
       return NextResponse.json({ error: 'You are not authorized to view these messages' }, { status: 403 });
     }
     
