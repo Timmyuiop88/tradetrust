@@ -815,7 +815,7 @@ export default function OrderStreamChat() {
         <StreamChatComponent client={client} theme="messaging light dark:messaging dark" className="h-full dark:text-white">
           <StreamChannel channel={channel} Message={CustomMessage}>
             <StreamWindow hideOnThread>
-                <div className="flex flex-col h-full pb-16">
+                <div className="flex flex-col h-[calc(100%-60px)] overflow-y-auto">
                     <StreamMessageList />
                 </div>
            
