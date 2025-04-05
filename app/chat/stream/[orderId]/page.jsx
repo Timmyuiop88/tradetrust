@@ -41,58 +41,54 @@ import { cn } from '@/app/lib/utils';
 import { Skeleton } from '@/app/components/ui/skeleton';
 import 'stream-chat-react/dist/css/v2/index.css';
 
-// Create a skeleton loader for the chat interface
-const ChatSkeleton = () => {
-  return (
-    <div className="flex flex-col h-[100vh] bg-gray-50 dark:bg-gray-900">
-      {/* Header skeleton */}
-      <div className="p-3 sm:p-4 border-b dark:border-gray-800 bg-white dark:bg-gray-950 sticky top-0 z-10 shadow-sm">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 sm:gap-3">
-            <div className="h-8 w-8 rounded-full bg-gray-200 dark:bg-gray-800 animate-pulse"></div>
-            <div className="space-y-2">
-              <Skeleton className="h-5 w-32 bg-gray-200 dark:bg-gray-800" />
-              <Skeleton className="h-4 w-20 bg-gray-200 dark:bg-gray-800" />
-            </div>
-          </div>
-          <Skeleton className="h-8 w-20 rounded-md bg-gray-200 dark:bg-gray-800" />
+
+const MessageSkeleton = ({ align = 'left' }) => (
+    <div className={`flex ${align === 'right' ? 'justify-end' : 'justify-start'} mb-4`}>
+      <div className={`max-w-[75%] ${align === 'right' ? 'bg-primary/30' : 'bg-muted'} rounded-lg px-4 py-2 shadow-sm animate-pulse`}>
+        <div className="h-4 w-24 bg-muted-foreground/20 rounded mb-2"></div>
+        <div className="space-y-2">
+          <div className="h-3 w-48 bg-muted-foreground/20 rounded"></div>
+          <div className="h-3 w-32 bg-muted-foreground/20 rounded"></div>
         </div>
-      </div>
-      
-      {/* Messages skeleton */}
-      <div className="flex-1 overflow-hidden p-4">
-        <div className="space-y-4">
-          {[...Array(5)].map((_, index) => (
-            <div 
-              key={index} 
-              className={`flex ${index % 2 === 0 ? 'justify-start' : 'justify-end'}`}
-            >
-              <div className="flex gap-2">
-                {index % 2 === 0 && (
-                  <Skeleton className="h-8 w-8 rounded-full flex-shrink-0 bg-gray-200 dark:bg-gray-800" />
-                )}
-                <div className="space-y-2">
-                  <Skeleton className={`h-10 ${index % 2 === 0 ? 'w-52' : 'w-40'} rounded-2xl bg-gray-200 dark:bg-gray-800`} />
-                  <Skeleton className={`h-4 w-16 ${index % 2 === 0 ? 'ml-0' : 'ml-auto'} bg-gray-200 dark:bg-gray-800`} />
-                </div>
-                {index % 2 === 1 && (
-                  <Skeleton className="h-8 w-8 rounded-full flex-shrink-0 bg-gray-200 dark:bg-gray-800" />
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-      
-      {/* Input skeleton */}
-      <div className="px-2 sm:px-4 py-3 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950">
-        <div className="flex items-center gap-2">
-          <Skeleton className="h-10 w-10 rounded-full bg-gray-200 dark:bg-gray-800" />
-          <Skeleton className="h-10 flex-1 rounded-full bg-gray-200 dark:bg-gray-800" />
-          <Skeleton className="h-10 w-10 rounded-full bg-gray-200 dark:bg-gray-800" /> 
+        <div className="flex justify-end mt-1">
+          <div className="h-3 w-12 bg-muted-foreground/20 rounded"></div>
         </div>
       </div>
     </div>
+  );
+
+// Create a skeleton loader for the chat interface
+const ChatSkeleton = () => {
+  return (
+    <div className="flex flex-col h-screen max-h-screen bg-background">
+    {/* Header skeleton */}
+    <div className="border-b p-4 animate-pulse">
+      <div className="flex items-center">
+        <div className="h-10 w-10 rounded-full bg-muted"></div>
+        <div className="ml-3">
+          <div className="h-4 w-24 bg-muted rounded"></div>
+          <div className="h-3 w-16 bg-muted rounded mt-1"></div>
+        </div>
+      </div>
+    </div>
+    
+    {/* Chat container with skeleton messages */}
+    <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <MessageSkeleton align="left" />
+      <MessageSkeleton align="right" />
+      <MessageSkeleton align="left" />
+      <MessageSkeleton align="right" />
+    </div>
+    
+    {/* Input skeleton */}
+    <div className="border-t p-4 animate-pulse">
+      <div className="flex items-center">
+        <div className="flex-1 h-10 bg-muted rounded-md"></div>
+        <div className="h-10 w-10 bg-muted rounded-full ml-2"></div>
+      </div>
+    </div>
+  </div>
+   
   );
 };
 
@@ -675,7 +671,7 @@ export default function OrderStreamChat() {
     };
     
     return (
-      <div className="px-2 sm:px-4 py-2 sm:py-3 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900  bottom-0 w-full fixed">
+      <div className="px-2 sm:px-4 py-2 sm:py-3 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900  bottom-0 w-full fixed pb-5">
         <form onSubmit={handleSubmit} className="flex items-center gap-2">
           <button
             type="button"
@@ -819,7 +815,10 @@ export default function OrderStreamChat() {
         <StreamChatComponent client={client} theme="messaging light dark:messaging dark" className="h-full dark:text-white">
           <StreamChannel channel={channel} Message={CustomMessage}>
             <StreamWindow hideOnThread>
-              <StreamMessageList />
+                <div className="flex flex-col h-full pb-16">
+                    <StreamMessageList />
+                </div>
+           
               <CustomInput />
             </StreamWindow>
             <StreamThread fullWidth />
