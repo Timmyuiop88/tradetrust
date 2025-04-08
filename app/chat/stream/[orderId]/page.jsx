@@ -798,7 +798,7 @@ export default function OrderStreamChat() {
   };
 
   return (
-    <div className="flex flex-col h-[100vh] bg-gray-50 dark:bg-gray-900">
+    <div className="flex flex-col h-[100dvh] bg-red-500 dark:bg-red-900 pb-18 ">
       {/* Info modal */}
       <InfoModal 
         isOpen={infoModalOpen} 
@@ -815,7 +815,7 @@ export default function OrderStreamChat() {
         <StreamChatComponent client={client} theme="messaging light dark:messaging dark" className="h-full dark:text-white">
           <StreamChannel channel={channel} Message={CustomMessage}>
             <StreamWindow hideOnThread>
-                <div className="flex flex-col h-[calc(100%-60px)] overflow-y-auto mb-10">
+                <div className="flex flex-col h-[calc(100%-60px)] bg-green-500 pb-18">
                     <StreamMessageList />
                 </div>
            
