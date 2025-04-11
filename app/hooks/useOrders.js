@@ -24,13 +24,7 @@ export function useCreateOrder() {
         throw new Error(data.error || "Failed to create order");
       }
       
-      // Create TalkJS chat for the order
-      await fetch(`/api/orders/${data.orderId}/create-chat`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
+     
       
       return data;
     },
