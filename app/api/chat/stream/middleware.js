@@ -63,6 +63,12 @@ export async function createOrderChatChannel(order) {
       created_by_id: "system",
       order_id: order.id,
       name: `Order #${order.orderNumber || order.id.substring(0, 8)}`,
+      // Add metadata for better organization
+      metadata: {
+        orderNumber: order.orderNumber,
+        orderType: order.type,
+        createdAt: new Date().toISOString()
+      }
     });
     
     // Save the channel

@@ -1,0 +1,25 @@
+html, body {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    background-color: red;
+    min-height: -webkit-fill-available;
+    max-height: 100svh;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    overflow-y: auto;
+    
+    
+}
+
+.message-list-container,
+.str-chat__list,
+.str-chat__message-list-scroll {
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
+}
+

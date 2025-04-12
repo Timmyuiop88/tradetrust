@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { StreamChat } from "stream-chat";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { PrismaClient } from "@prisma/client";
 
 // Initialize Stream Chat server client
 const serverClient = StreamChat.getInstance(
@@ -10,17 +12,16 @@ const serverClient = StreamChat.getInstance(
 
 export async function POST(request) {
   try {
-    // Get the user session
-    const session = await getServerSession();
+    const session = await getServerSession(authOptions);
     
-    if (!session || !session.user) {
+    if (!session?.user) {
       return NextResponse.json(
-        { error: "Unauthorized - User not authenticated" },
+        { error: "Unauthorized" },
         { status: 401 }
       );
     }
-    
-    const { orderId, sellerId, buyerId } = await request.json();
+
+    const { orderId } = await request.json();
     
     if (!orderId) {
       return NextResponse.json(
@@ -28,90 +29,88 @@ export async function POST(request) {
         { status: 400 }
       );
     }
-    
-    if (!buyerId || !sellerId) {
+
+    // Use internal API call instead of fetch for order verification
+    const prisma = new PrismaClient();
+    const order = await prisma.order.findUnique({
+      where: { id: orderId },
+  
+    });
+
+    if (!order) {
       return NextResponse.json(
-        { error: "Both buyer and seller IDs are required" },
-        { status: 400 }
+        { error: "Order not found" },
+        { status: 404 }
       );
     }
-    
-    // Ensure the user is either the buyer or seller
-    const userId = session.user.id;
-    if (userId !== buyerId && userId !== sellerId) {
+
+    // Verify user is buyer or seller
+    if (session.user.id !== order.buyerId && session.user.id !== order.sellerId) {
       return NextResponse.json(
-        { error: "Unauthorized - User is not a participant in this order" },
+        { error: "You don't have permission to access this chat" },
         { status: 403 }
       );
     }
-    
-    // Create a channel for this order
+
     const channelId = `order-${orderId}`;
     
     try {
-      // First check if channel already exists
+      // Check if channel exists
       const existingChannels = await serverClient.queryChannels({ 
-        id: channelId, 
+        id: channelId,
         type: 'messaging' 
       });
-      
+
       let channel;
       
-      // If channel exists, verify members include both buyer and seller
-      if (existingChannels && existingChannels.length > 0) {
+      if (existingChannels?.length > 0) {
         channel = existingChannels[0];
         
-        // Check if buyer and seller are members
-        const members = await channel.queryMembers({});
-        const memberIds = members.members.map(m => m.user_id);
-        
-        // Ensure both buyer and seller are members
-        if (!memberIds.includes(buyerId) || !memberIds.includes(sellerId)) {
-          // Update channel members to include both
-          await channel.addMembers([buyerId, sellerId]);
-        }
+        // Ensure both users are members
+        await channel.addMembers([
+          { user_id: order.buyerId },
+          { user_id: order.sellerId }
+        ]);
       } else {
-        // Create new channel with both buyer and seller as members
-        channel = serverClient.channel("messaging", channelId, {
-          members: [buyerId, sellerId],
-          created_by_id: "system",
+        // Create new channel with proper permissions
+        channel = serverClient.channel('messaging', channelId, {
+          members: [order.buyerId, order.sellerId],
+          created_by_id: 'system',
           order_id: orderId,
-          name: `Order #${orderId.substring(0, 8)}`,
+          name: `Order #${order.orderNumber || orderId.substring(0, 8)}`,
+          // Add custom data
+          data: {
+            order_type: order.type,
+            created_at: new Date().toISOString(),
+          }
         });
         
-        // Save the channel
         await channel.create();
         
-        // Add a system message
+        // Add welcome message
         await channel.sendMessage({
-          text: "Order chat started. You can now communicate about this order.",
-          user_id: "system",
-          user: { id: "system", name: "System" },
+          text: "A secure chat session has commenced for this order. You can now communicate privately. The seller is obligated to provide all secure information via the credentials options for secure escrow coverage.",
+          
+          user: { id: 'system', name: 'System' },
         });
       }
-      
+
       return NextResponse.json({
         status: "success",
         channelId,
-        message: "Channel created or updated successfully"
+        members: [order.buyerId, order.sellerId]
       });
-    } catch (channelError) {
-      console.error("Channel error:", channelError);
-      
-      // Handle specific Stream errors
-      if (channelError.code === 17) {
-        return NextResponse.json(
-          { error: "Permission denied: You don't have access to this channel" },
-          { status: 403 }
-        );
-      }
-      
-      throw channelError;
+    } catch (streamError) {
+      console.error("Stream error:", streamError);
+      return NextResponse.json(
+        { error: "Failed to initialize chat channel" },
+        { status: 500 }
+      );
     }
   } catch (error) {
-    console.error("Error creating channel:", error);
+    console.error("Error in channel creation:", error);
     return NextResponse.json(
-      { error: "Failed to create chat channel: " + (error.message || "Unknown error") },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }
