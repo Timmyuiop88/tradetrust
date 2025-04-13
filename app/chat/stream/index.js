@@ -54,8 +54,8 @@ export function useStreamChatClient() {
         await streamClient.connectUser(
           {
             id: session.user.id,
-            name: session.user.name || session.user.email,
-            image: session.user.image,
+            name: session.user.name || session.user.firstName + " " + session.user.lastName || "User",
+            
           },
           tokenProvider // Pass the token provider function for automatic token refresh
         );
