@@ -29,6 +29,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/app/components/tabs"
 import { FileUploader } from "@/app/components/file-uploader"
 import { Trash } from "lucide-react"
 import { useUnreadMessageCount } from '@/lib/hooks/useUnreadMessageCount'
+import { StreamChat } from "stream-chat"
 
 // Fetch function for the order
 const fetchOrder = async (orderId) => {
@@ -112,6 +113,58 @@ const fetchDisputeDetails = async (orderId) => {
   return response.json();
 };
 
+// Add utility function to send system messages through StreamChat
+const sendSystemMessageToChat = async (orderId, message) => {
+  try {
+    // Initialize the StreamChat client (client-side init)
+    const streamClient = StreamChat.getInstance(
+      process.env.NEXT_PUBLIC_GETSTREAM_API_KEY
+    );
+    
+    // Fetch a system token from your secure endpoint
+    const response = await fetch('/api/chat/stream/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to get system chat token');
+    }
+    
+    const { token } = await response.json();
+    
+    // Connect as system user for sending system messages
+    await streamClient.connectUser({ 
+      id: 'system',
+      name: 'System',
+      image: '/images/system-avatar.png'  
+    }, token);
+    
+    // Get channel for this order
+    const channel = streamClient.channel('messaging', `order-${orderId}`);
+    await channel.watch();
+    
+    // Send system message
+    await channel.sendMessage({
+      text: message,
+      user: { 
+        id: 'system', 
+        name: 'System',
+        image: '/images/system-avatar.png'
+      },
+      type: 'system'
+    });
+    
+    // Disconnect after sending the message
+    await streamClient.disconnectUser();
+    
+    return true;
+  } catch (error) {
+    console.error('Error sending system message:', error);
+    return false;
+  }
+};
+
 export default function OrderDetailPage() {
   const router = useRouter()
   const params = useParams()
@@ -132,6 +185,9 @@ export default function OrderDetailPage() {
     recoveryImages: [],
     transferInstructions: ''
   })
+  const [sendingReminder, setSendingReminder] = useState(false)
+  const [cancellingOrder, setCancellingOrder] = useState(false)
+  const [autoReleasing, setAutoReleasing] = useState(false)
   const [showCredentials, setShowCredentials] = useState(false)
   const [showDisputeModal, setShowDisputeModal] = useState(false)
   const [disputeReason, setDisputeReason] = useState('')
@@ -327,6 +383,181 @@ export default function OrderDetailPage() {
   const handleDeclineOrder = useCallback(async () => {
     declineMutation.mutate(params.id);
   }, [params.id, declineMutation]);
+  
+  // Add handlers for deadline actions
+  
+  // Handler for buyer sending reminder to seller
+  const handleSendSellerReminder = useCallback(async () => {
+    if (!order || order.status !== 'WAITING_FOR_SELLER' || !isSellerDeadlineExpired) {
+      return;
+    }
+    
+    setSendingReminder(true);
+    try {
+      const response = await fetch(`/api/orders/${params.id}/deadline`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          action: 'extend'
+        })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to send reminder');
+      }
+      
+      const data = await response.json();
+      
+      // Send system message to chat using StreamChat
+      await sendSystemMessageToChat(
+        params.id, 
+        `The buyer has sent a reminder. The seller's deadline has been extended by 15 minutes.`
+      );
+      
+      // Refetch order data to get updated deadline
+      queryClient.invalidateQueries(['order', params.id]);
+      toast.success('Reminder sent and deadline extended by 15 minutes');
+    } catch (error) {
+      console.error('Error sending reminder:', error);
+      toast.error(error.message || 'Failed to send reminder');
+    } finally {
+      setSendingReminder(false);
+    }
+  }, [params.id, order, isSellerDeadlineExpired, queryClient]);
+  
+  // Handler for seller sending reminder to buyer
+  const handleSendBuyerReminder = useCallback(async () => {
+    if (!order || order.status !== 'WAITING_FOR_BUYER' || !isBuyerDeadlineExpired) {
+      return;
+    }
+    
+    setSendingReminder(true);
+    try {
+      const response = await fetch(`/api/orders/${params.id}/deadline`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          action: 'extend'
+        })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to send reminder');
+      }
+      
+      const data = await response.json();
+      
+      // Send system message to chat using StreamChat
+      await sendSystemMessageToChat(
+        params.id, 
+        `The seller has sent a reminder. The buyer's deadline has been extended by 10 minutes.`
+      );
+      
+      // Refetch order data to get updated deadline
+      queryClient.invalidateQueries(['order', params.id]);
+      toast.success('Reminder sent and deadline extended by 10 minutes');
+    } catch (error) {
+      console.error('Error sending reminder:', error);
+      toast.error(error.message || 'Failed to send reminder');
+    } finally {
+      setSendingReminder(false);
+    }
+  }, [params.id, order, isBuyerDeadlineExpired, queryClient]);
+  
+  // Handler for buyer cancelling order when seller deadline is expired
+  const handleCancelOrder = useCallback(async () => {
+    if (!order || order.status !== 'WAITING_FOR_SELLER' || !isSellerDeadlineExpired) {
+      return;
+    }
+    
+    if (!confirm('Are you sure you want to cancel this order? The seller has not provided credentials within the deadline.')) {
+      return;
+    }
+    
+    setCancellingOrder(true);
+    try {
+      const response = await fetch(`/api/orders/${params.id}/buyer-cancel`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to cancel order');
+      }
+      
+      const data = await response.json();
+      
+      // Send system message to chat using StreamChat
+      await sendSystemMessageToChat(
+        params.id, 
+        `Order has been cancelled by the buyer due to expired seller deadline. The listing has been returned to active status.`
+      );
+      
+      // Refetch order data
+      queryClient.invalidateQueries(['order', params.id]);
+      toast.success('Order cancelled successfully. Refund will be processed.');
+    } catch (error) {
+      console.error('Error cancelling order:', error);
+      toast.error(error.message || 'Failed to cancel order');
+    } finally {
+      setCancellingOrder(false);
+    }
+  }, [params.id, order, isSellerDeadlineExpired, queryClient]);
+  
+  // Handler for seller auto-releasing payment when buyer deadline is expired
+  const handleAutoRelease = useCallback(async () => {
+    if (!order || order.status !== 'WAITING_FOR_BUYER' || !isBuyerDeadlineExpired) {
+      return;
+    }
+    
+    if (!confirm('Are you sure you want to auto-complete this order? Payment will be released to you as the seller.')) {
+      return;
+    }
+    
+    setAutoReleasing(true);
+    try {
+      const response = await fetch(`/api/orders/${params.id}/deadline`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          action: 'auto_release'
+        })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to complete order');
+      }
+      
+      const data = await response.json();
+      
+      // Send system message to chat using StreamChat
+      await sendSystemMessageToChat(
+        params.id, 
+        `The order has been automatically completed as the buyer did not confirm receipt within the deadline. Payment has been released to the seller.`
+      );
+      
+      // Refetch order data
+      queryClient.invalidateQueries(['order', params.id]);
+      toast.success('Order completed and payment released to you.');
+    } catch (error) {
+      console.error('Error auto-releasing payment:', error);
+      toast.error(error.message || 'Failed to complete order');
+    } finally {
+      setAutoReleasing(false);
+    }
+  }, [params.id, order, isBuyerDeadlineExpired, queryClient]);
   
   // Add CSS classes for status change animation
   const getStatusChangeClass = () => {
@@ -553,14 +784,16 @@ export default function OrderDetailPage() {
         <CardHeader className="pb-3 sm:pb-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0">
             <div>
-              <CardTitle className="text-base sm:text-xl">
+              <CardTitle className="text-base sm:text-xl flex items-center gap-2">
+              <img src={order.listing.platform.icon} alt={order.listing.platform.name} width={20} height={20} />
                 {order.listing.platform.name} Account {isBuyer ? 'Purchase' : 'Sale'}
+              
               </CardTitle>
               <CardDescription className="text-sm">
-                {order.listing.followers.toLocaleString()} followers • {order.listing.username}
+                {order.listing.followers > 0 ? order.listing.followers.toLocaleString() + " followers • " : ""}  {order.listing.username}
               </CardDescription>
             </div>
-            <Badge variant={getStatusVariant(order.status)} className="self-start sm:self-center text-xs sm:text-sm">
+            <Badge variant={order.status} className="self-start sm:self-center text-xs sm:text-sm">
               {formatStatus(order.status)}
             </Badge>
           </div>
@@ -574,7 +807,7 @@ export default function OrderDetailPage() {
                 <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-amber-100 flex items-center justify-center">
                   <Clock className="h-4 w-4 sm:h-5 sm:w-5 text-amber-600" />
                 </div>
-                <div>
+                <div className="flex-1">
                   <h3 className="font-medium text-sm sm:text-base">
                     {order.status === 'WAITING_FOR_SELLER' 
                       ? 'Waiting for seller to provide account details' 
@@ -585,6 +818,93 @@ export default function OrderDetailPage() {
                       ? `Seller has ${isSellerDeadlineExpired ? 'expired' : `${minutes}:${seconds.toString().padStart(2, '0')}`} to provide account details`
                       : `Buyer has ${isBuyerDeadlineExpired ? 'expired' : `${buyerMinutes}:${buyerSeconds.toString().padStart(2, '0')}`} to confirm receipt`}
                   </p>
+                  
+                  {/* Update deadline action buttons when expired - IMPROVED MOBILE UI */}
+                  {order.status === 'WAITING_FOR_SELLER' && isSellerDeadlineExpired && isBuyer && (
+                    <div className="flex flex-row sm:flex-row gap-2 mt-5">
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        className="text-xs w-full sm:w-auto px-4 py-2 h-auto"
+                        onClick={handleSendSellerReminder}
+                        disabled={sendingReminder}
+                      >
+                        {sendingReminder ? (
+                          <span className="flex items-center justify-center">
+                            <Loader2 className="h-3 w-3 animate-spin mr-1.5" />
+                            Sending...
+                          </span>
+                        ) : (
+                          <span className="flex items-center justify-center">
+                           
+                            Extend (+15 min)
+                          </span>
+                        )}
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="warning"
+                        className="text-xs w-full sm:w-auto px-4 py-2 h-auto"
+                        onClick={handleCancelOrder}
+                        disabled={cancellingOrder}
+                      >
+                        {cancellingOrder ? (
+                          <span className="flex items-center justify-center">
+                            <Loader2 className="h-3 w-3 animate-spin mr-1.5" />
+                            Cancelling...
+                          </span>
+                        ) : (
+                          <span className="flex items-center justify-center">
+                            <X className="h-3 w-3 mr-1.5" />
+                            Cancel 
+                          </span>
+                        )}
+                      </Button>
+                    </div>
+                  )}
+                  
+                  {order.status === 'WAITING_FOR_BUYER' && isBuyerDeadlineExpired && isSeller && (
+                    <div className="flex flex-col sm:flex-row gap-2 mt-2">
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        className="text-xs w-full sm:w-auto px-4 py-2 h-auto"
+                        onClick={handleSendBuyerReminder}
+                        disabled={sendingReminder}
+                      >
+                        {sendingReminder ? (
+                          <span className="flex items-center justify-center">
+                            <Loader2 className="h-3 w-3 animate-spin mr-1.5" />
+                            Sending...
+                          </span>
+                        ) : (
+                          <span className="flex items-center justify-center">
+                            <RefreshCw className="h-3 w-3 mr-1.5" />
+                            Extend Deadline (+10 min)
+                          </span>
+                        )}
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="primary"
+                        className="text-xs w-full sm:w-auto px-4 py-2 h-auto"
+                        onClick={handleAutoRelease}
+                        disabled={autoReleasing}
+                      >
+                        {autoReleasing ? (
+                          <span className="flex items-center justify-center">
+                            <Loader2 className="h-3 w-3 animate-spin mr-1.5" />
+                            Processing...
+                          </span>
+                        ) : (
+                          <span className="flex items-center justify-center">
+                            <CheckCircle className="h-3 w-3 mr-1.5" />
+                            Auto-Complete Order
+                          </span>
+                        )}
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -731,7 +1051,7 @@ export default function OrderDetailPage() {
             <span>Payment is secured in escrow until delivery is confirmed</span>
           </div>
           
-          {/* Seller Credential Form */}
+          {/* Seller Credential Form - IMPROVED TABS FOR MOBILE */}
           {isSeller && order.status === 'WAITING_FOR_SELLER' && (
             <div className="mt-4 sm:mt-6 border border-border rounded-lg p-3 sm:p-4">
               <h3 className="font-medium text-base sm:text-lg mb-3">Release Account Credentials</h3>
@@ -747,26 +1067,16 @@ export default function OrderDetailPage() {
                 </div>
               </div>
               
-              {/* {order.listing?.credentials && (
-                <div className="bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 rounded-lg p-4 mb-4 flex gap-2 items-start">
-                  <div className="h-5 w-5 mt-0.5">✓</div>
-                  <div className="text-sm">
-                    <p className="font-medium">Credentials Already Available</p>
-                    <p>You provided credentials when creating this listing. You can review and edit them below.</p>
-                  </div>
-                </div>
-              )} */}
-              
               <form onSubmit={handleReleaseCredentials} className="space-y-4">
                 <Tabs defaultValue="login" className="w-full">
-                  <TabsList className="w-full grid grid-cols-3">
-                    <TabsTrigger value="login">Login Details</TabsTrigger>
-                    <TabsTrigger value="recovery">Recovery Info</TabsTrigger>
-                    <TabsTrigger value="additional">Additional Info</TabsTrigger>
+                  <TabsList className="w-full mb-2 grid-cols-1 sm:grid-cols-3 flex flex-col sm:grid gap-1 sm:gap-0">
+                    <TabsTrigger value="login" className="text-xs sm:text-sm px-2 py-1.5">Login Details</TabsTrigger>
+                    <TabsTrigger value="recovery" className="text-xs sm:text-sm px-2 py-1.5">Recovery Info</TabsTrigger>
+                    <TabsTrigger value="additional" className="text-xs sm:text-sm px-2 py-1.5">Additional Info</TabsTrigger>
                   </TabsList>
                   
-                  <TabsContent value="login" className="space-y-4 mt-4">
-                    <div className="grid grid-cols-1 gap-4">
+                  <div className="border-t pt-4 mt-2">
+                    <TabsContent value="login" className="space-y-4 mt-2">
                       <div className="space-y-2">
                         <Label htmlFor="email">Email / Username</Label>
                         <Input 
@@ -869,161 +1179,161 @@ export default function OrderDetailPage() {
                           </div>
                         )}
                       </div>
-                    </div>
-                  </TabsContent>
-                  
-                  <TabsContent value="recovery" className="space-y-4 mt-4">
-                    <div className="space-y-4">
-                      <div>
-                        <h3 className="text-md font-medium mb-2">Recovery Account Details</h3>
-                        <p className="text-sm text-muted-foreground mb-4">
-                          If this account uses a separate email (e.g., Gmail for a Facebook login), provide those credentials here.
-                        </p>
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="recoveryAccountType">Recovery Account Type</Label>
-                          <Input 
-                            id="recoveryAccountType" 
-                            value={credentials.recoveryAccountType || ''}
-                            onChange={(e) => setCredentials({...credentials, recoveryAccountType: e.target.value})}
-                            placeholder="e.g., Gmail, Email provider, iCloud"
-                          />
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <Label htmlFor="recoveryEmail">Recovery Email</Label>
-                          <Input 
-                            id="recoveryEmail" 
-                            value={credentials.recoveryEmail || ''}
-                            onChange={(e) => setCredentials({...credentials, recoveryEmail: e.target.value})}
-                            placeholder="Recovery email address"
-                          />
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label htmlFor="recoveryPassword">Recovery Password</Label>
-                          <div className="relative">
-                            <Input 
-                              id="recoveryPassword" 
-                              type={showPassword.recoveryPassword ? "text" : "password"}
-                              value={credentials.recoveryPassword || ''}
-                              onChange={(e) => setCredentials({...credentials, recoveryPassword: e.target.value})}
-                              placeholder="Recovery account password"
-                            />
-                            <button
-                              type="button"
-                              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500"
-                              onClick={() => setShowPassword({...showPassword, recoveryPassword: !showPassword.recoveryPassword})}
-                            >
-                              {showPassword.recoveryPassword ? (
-                                <EyeOff className="h-5 w-5" />
-                              ) : (
-                                <Eye className="h-5 w-5" />
-                              )}
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="recoveryImages">Recovery Images (Optional)</Label>
-                        <p className="text-xs text-muted-foreground">Upload screenshots of recovery information</p>
-                        
-                        <FileUploader
-                          onFilesSelected={(files) => {
-                            const promises = Array.from(files).map(file => {
-                              return new Promise((resolve) => {
-                                const reader = new FileReader()
-                                reader.onloadend = () => resolve(reader.result)
-                                reader.readAsDataURL(file)
-                              })
-                            })
-                            
-                            Promise.all(promises).then(dataUrls => {
-                              setCredentials({
-                                ...credentials,
-                                recoveryImages: [...(credentials.recoveryImages || []), ...dataUrls]
-                              })
-                            })
-                          }}
-                          maxFiles={3}
-                          maxSizeInMB={5}
-                          acceptedFileTypes={["image/jpeg", "image/png", "image/gif"]}
-                          label="Drag & drop recovery images or click to browse"
-                        />
-                        
-                        {credentials.recoveryImages && credentials.recoveryImages.length > 0 && (
-                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2">
-                            {credentials.recoveryImages.map((image, index) => (
-                              <div key={index} className="relative group">
-                                <img 
-                                  src={image} 
-                                  alt={`Recovery image ${index + 1}`} 
-                                  className="w-full h-24 object-cover rounded-lg border"
-                                />
-                                <button
-                                  type="button"
-                                  className="absolute top-1 right-1 bg-black/70 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                                  onClick={() => {
-                                    const updatedImages = [...(credentials.recoveryImages || [])]
-                                    updatedImages.splice(index, 1)
-                                    setCredentials({
-                                      ...credentials,
-                                      recoveryImages: updatedImages
-                                    })
-                                  }}
-                                >
-                                  <Trash className="h-4 w-4" />
-                                </button>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </TabsContent>
-                  
-                  <TabsContent value="additional" className="space-y-4 mt-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="transferInstructions">Transfer Instructions</Label>
-                      <Textarea 
-                        id="transferInstructions" 
-                        value={credentials.transferInstructions || ''}
-                        onChange={(e) => setCredentials({...credentials, transferInstructions: e.target.value})}
-                        placeholder="Detailed instructions for how to transfer this account"
-                        rows={3}
-                      />
-                    </div>
+                    </TabsContent>
                     
-                    <div className="space-y-2">
-                      <Label htmlFor="additionalInfo">Additional Information</Label>
-                      <Textarea 
-                        id="additionalInfo" 
-                        value={credentials.additionalInfo || ''}
-                        onChange={(e) => setCredentials({...credentials, additionalInfo: e.target.value})}
-                        placeholder="Any additional information the buyer needs to know"
-                        rows={3}
-                      />
-                    </div>
-                  </TabsContent>
+                    <TabsContent value="recovery" className="space-y-4 mt-2">
+                      <div className="space-y-4">
+                        <div>
+                          <h3 className="text-md font-medium mb-2">Recovery Account Details</h3>
+                          <p className="text-sm text-muted-foreground mb-4">
+                            If this account uses a separate email (e.g., Gmail for a Facebook login), provide those credentials here.
+                          </p>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="recoveryAccountType">Recovery Account Type</Label>
+                            <Input 
+                              id="recoveryAccountType" 
+                              value={credentials.recoveryAccountType || ''}
+                              onChange={(e) => setCredentials({...credentials, recoveryAccountType: e.target.value})}
+                              placeholder="e.g., Gmail, Email provider, iCloud"
+                            />
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <Label htmlFor="recoveryEmail">Recovery Email</Label>
+                            <Input 
+                              id="recoveryEmail" 
+                              value={credentials.recoveryEmail || ''}
+                              onChange={(e) => setCredentials({...credentials, recoveryEmail: e.target.value})}
+                              placeholder="Recovery email address"
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="recoveryPassword">Recovery Password</Label>
+                            <div className="relative">
+                              <Input 
+                                id="recoveryPassword" 
+                                type={showPassword.recoveryPassword ? "text" : "password"}
+                                value={credentials.recoveryPassword || ''}
+                                onChange={(e) => setCredentials({...credentials, recoveryPassword: e.target.value})}
+                                placeholder="Recovery account password"
+                              />
+                              <button
+                                type="button"
+                                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500"
+                                onClick={() => setShowPassword({...showPassword, recoveryPassword: !showPassword.recoveryPassword})}
+                              >
+                                {showPassword.recoveryPassword ? (
+                                  <EyeOff className="h-5 w-5" />
+                                ) : (
+                                  <Eye className="h-5 w-5" />
+                                )}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="recoveryImages">Recovery Images (Optional)</Label>
+                          <p className="text-xs text-muted-foreground">Upload screenshots of recovery information</p>
+                          
+                          <FileUploader
+                            onFilesSelected={(files) => {
+                              const promises = Array.from(files).map(file => {
+                                return new Promise((resolve) => {
+                                  const reader = new FileReader()
+                                  reader.onloadend = () => resolve(reader.result)
+                                  reader.readAsDataURL(file)
+                                })
+                              })
+                              
+                              Promise.all(promises).then(dataUrls => {
+                                setCredentials({
+                                  ...credentials,
+                                  recoveryImages: [...(credentials.recoveryImages || []), ...dataUrls]
+                                })
+                              })
+                            }}
+                            maxFiles={3}
+                            maxSizeInMB={5}
+                            acceptedFileTypes={["image/jpeg", "image/png", "image/gif"]}
+                            label="Drag & drop recovery images or click to browse"
+                          />
+                          
+                          {credentials.recoveryImages && credentials.recoveryImages.length > 0 && (
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2">
+                              {credentials.recoveryImages.map((image, index) => (
+                                <div key={index} className="relative group">
+                                  <img 
+                                    src={image} 
+                                    alt={`Recovery image ${index + 1}`} 
+                                    className="w-full h-24 object-cover rounded-lg border"
+                                  />
+                                  <button
+                                    type="button"
+                                    className="absolute top-1 right-1 bg-black/70 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    onClick={() => {
+                                      const updatedImages = [...(credentials.recoveryImages || [])]
+                                      updatedImages.splice(index, 1)
+                                      setCredentials({
+                                        ...credentials,
+                                        recoveryImages: updatedImages
+                                      })
+                                    }}
+                                  >
+                                    <Trash className="h-4 w-4" />
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </TabsContent>
+                    
+                    <TabsContent value="additional" className="space-y-4 mt-2">
+                      <div className="space-y-2">
+                        <Label htmlFor="transferInstructions">Transfer Instructions</Label>
+                        <Textarea 
+                          id="transferInstructions" 
+                          value={credentials.transferInstructions || ''}
+                          onChange={(e) => setCredentials({...credentials, transferInstructions: e.target.value})}
+                          placeholder="Detailed instructions for how to transfer this account"
+                          rows={3}
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="additionalInfo">Additional Information</Label>
+                        <Textarea 
+                          id="additionalInfo" 
+                          value={credentials.additionalInfo || ''}
+                          onChange={(e) => setCredentials({...credentials, additionalInfo: e.target.value})}
+                          placeholder="Any additional information the buyer needs to know"
+                          rows={3}
+                        />
+                      </div>
+                    </TabsContent>
+                  </div>
                 </Tabs>
                 
-                {/* <Button 
+                <Button 
                   type="submit" 
                   className="w-full text-xs sm:text-sm h-9 sm:h-10 mt-4"
-                  disabled={releasing || statusChangeLoading}
+                  disabled={releaseMutation.isPending}
                 >
-                  {releasing ? (
-                    <span className="flex items-center">
+                  {releaseMutation.isPending ? (
+                    <span className="flex items-center justify-center">
                       <Loader2 className="h-4 w-4 animate-spin mr-2" />
                       Releasing Credentials...
                     </span>
                   ) : (
                     'Release Account Credentials'
                   )}
-                </Button> */}
+                </Button>
               </form>
             </div>
           )}
