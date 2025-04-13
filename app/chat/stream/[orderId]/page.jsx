@@ -481,10 +481,17 @@ export default function ChatPage() {
   const { client, channel, loading, error } = useStreamChat(params.orderId);
   const messageListRef = useRef(null);
   
-  const { data: order, isLoading: orderLoading } = useQuery({
+  const { data: order, isLoading: orderLoading, refetch, isRefetching } = useQuery({
     queryKey: ['order', params.orderId],
     queryFn: () => fetchOrderDetails(params.orderId),
     staleTime: 1000 * 60, // 1 minute
+    refetchInterval: 1000 * 60, // 1 minute
+    refetchIntervalInBackground: true,
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
+    refetchOnReconnect: true,
+    refetchOnReconnect: true,
+    refetchOnReconnect: true,
   });
 
   // Handle authentication redirect
@@ -508,18 +515,21 @@ export default function ChatPage() {
   if (!client || !channel) {
     return <ChatErrorState />;
   }
-console.log({channel})
+
   return (
     <div className="flex flex-col max-h-[100svh]  min-h-[100svh] bg-white dark:bg-[#15202B] fixed bottom-0 left-0 right-0 overflow-y-hidden p-0 m-0">
-      <ChatHeader order={order} isLoading={orderLoading} />
+      <ChatHeader order={order} isLoading={orderLoading} isRefetching={isRefetching} refetch={refetch} />
       
       <div className="flex-1 overflow-y-auto mb-16" style={{
    scrollBehavior: 'smooth',
+   backgroundColor: '#070707'
  
   }}>
-        <div className="max-w-screen-md mx-auto ">
-          <Chat client={client} theme="str-chat__theme-dark" >
-            <Channel channel={channel}>
+        <div className="max-w-screen-md mx-auto  " >
+          <Chat client={client} theme="str-chat__theme-dark" style={{
+            backgroundColor: 'red'
+          }}>
+            <Channel channel={channel} >
               <Window>
                 <MessageList className="pb-16 pt-16" style={{ paddingBottom: '100px' }} />
                 {/* <Thread /> */}
@@ -559,12 +569,14 @@ function CustomChannelHeader({ channel }) {
 }
 
 // Update the ChatHeader component first
-function ChatHeader({ order, isLoading }) {
+function ChatHeader({ order, isLoading, isRefetching, refetch }) {
   const router = useRouter();
-  
+  if(isRefetching){
+    return <ChatHeaderSkeleton />
+  }
   return (
     <header onTouchStart={(e) => e.stopPropagation()}
-    onTouchMove={(e) => e.stopPropagation()} className="sticky  top-0 z-50 bg-white/95 backdrop-blur dark:bg-[#15202B]/95 border-b border-gray-200 dark:border-gray-800">
+    onTouchMove={(e) => e.stopPropagation()} className="sticky top-0 z-50 bg-white/95 backdrop-blur dark:bg-[#15202B]/95 border-b border-gray-200 dark:border-gray-800">
       <div className="flex h-[53px] items-center justify-between px-4">
         <div className="flex items-center gap-4">
           <Button
@@ -572,23 +584,30 @@ function ChatHeader({ order, isLoading }) {
             size="icon"
             onClick={() => router.push(`/dashboard/orders/${order?.id}`)}
             className="h-9 w-9 -ml-2"
+            disabled={isLoading || isRefetching}
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
           
-          <div className="flex flex-col">
-            <h1 className="text-[15px] font-bold leading-5">
-              Order #{order?.id?.substring(0, 8)}
-            </h1>
-            <div className="flex items-center gap-2">
-              <span className="text-[13px] text-gray-500 dark:text-gray-400">
-                {order?.status || 'WAITING_FOR_SELLER'}
-              </span>
-              <span className="text-[13px] text-gray-500 dark:text-gray-400">•</span>
-              <span className="text-[13px] text-gray-500 dark:text-gray-400">
-                {order?.listing?.platform?.name || 'Windscribe Vpn'}
-              </span>
-            </div>
+          <div className="flex flex-col relative">
+          
+              
+        
+              <>
+                <h1 className={`text-[15px] font-bold leading-5 ${isRefetching ? 'opacity-40' : ''}`}>
+                  Order #{order?.id?.substring(0, 8)}
+                </h1>
+                <div className={`flex items-center gap-2 ${isRefetching ? 'opacity-40' : ''}`}>
+                  <span className="text-[13px] text-gray-500 dark:text-gray-400">
+                    {order?.status || 'WAITING_FOR_SELLER'}
+                  </span>
+                  <span className="text-[13px] text-gray-500 dark:text-gray-400">•</span>
+                  <span className="text-[13px] text-gray-500 dark:text-gray-400">
+                    {order?.listing?.platform?.name || 'Windscribe Vpn'}
+                  </span>
+                </div>
+              </>
+           
           </div>
         </div>
 
@@ -596,9 +615,10 @@ function ChatHeader({ order, isLoading }) {
           variant="ghost"
           size="icon"
           className="h-9 w-9"
-          onClick={() => window.location.reload()}
+          onClick={()=>refetch()}
+          disabled={isLoading || isRefetching}
         >
-          <RefreshCw className="h-5 w-5" />
+          <RefreshCw className={`h-5 w-5 ${isRefetching ? 'animate-spin text-primary' : ''}`} />
         </Button>
       </div>
     </header>
@@ -653,5 +673,28 @@ function MessageItem({ message }) {
         </div>
       </div>
     </div>
+  );
+}
+
+function ChatHeaderSkeleton() {
+  return (
+    <header className="sticky top-0 z-50 bg-white/95 backdrop-blur dark:bg-[#15202B]/95 border-b border-gray-200 dark:border-gray-800">
+      <div className="flex h-[53px] items-center justify-between px-4">
+        <div className="flex items-center gap-4">
+          <div className="h-9 w-9 rounded-full bg-gray-200 dark:bg-gray-700 animate-pulse"></div>
+          
+          <div className="flex flex-col">
+            <div className="h-5 w-32 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+            <div className="flex items-center gap-2 mt-1">
+              <div className="h-3.5 w-20 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+              <div className="h-3.5 w-1 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+              <div className="h-3.5 w-24 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+            </div>
+          </div>
+        </div>
+
+        <div className="h-9 w-9 rounded-full bg-gray-200 dark:bg-gray-700 animate-pulse"></div>
+      </div>
+    </header>
   );
 }

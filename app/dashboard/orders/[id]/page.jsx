@@ -1377,7 +1377,7 @@ export default function OrderDetailPage() {
                   onClick={() => {
                    handleReleaseCredentials()
                   }}
-                  loading={releaseMutation.isPending}
+                 
                   disabled={releaseMutation.isPending}
                 >
                   {releaseMutation.isPending ? (
