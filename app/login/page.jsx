@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { signIn } from "next-auth/react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { AuthInput } from "../components/auth/auth-input"
@@ -10,7 +10,8 @@ import { Loader2, Mail, Lock, CheckCircle, AlertCircle, ArrowRight } from "lucid
 import Image from "next/image"
 import { useTheme } from "next-themes"
 
-export default function LoginPage() {
+// Create a separate component for the login form that uses searchParams
+function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const verified = searchParams.get("verified") === "true"
@@ -63,7 +64,7 @@ export default function LoginPage() {
         setLoading(false)
       }
     } else {
-      router.push("/dashboard")
+      router.push("/marketplace")
     }
   }
 
@@ -96,108 +97,121 @@ export default function LoginPage() {
   }
 
   return (
+    <>
+      <Link href="/" className="flex items-center space-x-2 mb-8">
+        {mounted && (
+          theme === "dark" ? (
+            <Image
+              src="/images/logovero-dark.webp"
+              alt="TradeVero"
+              width={200}
+              height={200}
+              priority
+            />
+          ) : (
+            <Image
+              src="/images/logovero-light.webp"
+              alt="TradeVero"
+              width={200}
+              height={200}
+              priority
+            />
+          )
+        )}
+      </Link>
+
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold mb-2">Sign in to your account</h1>
+        <p className="text-muted-foreground">
+          Welcome back! Please enter your details to continue.
+        </p>
+      </div>
+
+      {showVerifiedMessage && (
+        <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-md flex items-center text-green-700">
+          <CheckCircle className="h-5 w-5 mr-2 flex-shrink-0" />
+          <p className="text-sm">Your email has been verified successfully!</p>
+        </div>
+      )}
+
+      {resendSuccess && (
+        <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-md flex items-center text-green-700">
+          <CheckCircle className="h-5 w-5 mr-2 flex-shrink-0" />
+          <p className="text-sm">Verification email has been resent. Please check your inbox.</p>
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <AuthInput
+          label="Email Address"
+          name="email"
+          type="email"
+          icon={Mail}
+          placeholder="name@example.com"
+          required
+        />
+        <div className="space-y-1">
+          <AuthInput
+            label="Password"
+            name="password"
+            type="password"
+            icon={Lock}
+            required
+          />
+          <div className="text-right">
+            <Link href="/forgot-password" className="text-xs text-blue-600 hover:underline">
+              Forgot password?
+            </Link>
+          </div>
+        </div>
+
+        {loginError && (
+          <div className="text-sm p-3 border rounded-md bg-red-50 border-red-200 text-red-500">
+            <div className="flex items-center">
+              <AlertCircle className="h-5 w-5 mr-2 flex-shrink-0 text-red-500" />
+              <p>{loginError}</p>
+            </div>
+          </div>
+        )}
+
+        <Button className="w-full h-11" disabled={loading}>
+          {loading ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : "Sign In"}
+        </Button>
+      </form>
+
+      <div className="mt-6 space-y-4">
+        <div className="text-sm text-muted-foreground text-center">
+          Don't have an account?{" "}
+          <Link href="/signup" className="text-primary hover:underline font-medium">
+            Sign up
+          </Link>
+        </div>
+        <p className="text-xs text-muted-foreground text-center">
+          By signing in, you agree to our{" "}
+          <Link href="/terms" className="underline">Terms of Service</Link>
+          {" "}and{" "}
+          <Link href="/privacy" className="underline">Privacy Policy</Link>
+        </p>
+      </div>
+    </>
+  )
+}
+
+// Main page component with Suspense boundary
+export default function LoginPage() {
+  return (
     <div className="min-h-screen flex">
       {/* Form Section */}
       <div className="w-full lg:w-[480px] p-8 md:p-12 flex flex-col justify-center min-h-screen">
-        <div>
-          <Link href="/" className="flex items-center space-x-2 mb-8">
-            {mounted && (
-              theme === "dark" ? (
-                <Image
-                  src="/images/logovero-dark.webp"
-                  alt="TradeVero"
-                  width={200}
-                  height={200}
-                  priority
-                />
-              ) : (
-                <Image
-                  src="/images/logovero-light.webp"
-                  alt="TradeVero"
-                  width={200}
-                  height={200}
-                  priority
-                />
-              )
-            )}
-          </Link>
-
-          <div className="mb-8">
-            <h1 className="text-2xl font-bold mb-2">Sign in to your account</h1>
-            <p className="text-muted-foreground">
-              Welcome back! Please enter your details to continue.
-            </p>
+        <Suspense fallback={
+          <div className="flex items-center justify-center">
+            <Loader2 className="h-6 w-6 animate-spin" />
           </div>
-
-          {showVerifiedMessage && (
-            <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-md flex items-center text-green-700">
-              <CheckCircle className="h-5 w-5 mr-2 flex-shrink-0" />
-              <p className="text-sm">Your email has been verified successfully!</p>
-            </div>
-          )}
-
-          {resendSuccess && (
-            <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-md flex items-center text-green-700">
-              <CheckCircle className="h-5 w-5 mr-2 flex-shrink-0" />
-              <p className="text-sm">Verification email has been resent. Please check your inbox.</p>
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <AuthInput
-              label="Email Address"
-              name="email"
-              type="email"
-              icon={Mail}
-              placeholder="name@example.com"
-              required
-            />
-            <div className="space-y-1">
-              <AuthInput
-                label="Password"
-                name="password"
-                type="password"
-                icon={Lock}
-                required
-              />
-              <div className="text-right">
-                <Link href="/forgot-password" className="text-xs text-blue-600 hover:underline">
-                  Forgot password?
-                </Link>
-              </div>
-            </div>
-
-            {loginError && (
-              <div className="text-sm p-3 border rounded-md bg-red-50 border-red-200 text-red-500">
-                <div className="flex items-center">
-                  <AlertCircle className="h-5 w-5 mr-2 flex-shrink-0 text-red-500" />
-                  <p>{loginError}</p>
-                </div>
-              </div>
-            )}
-
-            <Button className="w-full h-11" disabled={loading}>
-              {loading ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : "Sign In"}
-            </Button>
-          </form>
-        </div>
-
-        <div className="mt-6 space-y-4">
-          <div className="text-sm text-muted-foreground text-center">
-            Don't have an account?{" "}
-            <Link href="/signup" className="text-primary hover:underline font-medium">
-              Sign up
-            </Link>
-          </div>
-          <p className="text-xs text-muted-foreground text-center">
-            By signing in, you agree to our{" "}
-            <Link href="/terms" className="underline">Terms of Service</Link>
-            {" "}and{" "}
-            <Link href="/privacy" className="underline">Privacy Policy</Link>
-          </p>
-        </div>
+        }>
+          <LoginForm />
+        </Suspense>
       </div>
 
       {/* Gradient Section */}
@@ -231,4 +245,4 @@ export default function LoginPage() {
       </div>
     </div>
   )
-} 
+}

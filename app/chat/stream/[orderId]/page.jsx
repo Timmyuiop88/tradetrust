@@ -16,815 +16,685 @@ import {
   XCircle,
   Calendar,
   Eye,
-  Info
+  Info,
+  RefreshCw,
+  Paperclip,
+  Smile,
+  X
 } from 'lucide-react';
 import { StreamChat } from 'stream-chat';
 import { 
-  Chat as StreamChatComponent,
-  Channel as StreamChannel,
-  Window as StreamWindow,
-  MessageList as StreamMessageList,
-  MessageInput as StreamMessageInput,
-  Thread as StreamThread,
-  useChannelStateContext,
-  useChannelActionContext,
-  useMessageContext,
-  MessageSimple,
+  Chat, 
+  Channel, 
+  Window, 
+  MessageList, 
+  MessageInput,
+  Thread,
   Avatar,
-  useChatContext
+  ChannelHeader as DefaultChannelHeader,
+  LoadingIndicator,
+  useMessageInputContext,
+  useChannelActionContext
 } from 'stream-chat-react';
-import NextImage from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/app/components/button';
 import { Badge } from '@/app/components/badge';
 import { cn } from '@/app/lib/utils';
 import { Skeleton } from '@/app/components/ui/skeleton';
 import 'stream-chat-react/dist/css/v2/index.css';
+import { useStreamChat } from '@/lib/hooks/useStreamChat';
+import { useQuery } from '@tanstack/react-query';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/app/components/dialog';
 
-
-const MessageSkeleton = ({ align = 'left' }) => (
-    <div className={`flex ${align === 'right' ? 'justify-end' : 'justify-start'} mb-4`}>
-      <div className={`max-w-[75%] ${align === 'right' ? 'bg-primary/30' : 'bg-muted'} rounded-lg px-4 py-2 shadow-sm animate-pulse`}>
-        <div className="h-4 w-24 bg-muted-foreground/20 rounded mb-2"></div>
-        <div className="space-y-2">
-          <div className="h-3 w-48 bg-muted-foreground/20 rounded"></div>
-          <div className="h-3 w-32 bg-muted-foreground/20 rounded"></div>
-        </div>
-        <div className="flex justify-end mt-1">
-          <div className="h-3 w-12 bg-muted-foreground/20 rounded"></div>
-        </div>
-      </div>
-    </div>
-  );
-
-// Create a skeleton loader for the chat interface
-const ChatSkeleton = () => {
-  return (
-    <div className="flex flex-col h-screen max-h-screen bg-background">
-    {/* Header skeleton */}
-    <div className="border-b p-4 animate-pulse">
-      <div className="flex items-center">
-        <div className="h-10 w-10 rounded-full bg-muted"></div>
-        <div className="ml-3">
-          <div className="h-4 w-24 bg-muted rounded"></div>
-          <div className="h-3 w-16 bg-muted rounded mt-1"></div>
-        </div>
-      </div>
-    </div>
-    
-    {/* Chat container with skeleton messages */}
-    <div className="flex-1 overflow-y-auto p-4 space-y-4">
-      <MessageSkeleton align="left" />
-      <MessageSkeleton align="right" />
-      <MessageSkeleton align="left" />
-      <MessageSkeleton align="right" />
-    </div>
-    
-    {/* Input skeleton */}
-    <div className="border-t p-4 animate-pulse">
-      <div className="flex items-center">
-        <div className="flex-1 h-10 bg-muted rounded-md"></div>
-        <div className="h-10 w-10 bg-muted rounded-full ml-2"></div>
-      </div>
-    </div>
-  </div>
-   
-  );
-};
+import { ChatInput } from './components/ChatInput';
+import { ChatLoadingState } from './components/ChatLoadingState';
+import { ChatErrorState } from './components/ChatErrorState';
+import "./stream.css"
 
 // Create a global cache for Stream chat clients
 const clientCache = new Map();
 
-export default function OrderStreamChat() {
-  const { data: session, status } = useSession();
-  const router = useRouter();
-  const params = useParams();
-  const orderId = params.orderId;
-  
-  const [client, setClient] = useState(null);
-  const [channel, setChannel] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [orderDetails, setOrderDetails] = useState(null);
-  const [apiKey, setApiKey] = useState(null);
-  const [infoModalOpen, setInfoModalOpen] = useState(false);
-  const [connecting, setConnecting] = useState(false);
-  const hasInitialized = useRef(false);
-  
-  // Token Provider function
-  const tokenProvider = useCallback(async () => {
-    try {
-      const response = await fetch('/api/chat/stream/token');
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Failed to get chat token');
-      }
-      
-      const data = await response.json();
-      return data.token;
-    } catch (err) {
-      console.error('Error in token provider:', err);
-      throw err;
-    }
-  }, []);
-  
-  // Initialize Stream client - optimized to avoid unnecessary reconnections
-  useEffect(() => {
-    if (status !== 'authenticated' || !session?.user?.id || hasInitialized.current) {
-      if (status === 'unauthenticated') {
-        router.push('/login');
-      }
-      return;
-    }
-    
-    // Set initialization flag to avoid duplicate initializations
-    hasInitialized.current = true;
-    
-    const initializeChat = async () => {
-      setConnecting(true);
-      
-      try {
-        // Get API key
-        let streamApiKey;
-        
-        // Check if we have the API key in cache
-        if (!apiKey) {
-          const response = await fetch('/api/chat/stream/token');
-          if (!response.ok) throw new Error('Failed to get API key');
-          
-          const data = await response.json();
-          streamApiKey = data.apiKey;
-          setApiKey(data.apiKey);
-        } else {
-          streamApiKey = apiKey;
-        }
-        
-        // Fetch order details
-        await fetchOrderDetails();
-        
-        // Initialize the chat client
-        await initChat(streamApiKey);
-        
-      } catch (err) {
-        console.error('Failed to initialize chat:', err);
-        setError(err.message);
-      } finally {
-        setConnecting(false);
-      }
-    };
-    
-    initializeChat();
-    
-    // Return cleanup function
-    return () => {
-      // We don't disconnect the client on unmount to persist connection
-      // The client will be reused if the user navigates back
-    };
-  }, [status, session, router]);
-  
-  const initChat = async (streamApiKey) => {
-    try {
-      setLoading(true);
-      
-      // First check if user has access to this order
-      const orderResponse = await fetch(`/api/orders/${orderId}`);
-      
-      if (!orderResponse.ok) {
-        if (orderResponse.status === 403) {
-          throw new Error('You do not have permission to access this order chat');
-        }
-        throw new Error('Failed to verify order access');
-      }
-      
-      // Parse order data to get buyer and seller IDs
-      const orderData = await orderResponse.json();
-      if (!orderData || !orderData.id) {
-        throw new Error('Invalid order data received');
-      }
-      
-      // Extract buyer and seller IDs from the order
-      const buyerId = orderData.buyerId || orderData.userId;
-      const sellerId = orderData.sellerId;
-      
-      if (!buyerId || !sellerId) {
-        throw new Error('Order is missing buyer or seller information');
-      }
-      
-      // Check if we have a cached client for this user
-      const cacheKey = `${session.user.id}-${streamApiKey}`;
-      let chatClient;
-      
-      if (clientCache.has(cacheKey)) {
-        chatClient = clientCache.get(cacheKey);
-        console.log('Using cached Stream client');
-      } else {
-        // Initialize StreamChat client with API key
-        chatClient = StreamChat.getInstance(streamApiKey);
-        
-        // Connect user with token provider
-        await chatClient.connectUser(
-          {
-            id: session.user.id,
-            name: session.user.name || session.user.email,
-            image: session.user.image,
-          },
-          tokenProvider
-        );
-        
-        // Cache the client for future use
-        clientCache.set(cacheKey, chatClient);
-        console.log('Created new Stream client and cached it');
-      }
-      
-      // Create or get channel for this order
-      const orderChannel = chatClient.channel(
-        'messaging',
-        `order-${orderId}`,
-        {
-          name: `Order #${orderId}`,
-          members: [buyerId, sellerId], // Include both buyer and seller
-          order_id: orderId
-        }
-      );
-      
-      try {
-        await orderChannel.watch();
-        
-        // Get channel members to identify the other participant
-        const members = await orderChannel.queryMembers({});
-        console.log('Channel members:', members);
-      } catch (channelError) {
-        if (channelError.code === 403 || channelError.code === 17) {
-          // Handle permission errors specifically
-          console.error('Permission error:', channelError);
-          throw new Error('You do not have permission to access this chat channel. This may happen if you are not a participant in this order.');
-        }
-        throw channelError;
-      }
-      
-      setClient(chatClient);
-      setChannel(orderChannel);
-      setLoading(false);
-    } catch (err) {
-      console.error('Error initializing chat:', err);
-      setError(err.message);
-      setLoading(false);
-    }
-  };
-  
-  const fetchOrderDetails = async (retryCount = 0) => {
-    try {
-      const response = await fetch(`/api/orders/${orderId}`);
-      
-      if (!response.ok) {
-        // If we get a 404 or 403, don't retry
-        if (response.status === 404 || response.status === 403) {
-          const errorData = await response.json().catch(() => ({}));
-          console.error(`Order not found or access denied: ${errorData.error || response.status}`);
-          return;
-        }
-        
-        // For other errors, retry up to 3 times
-        if (retryCount < 3) {
-          console.log(`Retrying order fetch (${retryCount + 1}/3)...`);
-          // Wait a bit before retrying (exponential backoff)
-          await new Promise(r => setTimeout(r, 1000 * Math.pow(2, retryCount)));
-          return fetchOrderDetails(retryCount + 1);
-        }
-        
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `Failed to fetch order details: ${response.status}`);
-      }
-      
-      const contentType = response.headers.get("content-type");
-      if (!contentType || !contentType.includes("application/json")) {
-        console.error("Non-JSON response received from API");
-        return;
-      }
-      
-      const data = await response.json();
-      
-      // Check if we have valid order data with defensive programming
-      if (!data || typeof data !== 'object') {
-        console.error("Invalid order data format", data);
-        return;
-      }
-      
-      // Set the order details even if some expected fields might be missing
-      setOrderDetails(data);
-    } catch (err) {
-      console.error('Error fetching order:', err);
-      // Don't set error state here, just log it - we don't want to break the chat
-      // if order details can't be fetched
-    }
-  };
-  
-  // Handle connection state visibility changes to avoid unnecessary reconnections
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && client) {
-        // If the tab becomes visible and we already have a client,
-        // just refresh the channel data without reconnecting
-        if (channel) {
-          channel.watch().catch(err => {
-            console.error('Error refreshing channel:', err);
-          });
-        }
-      }
-    };
-    
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [client, channel]);
-  
-  // Add a help component to render in error cases
-  const ErrorHelp = ({ error, orderId, retry }) => {
-    return (
-      <div className="mt-6 bg-gray-50 dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
-        <h3 className="text-sm font-medium mb-2 dark:text-gray-200">Troubleshooting Tips</h3>
-        <ul className="text-xs space-y-2 text-gray-600 dark:text-gray-300">
-          {error.includes("permission") && (
-            <>
-              <li>• You might not be a participant in this order</li>
-              <li>• The channel may have been created without you as a member</li>
-              <li>• Try viewing the order details before accessing the chat</li>
-            </>
-          )}
-          <li>• Make sure you're logged in with the correct account</li>
-          <li>• Check that the order ID is correct: {orderId.substring(0, 8)}</li>
-          <li>• If this is a new order, the chat channel may still be initializing</li>
-          <li>• Try refreshing the page or coming back in a few minutes</li>
-        </ul>
-        {retry && (
-          <Button 
-            onClick={retry} 
-            className="mt-4 w-full text-xs"
-            variant="outline"
-            size="sm"
-          >
-            <span className="flex items-center">
-              <Loader2 className="h-3 w-3 mr-2 animate-spin" />
-              Try again
-            </span>
-          </Button>
-        )}
-      </div>
-    );
-  };
-
-  if (error) {
-    return (
-      <div className="container mx-auto px-4 py-6 sm:py-8 max-w-4xl">
-        <div className="flex gap-3 items-center mb-4 sm:mb-6">
-          <button 
-            onClick={() => router.back()}
-            className="text-muted-foreground hover:text-foreground flex items-center justify-center h-8 w-8 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </button>
-          <h1 className="text-xl sm:text-2xl font-bold dark:text-gray-200">Chat Error</h1>
-        </div>
-        
-        <div className="bg-destructive/10 border border-destructive text-destructive px-4 py-4 rounded-lg mb-4">
-          <div className="flex items-start">
-            <AlertCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0" />
-            <span>{error}</span>
-          </div>
-          <div className="flex gap-3 mt-4">
-            <Button 
-              onClick={() => router.push('/dashboard/orders')}
-              className="text-xs"
-              variant="outline"
-            >
-              Return to Orders
-            </Button>
-            <Button 
-              onClick={() => router.push(`/dashboard/orders/${orderId}`)}
-              className="text-xs"
-              variant="default"
-            >
-              View Order Details
-            </Button>
-          </div>
-        </div>
-        
-        <ErrorHelp 
-          error={error} 
-          orderId={orderId} 
-          retry={() => {
-            setError(null);
-            setLoading(true);
-            // Retry initialization
-            if (apiKey) {
-              initChat(apiKey);
-            } else {
-              fetch('/api/chat/stream/token')
-                .then(res => res.json())
-                .then(data => {
-                  setApiKey(data.apiKey);
-                  initChat(data.apiKey);
-                })
-                .catch(err => {
-                  console.error('Error fetching API key:', err);
-                  setError('Failed to get API key');
-                  setLoading(false);
-                });
-            }
-          }} 
-        />
-      </div>
-    );
-  }
-  
-  if (status === 'loading' || loading) {
-    return <ChatSkeleton />;
-  }
-  
-  if (!client || !channel) {
-    return <ChatSkeleton />;
+// Stream Chat styles
+const streamStyles = `
+  .str-chat {
+    --str-chat__primary-color: #1DA1F2;
+    --str-chat__active-primary-color: #1A91DA;
+    height: 100%;
+    width: 100%;
+    background: #FFFFFF;
+    color: #0F1419;
   }
 
-  // Custom Components for Stream Chat
-  const CustomChannelHeader = () => {
-    const [updating, setUpdating] = useState(false);
-    
-    // Refresh order details when clicked
-    const handleRefresh = async () => {
-      setUpdating(true);
-      await fetchOrderDetails();
-      setTimeout(() => setUpdating(false), 1000); // Ensure the spinner shows for at least 1 second
-    };
-    
-    return (
-      <div className="flex items-center justify-between p-3 sm:p-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 sticky top-0 z-10 shadow-sm">
-        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-          <button 
-            onClick={() => router.push('/dashboard/orders')}
-            className="hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full p-1.5 flex-shrink-0"
-            aria-label="Go back"
-          >
-            <ArrowLeft className="h-4 w-4 sm:h-5 sm:w-5" />
-          </button>
-          
-          <div className="overflow-hidden">
-            <h3 className="font-medium text-sm sm:text-base truncate dark:text-gray-200">
-              {orderDetails ? `Order #${orderDetails.orderNumber || orderId.substring(0, 8)}` : `Order Chat`}
-            </h3>
-            {orderDetails && (
-              <div className="flex items-center text-xs text-gray-500 dark:text-gray-400">
-                <button
-                  onClick={handleRefresh}
-                  className="flex items-center gap-1 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none"
-                >
-                  {updating ? (
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                  ) : (
-                    <span>
-                      {orderDetails.status === 'COMPLETED' ? (
-                        <Badge variant="success" className="text-[10px] h-5 px-1.5">Completed</Badge>
-                      ) : orderDetails.status === 'PENDING' ? (
-                        <Badge variant="warning" className="text-[10px] h-5 px-1.5">Pending</Badge>
-                      ) : orderDetails.status === 'CANCELLED' ? (
-                        <Badge variant="destructive" className="text-[10px] h-5 px-1.5">Cancelled</Badge>
-                      ) : (
-                        <Badge className="text-[10px] h-5 px-1.5">{orderDetails.status}</Badge>
-                      )}
-                    </span>
-                  )}
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-        
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setInfoModalOpen(true)}
-            className="hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full p-1.5 text-muted-foreground hidden sm:flex"
-            aria-label="View information"
-          >
-            <Info className="h-4 w-4" />
-          </button>
-          
-          {orderDetails && (
-            <Link 
-              href={`/dashboard/orders/${orderId}`}
-              className="text-xs sm:text-sm text-primary hover:underline px-2 py-1 rounded-md hover:bg-primary/5 transition-colors"
-            >
-              View Order
-            </Link>
-          )}
-        </div>
-      </div>
-    );
-  };
+  .str-chat__list {
+    background: #FFFFFF;
+    padding: 0;
+    max-width: 100%;
+    margin: 0 auto;
+    padding-bottom: 80px;
+  }
 
-  // Custom Message component for better styling
-  const CustomMessage = (props) => {
-    const { message } = useMessageContext();
-    const { channel } = useChannelStateContext();
-    const isMyMessage = message.user?.id === session?.user?.id;
-    
-    return (
-      <div 
-        className={cn(
-          "py-2 px-1 sm:px-2 flex w-full",
-          isMyMessage ? "justify-end" : "justify-start"
-        )}
-      >
-        {!isMyMessage && (
-          <div className="mr-2 sm:mr-3 flex-shrink-0 self-end mb-1">
-            <Avatar 
-              image={message.user?.image} 
-              name={message.user?.name || message.user?.id || 'User'} 
-              size={28}
-              shape="rounded"
-            />
-          </div>
-        )}
-        
-        <div 
-          className={cn(
-            "max-w-[85%] sm:max-w-[75%] rounded-2xl px-3 py-2 break-words",
-            isMyMessage 
-              ? "bg-primary text-primary-foreground rounded-tr-sm" 
-              : "bg-gray-100 dark:bg-gray-800 text-foreground dark:text-gray-200 rounded-tl-sm"
-          )}
-        >
-          {!isMyMessage && message.user?.name && (
-            <div className="text-xs font-medium mb-1 dark:text-gray-200">
-              {message.user.name}
-            </div>
-          )}
-          
-          {message.text && (
-            <div className="whitespace-pre-wrap text-sm">{message.text}</div>
-          )}
-          
-          {message.attachments?.length > 0 && (
-            <div className="mt-2 space-y-2">
-              {message.attachments.map((attachment, index) => {
-                if (attachment.type === 'image') {
-                  return (
-                    <div key={index} className="rounded-md overflow-hidden">
-                      <NextImage
-                        src={attachment.image_url}
-                        alt="Attachment"
-                        width={300}
-                        height={200}
-                        className="object-contain max-h-[200px] w-auto"
-                      />
-                    </div>
-                  );
-                }
-                return null;
-              })}
-            </div>
-          )}
-          
-          <div className={cn(
-            "text-[10px] mt-1 flex items-center",
-            isMyMessage ? "justify-end text-white/70" : "justify-end text-gray-500 dark:text-gray-400"
-          )}>
-            {new Date(message.created_at).toLocaleTimeString([], { 
-              hour: '2-digit', 
-              minute: '2-digit',
-              hour12: true 
-            })}
-            {isMyMessage && (
-              <span className="ml-1">
-                {message.status === 'received' && <Check className="inline-block h-3 w-3" />}
-                {message.status === 'sending' && <Clock className="inline-block h-3 w-3" />}
-              </span>
-            )}
-          </div>
-        </div>
-        
-        {isMyMessage && (
-          <div className="ml-2 sm:ml-3 flex-shrink-0 self-end mb-1">
-            <Avatar 
-              image={session.user?.image} 
-              name={session.user?.name || session.user?.email || 'You'} 
-              size={28}
-              shape="rounded"
-            />
-          </div>
-        )}
-      </div>
-    );
-  };
+  .str-chat__message-list-scroll {
+    padding: 0 !important;
+  }
 
-  // Custom Message Input component
-  const CustomInput = () => {
-    const { sendMessage } = useChannelActionContext();
-    const [text, setText] = useState('');
-    const [sending, setSending] = useState(false);
-    const fileInputRef = useRef(null);
+  .str-chat__message-simple {
+    margin: 0;
+    padding: 8px 16px;
+    border-bottom: 1px solid #EFF3F4;
+  }
+
+  .str-chat__message-simple__content {
+    background: #F5F8FA;
+    border-radius: 16px;
+    padding: 12px 16px;
+    margin: 4px 0;
+    color: #0F1419;
+    font-size: 15px;
+    max-width: 85%;
+    line-height: 1.4;
+  }
+  
+  .str-chat__message--me .str-chat__message-simple__content {
+    background: #1DA1F2;
+    color: white;
+  }
+
+  .str-chat__message-simple__timestamp {
+    font-size: 13px;
+    color: #536471;
+    margin-top: 2px;
+  }
+
+  .str-chat__date-separator {
+    margin: 12px 0;
+    padding: 0 16px;
+  }
+
+  .str-chat__date-separator-date {
+    background: #FFFFFF;
+    color: #536471;
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    .str-chat {
+      background: #15202B;
+      color: #FFFFFF;
+    }
+
+    .str-chat__list {
+      background: #15202B;
+    }
+
+    .str-chat__message-simple {
+      border-bottom-color: #38444D;
+    }
+
+    .str-chat__message-simple__content {
+      color: #FFFFFF;
+    }
+
+    .str-chat__message--me .str-chat__message-simple__content {
+      color: #FFFFFF;
+    }
+
+    .str-chat__date-separator-date {
+      background: #15202B;
+    }
+  }
+`;
+
+// Loading spinner for various states
+const Spinner = ({ size = "medium" }) => {
+  const sizeClass = size === "small" ? "h-4 w-4" : size === "large" ? "h-8 w-8" : "h-6 w-6";
+  return <Loader2 className={`${sizeClass} animate-spin text-primary`} />;
+};
+
+// Loading view for the chat
+const LoadingView = () => (
+  <div className="flex flex-col h-screen items-center justify-center bg-white dark:bg-gray-900">
+    <Spinner size="large" />
+    <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">Loading chat...</p>
+  </div>
+);
+
+// Custom message input component
+const CustomMessageInput = () => {
+  const { sendMessage } = useChannelActionContext();
+  const [text, setText] = useState('');
+  const [isSending, setIsSending] = useState(false);
+  const inputRef = useRef(null);
+  
+  const handleSubmit = async (event) => {
+    event.preventDefault();
     
-    const handleSubmit = async (e) => {
-      e.preventDefault();
-      
-      if (!text.trim() && !fileInputRef.current?.files?.length) return;
-      
-      setSending(true);
-      
-      try {
-        // Handle file uploads
-        const attachments = [];
-        if (fileInputRef.current?.files?.length) {
-          const file = fileInputRef.current.files[0];
-          
-          // Create a FormData to upload the file
-          const formData = new FormData();
-          formData.append('file', file);
-          
-          // Upload via our channel and get the URL
-          const response = await channel.sendImage(file);
-          if (response.file) {
-            attachments.push({
-              type: 'image',
-              image_url: response.file,
-              fallback: file.name,
-            });
-          }
-        }
-        
-        // Send the message
-        await sendMessage({
-          text,
-          attachments: attachments.length ? attachments : undefined,
-        });
-        
-        // Reset the input
-        setText('');
-        if (fileInputRef.current) {
-          fileInputRef.current.value = '';
-        }
-      } catch (error) {
-        console.error('Error sending message:', error);
-      } finally {
-        setSending(false);
+    if (!text.trim()) return;
+    
+    setIsSending(true);
+    
+    try {
+      await sendMessage({ text: text.trim() });
+      setText('');
+      if (inputRef.current) {
+        inputRef.current.focus();
       }
-    };
-    
-    return (
-      <div className="px-2 sm:px-4 py-2 sm:py-3 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900  bottom-0 w-full fixed pb-5">
-        <form onSubmit={handleSubmit} className="flex items-center gap-2">
-          <button
-            type="button"
-            className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full flex-shrink-0"
-            onClick={() => fileInputRef.current?.click()}
-          >
-            <ImageIcon className="h-5 w-5" />
-            <input
-              type="file"
-              ref={fileInputRef}
-              className="hidden"
-              accept="image/*"
-              onChange={() => {}}
-            />
-          </button>
-          
-          <input
-            type="text"
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            placeholder="Type your message..."
-            className="flex-1 py-2 px-3 text-sm rounded-full border border-gray-300 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-transparent dark:text-gray-200 dark:placeholder-gray-500"
-          />
-          
-          <button
-            type="submit"
-            disabled={sending || (!text.trim() && !fileInputRef.current?.files?.length)}
-            className="p-2 bg-primary text-white rounded-full disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
-          >
-            {sending ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
-            ) : (
-              <Send className="h-5 w-5" />
-            )}
-          </button>
-        </form>
-      </div>
-    );
-  };
-
-  // Chat Information Modal
-  const InfoModal = ({ isOpen, onClose, orderDetails, channel }) => {
-    if (!isOpen) return null;
-    
-    return (
-      <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-        <div className="bg-white dark:bg-gray-900 rounded-lg shadow-lg w-full max-w-md">
-          <div className="flex justify-between items-center p-4 border-b dark:border-gray-700">
-            <h3 className="font-semibold text-lg dark:text-gray-200">Chat Information</h3>
-            <button 
-              onClick={onClose}
-              className="hover:bg-gray-100 dark:hover:bg-gray-800 p-1 rounded-full"
-            >
-              <XCircle className="h-5 w-5 dark:text-gray-400" />
-            </button>
-          </div>
-          
-          <div className="p-4 space-y-4">
-            <div>
-              <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Order Details</h4>
-              <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-sm dark:text-gray-300">Order ID:</span>
-                  <span className="text-sm font-medium dark:text-gray-200">{orderDetails?.orderNumber || orderId.substring(0, 8)}</span>
-                </div>
-                {orderDetails?.status && (
-                  <div className="flex justify-between">
-                    <span className="text-sm dark:text-gray-300">Status:</span>
-                    <Badge 
-                      variant={
-                        orderDetails.status === 'COMPLETED' ? 'success' : 
-                        orderDetails.status === 'PENDING' ? 'warning' : 
-                        orderDetails.status === 'CANCELLED' ? 'destructive' : 'default'
-                      }
-                      className="text-xs"
-                    >
-                      {orderDetails.status}
-                    </Badge>
-                  </div>
-                )}
-                {orderDetails?.createdAt && (
-                  <div className="flex justify-between">
-                    <span className="text-sm dark:text-gray-300">Date:</span>
-                    <span className="text-sm font-medium dark:text-gray-200">
-                      {new Date(orderDetails.createdAt).toLocaleDateString()}
-                    </span>
-                  </div>
-                )}
-              </div>
-            </div>
-            
-            <div>
-              <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Channel Information</h4>
-              <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-sm dark:text-gray-300">Channel Type:</span>
-                  <span className="text-sm font-medium dark:text-gray-200">Order Chat</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm dark:text-gray-300">Message Delivery:</span>
-                  <Badge className="text-xs" variant="outline">End-to-End</Badge>
-                </div>
-              </div>
-            </div>
-            
-            <div className="text-xs text-gray-500 dark:text-gray-400 mt-4">
-              <p>Messages are delivered only to the participants in this order (buyer and seller). Your chat is private and secure.</p>
-            </div>
-          </div>
-          
-          <div className="p-4 border-t dark:border-gray-700 flex justify-end">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={onClose}
-              className="text-xs"
-            >
-              Close
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
+    } catch (error) {
+      console.error('Error sending message:', error);
+    } finally {
+      setIsSending(false);
+    }
   };
 
   return (
-    <div className="flex flex-col h-[100vh] bg-gray-50 dark:bg-gray-900">
-      {/* Info modal */}
-      <InfoModal 
-        isOpen={infoModalOpen} 
-        onClose={() => setInfoModalOpen(false)} 
-        orderDetails={orderDetails}
-        channel={channel}
-      />
-      
-      {/* Custom header outside of Stream components */}
-      <CustomChannelHeader />
-      
-      {/* Main chat container */}
-      <div className="flex-1 overflow-hidden">
-        <StreamChatComponent client={client} theme="messaging light dark:messaging dark" className="h-full dark:text-white">
-          <StreamChannel channel={channel} Message={CustomMessage}>
-            <StreamWindow hideOnThread>
-                <div className="flex flex-col h-[calc(100%-60px)] overflow-y-auto mb-10">
-                    <StreamMessageList />
-                </div>
-           
-              <CustomInput />
-            </StreamWindow>
-            <StreamThread fullWidth />
-          </StreamChannel>
-        </StreamChatComponent>
+    <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 dark:bg-[#15202B]">
+      <div className="px-4 py-2 max-w-screen-md mx-auto">
+        <form onSubmit={handleSubmit} className="flex items-center gap-2">
+          <textarea
+          
+            ref={inputRef}
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder="Type a message..."
+            className="flex-1 text-black dark:text-white rounded-lg border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 px-4 py-2"
+            rows={1}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSubmit(e);
+              }
+            }}
+          />
+          <button
+            type="submit"
+            disabled={!text.trim() || isSending}
+            className="h-10 w-10 rounded-full bg-primary text-white flex items-center justify-center"
+            aria-label="Send message"
+          >
+            {isSending ? <Spinner size="small" /> : <Send className="h-5 w-5" />}
+          </button>
+        </form>
       </div>
     </div>
+  );
+};
+
+// Helper styles for keyboard visibility - using Twitter-like approach
+const keyboardFixStyles = `
+  .chat-container {
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    background: #FFFFFF;
+    position: relative;
+  }
+
+  .message-list-container {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 80px;
+  }
+
+  .message-input-container {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-top: 1px solid #EFF3F4;
+    padding: 12px 16px;
+    padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    z-index: 1000;
+  }
+
+  @supports (-webkit-touch-callout: none) {
+    .message-input-container {
+      position: fixed !important;
+      bottom: 0 !important;
+      padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px) + var(--keyboard-height, 0px));
+    }
+
+    .keyboard-visible .message-input-container {
+      padding-bottom: 10px !important;
+      bottom: 0 !important;
+      position: fixed !important;
+    }
+  }
+
+  .message-input-wrapper {
+    display: flex;
+    align-items: flex-end;
+    gap: 12px;
+    max-width: 100%;
+    margin: 0 auto;
+  }
+
+  .message-input {
+    flex: 1;
+    background: #EFF3F4;
+    border: 1px solid transparent;
+    border-radius: 16px;
+    color: #0F1419;
+    font-size: 15px;
+    line-height: 1.5;
+    min-height: 24px;
+    max-height: 120px;
+    outline: none;
+    padding: 8px 12px;
+    resize: none;
+    transition: all 0.2s;
+  }
+
+  .message-input:focus {
+    border-color: #1DA1F2;
+    background: #FFFFFF;
+  }
+
+  .message-input::placeholder {
+    color: #536471;
+  }
+
+  .send-button {
+    background: #1DA1F2;
+    border: none;
+    border-radius: 50%;
+    color: white;
+    height: 36px;
+    width: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    transition: all 0.2s;
+    flex-shrink: 0;
+    margin-bottom: 2px;
+  }
+
+  .send-button:disabled {
+    background: #8ECDF8;
+  }
+
+  .send-button:not(:disabled):hover {
+    background: #1A91DA;
+  }
+
+  .str-chat__list {
+    margin-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .keyboard-visible .message-list-container {
+    padding-top: 250px;
+    padding-bottom: 50px;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    .chat-container {
+      background: #15202B;
+    }
+
+    .message-input-container {
+      background: rgba(21, 32, 43, 0.95);
+      border-top-color: #38444D;
+    }
+
+    .message-input {
+      background: #273340;
+      color: #FFFFFF;
+    }
+
+    .message-input:focus {
+      border-color: #1DA1F2;
+      background: #15202B;
+    }
+
+    .message-input::placeholder {
+      color: #8899A6;
+    }
+  }
+`;
+
+// Custom message component with typing indicator
+const ChatContainer = ({ children }) => (
+  <div className="flex flex-col h-full">{children}</div>
+);
+
+function useWindowHeight() {
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+  
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    // More reliable keyboard detection, especially for iOS
+    const detectKeyboard = () => {
+      if (window.visualViewport) {
+        // Modern approach using visualViewport
+        const heightRatio = window.visualViewport.height / window.innerHeight;
+        setKeyboardVisible(heightRatio < 0.8); // If viewport height is less than 80% of window height, keyboard is likely visible
+      }
+    };
+    
+    // Focus/blur events are more reliable than simply checking height
+    const handleFocus = (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+        setKeyboardVisible(true);
+      }
+    };
+    
+    const handleBlur = (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+        // Small delay to check if another input is focused
+        setTimeout(() => {
+          if (!document.activeElement || 
+              (document.activeElement.tagName !== 'INPUT' && 
+               document.activeElement.tagName !== 'TEXTAREA')) {
+            setKeyboardVisible(false);
+          }
+        }, 50);
+      }
+    };
+    
+    // Initialize
+    detectKeyboard();
+    
+    // Add event listeners
+    window.addEventListener('resize', detectKeyboard);
+    document.addEventListener('focusin', handleFocus);
+    document.addEventListener('focusout', handleBlur);
+    
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', detectKeyboard);
+    }
+    
+    return () => {
+      window.removeEventListener('resize', detectKeyboard);
+      document.removeEventListener('focusin', handleFocus);
+      document.removeEventListener('focusout', handleBlur);
+      
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', detectKeyboard);
+      }
+    };
+  }, []);
+  
+  return { keyboardVisible };
+}
+
+const ErrorDisplay = ({ error, orderId }) => (
+  <div className="container max-w-4xl py-6">
+    <div className="flex items-center mb-6">
+      <Button variant="ghost" size="icon" onClick={() => window.history.back()}>
+        <ArrowLeft className="h-5 w-5" />
+      </Button>
+      <h1 className="text-2xl font-bold ml-2">Chat Error</h1>
+    </div>
+    
+    <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+      <div className="flex items-start gap-3">
+        <AlertCircle className="h-6 w-6 text-red-600 flex-shrink-0 mt-0.5" />
+        <div>
+          <h3 className="font-medium text-red-800">Error Accessing Chat</h3>
+          <p className="text-sm text-red-700 mt-1">
+            {error?.message || 'Unable to access chat. Please try again.'}
+          </p>
+          {orderId && (
+            <p className="text-xs text-red-600 mt-2">
+              Order ID: {orderId}
+            </p>
+          )}
+          <div className="mt-4">
+            <Button 
+              onClick={() => window.location.reload()}
+              variant="outline"
+              size="sm"
+            >
+              Try Again
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+const chatTheme = {
+  '--str-chat__primary-color': 'hsl(var(--primary))',
+  '--str-chat__active-primary-color': 'hsl(var(--primary))',
+  '--str-chat__disabled-color': 'hsl(var(--muted))',
+  '--str-chat__message-bubble-background': 'hsl(var(--muted))',
+  '--str-chat__message-bubble-background-mine': 'hsl(var(--primary))',
+  '--str-chat__message-bubble-text-color': 'hsl(var(--foreground))',
+  '--str-chat__message-bubble-text-color-mine': 'hsl(var(--primary-foreground))',
+};
+
+const fetchOrderDetails = async (orderId) => {
+  const response = await fetch(`/api/orders/${orderId}`);
+  if (!response.ok) throw new Error('Failed to fetch order details');
+  return response.json();
+};
+
+export default function ChatPage() {
+  const { data: session, status } = useSession();
+  const params = useParams();
+  const router = useRouter();
+  const { client, channel, loading, error } = useStreamChat(params.orderId);
+  const messageListRef = useRef(null);
+  
+  const { data: order, isLoading: orderLoading, refetch, isRefetching } = useQuery({
+    queryKey: ['order', params.orderId],
+    queryFn: () => fetchOrderDetails(params.orderId),
+    staleTime: 1000 * 60, // 1 minute
+    refetchInterval: 1000 * 60, // 1 minute
+    refetchIntervalInBackground: true,
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
+    refetchOnReconnect: true,
+    refetchOnReconnect: true,
+    refetchOnReconnect: true,
+  });
+
+  // Handle authentication redirect
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/login');
+    }
+  }, [status, router]);
+
+  // Show loading state
+  if (status === 'loading' || loading) {
+    return <LoadingView />;
+  }
+
+  // Show error state
+  if (error) {
+    return <ChatErrorState error={error} />;
+  }
+
+  // Show error if chat initialization failed
+  if (!client || !channel) {
+    return <ChatErrorState />;
+  }
+
+  return (
+    <div className="flex flex-col max-h-[100svh]  min-h-[100svh] bg-white dark:bg-[#15202B] fixed bottom-0 left-0 right-0 overflow-y-hidden p-0 m-0">
+      <ChatHeader order={order} isLoading={orderLoading} isRefetching={isRefetching} refetch={refetch} />
+      
+      <div className="flex-1 overflow-y-auto mb-16" style={{
+   scrollBehavior: 'smooth',
+   backgroundColor: '#070707'
+ 
+  }}>
+        <div className="max-w-screen-md mx-auto  " >
+          <Chat client={client} theme="str-chat__theme-dark" style={{
+            backgroundColor: 'red'
+          }}>
+            <Channel channel={channel} >
+              <Window>
+                <MessageList className="pb-16 pt-16" style={{ paddingBottom: '100px' }} />
+                {/* <Thread /> */}
+              </Window>
+              <CustomMessageInput />
+            </Channel>
+          </Chat>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Custom Channel Header Component
+function CustomChannelHeader({ channel }) {
+  const router = useRouter();
+  
+  return (
+    <div className="flex h-14 items-center justify-between px-4 border-b">
+      <div className="flex items-center gap-3">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => router.push('/dashboard/orders')}
+          className="h-8 w-8"
+        >
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
+        <div className="flex flex-col">
+          <h1 className="text-sm font-medium">
+            Order #{channel?.data?.name?.split('#')[1]}
+          </h1>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Update the ChatHeader component first
+function ChatHeader({ order, isLoading, isRefetching, refetch }) {
+  const router = useRouter();
+  if(isRefetching){
+    return <ChatHeaderSkeleton />
+  }
+  return (
+    <header onTouchStart={(e) => e.stopPropagation()}
+    onTouchMove={(e) => e.stopPropagation()} className="sticky top-0 z-50 bg-white/95 backdrop-blur dark:bg-[#15202B]/95 border-b border-gray-200 dark:border-gray-800">
+      <div className="flex h-[53px] items-center justify-between px-4">
+        <div className="flex items-center gap-4">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => router.push(`/dashboard/orders/${order?.id}`)}
+            className="h-9 w-9 -ml-2"
+            disabled={isLoading || isRefetching}
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          
+          <div className="flex flex-col relative">
+          
+              
+        
+              <>
+                <h1 className={`text-[15px] font-bold leading-5 ${isRefetching ? 'opacity-40' : ''}`}>
+                  Order #{order?.id?.substring(0, 8)}
+                </h1>
+                <div className={`flex items-center gap-2 ${isRefetching ? 'opacity-40' : ''}`}>
+                  <span className="text-[13px] text-gray-500 dark:text-gray-400">
+                    {order?.status || 'WAITING_FOR_SELLER'}
+                  </span>
+                  <span className="text-[13px] text-gray-500 dark:text-gray-400">•</span>
+                  <span className="text-[13px] text-gray-500 dark:text-gray-400">
+                    {order?.listing?.platform?.name || 'Windscribe Vpn'}
+                  </span>
+                </div>
+              </>
+           
+          </div>
+        </div>
+
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-9 w-9"
+          onClick={()=>refetch()}
+          disabled={isLoading || isRefetching}
+        >
+          <RefreshCw className={`h-5 w-5 ${isRefetching ? 'animate-spin text-primary' : ''}`} />
+        </Button>
+      </div>
+    </header>
+  );
+}
+
+// Update the MessageItem component
+function MessageItem({ message }) {
+  const { data: session } = useSession();
+  
+  if (!message) return null;
+  
+  const messageUser = message.user || {};
+  const isOwn = messageUser.id === session?.user?.id;
+  
+  return (
+    <div className="hover:bg-gray-50 dark:hover:bg-[#1C2732] transition-colors">
+      <div className="flex gap-3 px-4 py-2.5">
+        {!isOwn && (
+          <Avatar className="h-10 w-10 flex-shrink-0">
+            <AvatarImage src={messageUser.image} />
+            <AvatarFallback>
+              {(messageUser.name?.[0] || '?').toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+        )}
+        
+        <div className={cn(
+          "flex flex-col min-w-0",
+          isOwn && "items-end ml-auto"
+        )}>
+          {!isOwn && (
+            <span className="font-bold text-[15px] leading-5">
+              {messageUser.name}
+            </span>
+          )}
+          
+          <div className={cn(
+            "rounded-2xl px-4 py-2 mt-1",
+            isOwn 
+              ? "bg-primary text-primary-foreground" 
+              : "bg-muted text-foreground"
+          )}>
+            <p className="text-[15px] leading-5 whitespace-pre-wrap break-words">
+              {message.text}
+            </p>
+          </div>
+          
+          <span className="text-[13px] text-gray-500 dark:text-gray-400 mt-1">
+            {formatMessageTime(message.created_at)}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ChatHeaderSkeleton() {
+  return (
+    <header className="sticky top-0 z-50 bg-white/95 backdrop-blur dark:bg-[#15202B]/95 border-b border-gray-200 dark:border-gray-800">
+      <div className="flex h-[53px] items-center justify-between px-4">
+        <div className="flex items-center gap-4">
+          <div className="h-9 w-9 rounded-full bg-gray-200 dark:bg-gray-700 animate-pulse"></div>
+          
+          <div className="flex flex-col">
+            <div className="h-5 w-32 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+            <div className="flex items-center gap-2 mt-1">
+              <div className="h-3.5 w-20 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+              <div className="h-3.5 w-1 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+              <div className="h-3.5 w-24 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+            </div>
+          </div>
+        </div>
+
+        <div className="h-9 w-9 rounded-full bg-gray-200 dark:bg-gray-700 animate-pulse"></div>
+      </div>
+    </header>
   );
 }

@@ -5,6 +5,7 @@ import { authOptions } from '@/lib/auth'
 import { addMinutes } from 'date-fns'
 import { SubscriptionService } from '@/lib/services/subscriptionService'
 import { PushNotificationService } from '@/lib/services/pushNotificationService'
+import { getStreamClient, createOrderChannel } from '@/lib/server/streamChat'
 
 export async function POST(request) {
   try {
@@ -40,7 +41,7 @@ export async function POST(request) {
     if (!listing) {
       return NextResponse.json({ error: 'Listing not found' }, { status: 404 })
     }
-    
+    console.log({listing})
     // Check if listing is available
     if (listing.status !== 'AVAILABLE') {
       return NextResponse.json({ error: 'Listing is not available for purchase' }, { status: 400 })
@@ -122,24 +123,12 @@ export async function POST(request) {
       'ORDER_CREATED'
     )
     
-    // After successfully creating the order, create a chat channel
-    try {
-      // Import the createOrderChatChannel function from middleware
-      const { createOrderChatChannel } = await import('@/app/api/chat/stream/middleware');
-      
-      // Create a chat channel for this order
-      await createOrderChatChannel({
-        id: result.order.id,
-        buyerId: result.order.userId,
-        sellerId: result.order.sellerId,
-        orderNumber: result.order.orderNumber
-      });
-      
-      console.log(`Chat channel created for order ${result.order.id}`);
-    } catch (chatError) {
-      // Log the error but don't fail the order creation
-      console.error('Error creating chat channel:', chatError);
-    }
+   
+    // After order creation, create a Stream chat channel
+    const buyer = { id: session.user.id, name: session.user.firstName };
+    const seller = { id: listing.sellerId, name: listing.seller.firstName};
+    
+    await createOrderChannel(result.order, buyer, seller);
     
     return NextResponse.json({
       success: true,

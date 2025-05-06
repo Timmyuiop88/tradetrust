@@ -1,52 +1,59 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
+import { getServerSession } from "next-auth/next";
 import { StreamChat } from "stream-chat";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { authOptions } from "@/lib/auth";
 // Initialize Stream Chat server client
 const serverClient = StreamChat.getInstance(
   process.env.GETSTREAM_API_KEY,
   process.env.GETSTREAM_API_SECRET
 );
 
-export async function GET() {
+export async function GET(req) {
   try {
-    // Get the user session
+    // Get user session
     const session = await getServerSession(authOptions);
-    
-    if (!session || !session.user) {
-      return NextResponse.json(
-        { error: "Unauthorized - User not authenticated" },
-        { status: 401 }
-      );
+    if (!session?.user) {
+      return new Response('Unauthorized', { status: 401 });
     }
-    
-    if (!session.user.id) {
-      return NextResponse.json(
-        { error: "Invalid user ID in session" },
-        { status: 400 }
-      );
-    }
-    
-    const userId = session.user.id;
-    
-    // Set the token to expire in 24 hours (86400 seconds)
-    // Calculate expiration timestamp (current time + 24 hours in seconds)
-    const expirationTime = Math.floor(Date.now() / 1000) + 86400;
-    
-    // Generate a Stream Chat token for this user with expiration
-    const token = serverClient.createToken(userId, expirationTime);
-    
+
+    // Generate user token based on user ID
+    const token = serverClient.createToken(session.user.id);
+
+    // Return both API key and token
     return NextResponse.json({
-      token,
       apiKey: process.env.GETSTREAM_API_KEY,
-      userId,
-      expiresAt: expirationTime
+      token
     });
   } catch (error) {
-    console.error("Error generating stream token:", error);
-    return NextResponse.json(
-      { error: "Failed to generate chat token: " + (error.message || "Unknown error") },
-      { status: 500 }
+    console.error('Error generating token:', error);
+    return new Response('Internal Server Error', { status: 500 });
+  }
+}
+
+// Generate system user token for system messages
+export async function POST(req) {
+  try {
+    // Get user session to verify it's an authenticated request
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return new Response('Unauthorized', { status: 401 });
+    }
+
+    // Initialize Stream client
+    const serverClient = StreamChat.getInstance(
+      process.env.GETSTREAM_API_KEY,
+      process.env.GETSTREAM_API_SECRET
     );
+
+    // Generate system token - this is a special case where we create
+    // a token for the 'system' user to send system messages
+    const systemToken = serverClient.createToken('system');
+
+    return NextResponse.json({
+      token: systemToken
+    });
+  } catch (error) {
+    console.error('Error generating system token:', error);
+    return new Response('Internal Server Error', { status: 500 });
   }
 } 

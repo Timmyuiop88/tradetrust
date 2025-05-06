@@ -221,7 +221,7 @@ export function WithdrawSheet({ children, balance = 0, onSuccess }) {
                     variant="outline"
                     size="sm"
                     onClick={() =>
-                      (window.location.href = "/dashboard/settings#payment")
+                      (window.location.href = href="/marketplace/settings#payment")
                     }
                   >
                     Add Payout Method

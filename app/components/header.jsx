@@ -74,16 +74,16 @@ export function Header() {
         {/* Desktop Navigation - centered for balance */}
         <nav className="hidden mx-4 lg:flex items-center justify-center space-x-1 flex-1">
           <Link 
-            href="/dashboard" 
+            href="/marketplace" 
             className={cn(
               "px-3 py-2 text-sm font-medium rounded-md transition-colors relative",
-              isActive("/dashboard") 
+              isActive("/marketplace") 
                 ? "bg-primary/10 text-primary font-semibold" 
                 : "hover:bg-accent hover:text-accent-foreground"
             )}
           >
             Browse Accounts
-            {isActive("/dashboard") && (
+            {isActive("/marketplace") && (
               <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary mx-3 rounded-full" />
             )}
           </Link>
@@ -116,16 +116,16 @@ export function Header() {
             )}
           </Link>
           <Link 
-            href="/dashboard/sell" 
+            href="/marketplace/sell" 
             className={cn(
               "px-3 py-2 text-sm font-medium rounded-md transition-colors relative",
-              isActive("/dashboard/sell") 
+              isActive(" /marketplace/sell") 
                 ? "bg-primary/10 text-primary font-semibold" 
                 : "hover:bg-accent hover:text-accent-foreground"
             )}
           >
             Start Selling
-            {isActive("/dashboard/sell") && (
+            {isActive(" /marketplace/sell") && (
               <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary mx-3 rounded-full" />
             )}
           </Link>

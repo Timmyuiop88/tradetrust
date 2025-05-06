@@ -22,7 +22,12 @@ const nextConfig = {
   },
     // ... other config options ...
     images: {
-        domains: ['files.edgestore.dev'],
+        remotePatterns: [
+            {
+                protocol: 'https',
+                hostname: 'files.edgestore.dev',
+            },
+        ],
     },
     headers: async () => {
       return [

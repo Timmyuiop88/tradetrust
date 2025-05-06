@@ -24,12 +24,11 @@ model User {
   kycId                String?             @unique
   accounts             Account[]
   Balance              Balance?
-  ChatMessage          ChatMessage[]       @relation("RecipientMessages")
-  chatMessages         ChatMessage[]
+
   devices              Device[]
   assignedDisputes     Dispute[]           @relation("AssignedModerator")
   initiatedDisputes    Dispute[]           @relation("DisputeInitiator")
-  disputeMessages      DisputeMessage[]
+ 
   sellerFavorites      Favorite[]          @relation("SellerFavorites")
   userFavorites        Favorite[]          @relation("UserFavorites")
   kyc                  Kyc?
@@ -41,17 +40,23 @@ model User {
   Transaction          Transaction[]
   processedWithdrawals WithdrawalRequest[] @relation("ProcessedWithdrawals")
   withdrawalRequests   WithdrawalRequest[]
+  Subscription         Subscription[]
+  FeaturedListing      FeaturedListing[]
+  followers            Follow[]            @relation("UserFollowers")
+  following            Follow[]            @relation("UserFollowing")
+  PushSubscription     PushSubscription[]
+  CryptoPayment        CryptoPayment[]
 
-  Subscription Subscription[]
+  // New relations
+  products             Product[]
+  scheduledCalls       ScheduledCall[]
+  tipsSent             Tip[]               @relation("SentTips")
+  tipsReceived         Tip[]               @relation("ReceivedTips")
 
-  FeaturedListing FeaturedListing[]
+  QuestionResponse QuestionResponse[]
 
-  followers Follow[] @relation("UserFollowers")
-  following Follow[] @relation("UserFollowing")
-
-  PushSubscription PushSubscription[]
-
-  CryptoPayment CryptoPayment[]
+  buyerTickets EventTicket[] @relation("BuyerTickets")
+  sellerTickets EventTicket[] @relation("SellerTickets")
 }
 
 model Kyc {
@@ -143,30 +148,35 @@ model Order {
   cancelledAt      DateTime?
   cancelledReason  String?
   cancelledBy      String?
-  chatMessages     ChatMessage[]
+
   dispute          Dispute?
   buyer            User          @relation("BuyerOrders", fields: [buyerId], references: [id])
   listing          Listing       @relation(fields: [listingId], references: [id])
-  transactions     Transaction[]
+  transactions     Transaction[] @relation("OrderTransactions")
+  items            OrderItem[]
+  transaction      Transaction?  @relation("OrderTransaction", fields: [transactionId], references: [id])
+  transactionId    String?       @unique
+
+  Transaction Transaction[]
 }
 
-model ChatMessage {
-  id          String   @id @default(uuid())
-  orderId     String?
-  senderId    String
-  content     String
-  createdAt   DateTime @default(now())
-  isRead      Boolean  @default(false)
-  disputeId   String?
-  isModOnly   Boolean  @default(false)
-  recipientId String
-  dispute     Dispute? @relation(fields: [disputeId], references: [id])
-  order       Order?   @relation(fields: [orderId], references: [id])
-  recipient   User     @relation("RecipientMessages", fields: [recipientId], references: [id])
-  sender      User     @relation(fields: [senderId], references: [id])
+// model ChatMessage {
+//   id          String   @id @default(uuid())
+//   orderId     String?
+//   senderId    String
+//   content     String
+//   createdAt   DateTime @default(now())
+//   isRead      Boolean  @default(false)
+//   disputeId   String?
+//   isModOnly   Boolean  @default(false)
+//   recipientId String
+//   dispute     Dispute? @relation(fields: [disputeId], references: [id])
+//   order       Order?   @relation(fields: [orderId], references: [id])
+//   recipient   User     @relation("RecipientMessages", fields: [recipientId], references: [id])
+//   sender      User     @relation(fields: [senderId], references: [id])
 
-  @@index([createdAt])
-}
+//   @@index([createdAt])
+// }
 
 model Device {
   id        String   @id @default(uuid())
@@ -229,6 +239,8 @@ model Review {
   updatedAt  DateTime @updatedAt
   listing    Listing  @relation(fields: [listingId], references: [id])
   reviewer   User     @relation(fields: [reviewerId], references: [id])
+
+  Product Product[]
 }
 
 model PayoutSettings {
@@ -295,6 +307,10 @@ model Transaction {
   withdrawalRequest   WithdrawalRequest? @relation(fields: [withdrawalRequestId], references: [id])
 
   CryptoPayment CryptoPayment[]
+
+  orderTransactions Order[] @relation("OrderTransactions")
+
+  Order Order[] @relation("OrderTransaction")
 }
 
 model Dispute {
@@ -308,28 +324,28 @@ model Dispute {
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt
   reason         String
-  messages       ChatMessage[]
+
   assignedMod    User?            @relation("AssignedModerator", fields: [assignedModId], references: [id])
   initiator      User             @relation("DisputeInitiator", fields: [initiatorId], references: [id])
   order          Order            @relation(fields: [orderId], references: [id])
-  DisputeMessage DisputeMessage[]
+
 }
 
-model DisputeMessage {
-  id          String   @id @default(uuid())
-  disputeId   String
-  senderId    String
-  content     String
-  isModOnly   Boolean  @default(false)
-  attachments String[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  dispute     Dispute  @relation(fields: [disputeId], references: [id])
-  sender      User     @relation(fields: [senderId], references: [id])
+// model DisputeMessage {
+//   id          String   @id @default(uuid())
+//   disputeId   String
+//   senderId    String
+//   content     String
+//   isModOnly   Boolean  @default(false)
+//   attachments String[]
+//   createdAt   DateTime @default(now())
+//   updatedAt   DateTime @updatedAt
+//   dispute     Dispute  @relation(fields: [disputeId], references: [id])
+//   sender      User     @relation(fields: [senderId], references: [id])
 
-  @@index([disputeId])
-  @@index([senderId])
-}
+//   @@index([disputeId])
+//   @@index([senderId])
+// }
 
 model WithdrawalRequest {
   id              String           @id @default(uuid())
@@ -554,4 +570,226 @@ model CryptoPayment {
   @@index([userId])
   @@index([paymentId])
   @@index([paymentStatus])
+}
+
+model ProductCategory {
+  id          Int       @id @default(autoincrement())
+  name        String    @unique
+  description String?
+  products    Product[]
+}
+
+model ProductSettings {
+  id        String   @id @default(uuid())
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId String   @unique
+  settings  Json     // JSON for flexible settings storage
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Product {
+  id            String           @id @default(uuid())
+  seller        User             @relation(fields: [sellerId], references: [id])
+  sellerId      String
+  category      ProductCategory? @relation(fields: [categoryId], references: [id])
+  categoryId    Int?
+  title         String
+  description   String?
+  status        ProductStatus    @default(DRAFT)
+  media         ProductMedia?    // Add this relation
+  type          ProductType
+  price         Decimal          @db.Decimal(10, 2)
+  isBundle      Boolean          @default(false)
+  downloadLink  String?
+  streamingUrl  String?
+  isAvailable   Boolean          @default(true)
+  contents      Json?            // If using JSON for product data
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  settings      ProductSettings?
+  reviews       Review[]
+  orderItems    OrderItem[]
+  bundleItems   ProductBundle[]  @relation("BundleItems")
+  bundledIn     ProductBundle[]  @relation("BundledIn")
+  callSchedules ScheduledCall[]
+  productContents ProductContent[]
+
+  QuestionResponse QuestionResponse[]
+
+  EventTicket EventTicket[]
+
+  ticketTypes     TicketType[]
+}
+
+enum ProductType {
+  DIGITAL
+  EBOOK
+  COURSE
+  MEMBERSHIP
+  EVENT
+  SERVICE
+  PHYSICAL
+  BUNDLE
+  COMMISSION
+  CALL
+  COFFEE
+}
+
+model ProductBundle {
+  bundle     Product @relation("BundleItems", fields: [bundleId], references: [id])
+  bundleId   String
+  product    Product @relation("BundledIn", fields: [productId], references: [id])
+  productId  String
+
+  @@id([bundleId, productId])
+}
+
+model ProductContent {
+  id        String   @id @default(uuid())
+  product   Product  @relation(fields: [productId], references: [id])
+  productId String
+  title     String
+  data      Json
+  sortOrder Int?
+  createdAt DateTime @default(now())
+
+  QuestionResponse QuestionResponse[]
+}
+
+model OrderItem {
+  id        String   @id @default(uuid())
+  order     Order    @relation(fields: [orderId], references: [id])
+  orderId   String
+  product   Product  @relation(fields: [productId], references: [id])
+  productId String
+  quantity  Int      @default(1)
+  price     Decimal  @db.Decimal(10, 2)
+}
+
+model ScheduledCall {
+  id           String   @id @default(uuid())
+  product      Product  @relation(fields: [productId], references: [id])
+  productId    String
+  buyer        User     @relation(fields: [buyerId], references: [id])
+  buyerId      String
+  callTime     DateTime
+  durationMins Int
+  status       CallStatus @default(SCHEDULED)
+  meetingLink  String?
+}
+
+enum CallStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELED
+}
+
+model Tip {
+  id         String   @id @default(uuid())
+  sender     User     @relation("SentTips", fields: [senderId], references: [id])
+  senderId   String
+  receiver   User     @relation("ReceivedTips", fields: [receiverId], references: [id])
+  receiverId String
+  amount     Decimal  @db.Decimal(10, 2)
+  message    String?
+  createdAt  DateTime @default(now())
+}
+
+enum TicketStatus {
+  VALID
+  USED
+  EXPIRED
+  CANCELLED
+  REFUNDED
+}
+
+enum QuestionType {
+  TEXT
+  NUMBER
+  DATE
+}
+
+model EventTicket {
+  id              String      @id @default(uuid())
+  orderId         String
+  productId       String
+  product         Product     @relation(fields: [productId], references: [id])
+  ticketTypeId    String
+  ticketType      TicketType  @relation("EventTicketType", fields: [ticketTypeId], references: [id])
+  ticketPrice     Decimal     @db.Decimal(10, 2)
+  buyerId         String
+  buyer           User        @relation("BuyerTickets", fields: [buyerId], references: [id])
+  sellerId        String
+  seller          User        @relation("SellerTickets", fields: [sellerId], references: [id])
+  status          TicketStatus @default(VALID)
+  ticketCode      String      @unique
+  paymentReference String
+  eventDate       DateTime
+  eventLocation   String
+  scanDate        DateTime?
+  usedAt          DateTime?
+  scannedBy       String?
+  transferable    Boolean     @default(false)
+  metadata        Json?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  TicketType TicketType[]
+}
+
+model QuestionResponse {
+  id              String      @id @default(uuid())
+  productId       String
+  product         Product     @relation(fields: [productId], references: [id])
+  contentId       String
+  productContent  ProductContent @relation(fields: [contentId], references: [id])
+  userId          String
+  user            User        @relation(fields: [userId], references: [id])
+  questionType    QuestionType
+  response        String
+  isPublic        Boolean     @default(false)
+  metadata        Json?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+}
+
+model TicketType {
+  id            String       @id @default(uuid())
+  productId     String       
+  product       Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+  name          String
+  price         Decimal      @db.Decimal(10, 2)
+  available     Int
+  totalCount    Int
+  transferable  Boolean      @default(false)
+  limitPerBuyer Boolean      @default(false)
+  maxPerBuyer   Int          @default(1)
+  description   String?
+  tickets       EventTicket[]
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@unique([productId, name])
+  EventTicket EventTicket[] @relation("EventTicketType")
+}
+
+// Add this new model
+model ProductMedia {
+  id          String   @id @default(uuid())
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId   String   @unique
+  thumbnail   String
+  coverPhoto  String?
+  gallery     String[] // Array of image URLs
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// Add this new enum
+enum ProductStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
 }

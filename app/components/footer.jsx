@@ -38,7 +38,7 @@ export function Footer() {
                 About
               </Link>
               <Link
-                href="/dashboard"
+                href="/marketplace"
                 className="text-sm text-muted-foreground hover:text-primary transition-colors"
               >
                 Browse Accounts
@@ -50,7 +50,7 @@ export function Footer() {
                 How it Works
               </Link>
               <Link
-                href="/dashboard/sell"
+                href="/marketplace/sell"
                 className="text-sm text-muted-foreground hover:text-primary transition-colors"
               >
                 Start Selling
