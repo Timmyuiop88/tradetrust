@@ -1,12 +1,12 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Button } from "./button"
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "./sheet"
-import { 
-  Menu, Home, ShoppingBag, PlusSquare, User2, 
-  Info, HelpCircle, LogOut, Sun, Moon 
+import {
+  Menu, Home, ShoppingBag, PlusSquare, User2,
+  Info, HelpCircle, LogOut, Sun, Moon
 } from "lucide-react"
 import { useTheme } from "next-themes"
 import { cn } from "@/app/lib/utils"
@@ -21,13 +21,17 @@ export function MobileNav() {
   const pathname = usePathname()
   const { data: session } = useSession()
   const router = useRouter()
-
+  const [mounted, setMounted] = useState(false)
   // Function to check if a link is active
   const isActive = (path) => {
     if (pathname === path) return true
     if (path !== '/' && pathname.startsWith(path)) return true
     return false
   }
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   // Public navigation items - when not logged in
   const publicNavItems = [
@@ -68,16 +72,29 @@ export function MobileNav() {
         <div className="flex flex-col h-full">
           {/* Header */}
           <div className="border-b py-4 px-6">
-            <div className="flex items-center justify-between">
-              <Link
-                href={session ? href="/marketplace" : "/"}
-                className="flex items-center space-x-2"
-                onClick={() => setOpen(false)}
-              >
-                <Image src="/images/logo.png" alt="TradeVero" width={20} height={20} />
-                <span className="font-bold">TradeVero</span>
-              </Link>
-            </div>
+          <div className="flex items-center">
+          <Link href="/" className="flex items-center">
+            {mounted && (
+              theme === "dark" ? (
+                <Image
+                  src="/images/logovero-dark.webp"
+                  alt="TradeVero"
+                  width={100}
+                  height={100}
+                  priority
+                />
+              ) : (
+                <Image
+                  src="/images/logovero-light.webp"
+                  alt="TradeVero"
+                  width={100}
+                  height={100}
+                  priority
+                />
+              )
+            )}
+          </Link>
+        </div>
           </div>
 
           {/* Nav Links */}
@@ -92,6 +109,17 @@ export function MobileNav() {
                   isActive={isActive(item.href)}
                 >
                   {item.name}
+                  {/* Theme toggle */}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="hidden sm:flex"
+                    onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                    aria-label="Toggle theme"
+                  >
+                    <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+                    <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+                  </Button>
                 </NavLink>
               ))}
             </div>
@@ -99,8 +127,8 @@ export function MobileNav() {
             {/* Auth Buttons */}
             <div className="mt-6 px-3">
               {session ? (
-                <Button 
-                  className="w-full justify-start" 
+                <Button
+                  className="w-full justify-start"
                   onClick={handleLogout}
                 >
                   <LogOut className="mr-2 h-4 w-4" />
@@ -108,19 +136,19 @@ export function MobileNav() {
                 </Button>
               ) : (
                 <div className="flex flex-col gap-2">
-                  <Button 
-                    variant="outline" 
-                    className="justify-start w-full" 
+                  <Button
+                    variant="outline"
+                    className="justify-start w-full"
                     onClick={() => {
                       router.push('/login')
                       setOpen(false)
                     }}
                   >
-                    <User2 className="mr-2 h-4 w-4" /> 
+                    <User2 className="mr-2 h-4 w-4" />
                     Sign In
                   </Button>
-                  <Button 
-                    className="justify-start w-full" 
+                  <Button
+                    className="justify-start w-full"
                     onClick={() => {
                       router.push('/signup')
                       setOpen(false)
