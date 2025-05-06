@@ -61,7 +61,7 @@ export default function LandingPage() {
                   <AnimateOnScroll variants={fadeInUp} delay={0.5}>
                   <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
                       <Button size="lg" className="bg-primary hover:bg-primary/90">
-                        <Link href="/dashboard">Start Trading</Link>
+                        <Link href="/marketplace">Start Trading</Link>
                     </Button>
                     <Button size="lg" variant="outline">
                       <Link href="/how-it-works">See How It Works</Link>
@@ -286,7 +286,7 @@ export default function LandingPage() {
                 </StaggerItem>
                 <StaggerItem>
                   <Button size="lg" variant="outline" asChild>
-                    <Link href="/dashboard">Browse Accounts</Link>
+                    <Link href="/marketplace">Browse Accounts</Link>
                   </Button>
                 </StaggerItem>
               </AnimateStagger>

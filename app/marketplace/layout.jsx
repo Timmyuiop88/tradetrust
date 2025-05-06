@@ -14,10 +14,10 @@ import { cn } from "@/lib/utils"
 import { usePathname } from "next/navigation"
 
 const navigation = [
-  { name: 'Home', href: '/dashboard', icon: Home },
-  { name: 'Orders', href: '/dashboard/orders', icon: ShoppingBag },
-  { name: 'Sell', href: '/dashboard/sell', icon: PlusSquare },
-  { name: 'Profile', href: '/dashboard/profile', icon: User2 },
+  { name: 'Home', href: '/marketplace', icon: Home },
+  { name: 'Orders', href: '/marketplace/orders', icon: ShoppingBag },
+  { name: 'Sell', href: '/marketplace/sell', icon: PlusSquare },
+  { name: 'Profile', href: '/marketplace/profile', icon: User2 },
 ]
 
 export default function DashboardLayout({ children }) {
@@ -44,7 +44,7 @@ export default function DashboardLayout({ children }) {
       {/* Top Navigation */}
       <header className="fixed top-0 left-0 right-0 z-50 border-b bg-background/95 backdrop-blur">
         <div className="container flex h-14 items-center justify-between">
-          <Link href="/dashboard" className="flex items-center space-x-2">
+          <Link href="/marketplace" className="flex items-center space-x-2">
             <Image src="/images/logo.png" alt="TradeVero Logo" width={20} height={20} className="sm:h-15 w-15" />
             <span className="font-bold text-lg truncate">TradeVero</span>
           </Link>
@@ -68,8 +68,8 @@ export default function DashboardLayout({ children }) {
         <div className="container flex h-16">
           {navigation.map((item) => {
             const Icon = item.icon
-            const isActive = item.href === '/dashboard' 
-              ? pathname === '/dashboard'  // Exact match for home
+            const isActive = item.href === '/marketplace' 
+              ? pathname === '/marketplace'  // Exact match for home
               : pathname.startsWith(`${item.href}/`) || pathname === item.href
             return (
               <Link

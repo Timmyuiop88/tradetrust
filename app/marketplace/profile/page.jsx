@@ -52,7 +52,7 @@ import { UserReviews } from "./user-reviews";
 import { useSession, signOut } from "next-auth/react";
 import { CompactPlanIndicator } from "@/app/components/CompactPlanIndicator";
 import { FollowersCount } from "@/app/components/followers-count";
-import NotificationSettings from "@/app/dashboard/settings/notifications";
+import NotificationSettings from "@/app/marketplace/settings/notifications";
 import { NotificationBell } from "@/app/components/notification-bell";
 import { useTheme } from "next-themes";
 import { NotificationsSheet } from "@/app/components/notifications-sheet";
@@ -327,7 +327,7 @@ export default function ProfilePage() {
                 variant="outline"
                 size="sm"
                 className="flex items-center gap-2"
-                onClick={() => router.push("/dashboard/settings")}
+                onClick={() => router.push(" /marketplace/settings")}
               >
                 <Settings className="h-4 w-4" />
               
@@ -372,17 +372,15 @@ export default function ProfilePage() {
           </div>
         </CardContent>
       </Card>
-      <div className="w-full mb-6">
-              <CompactPlanIndicator />
-            </div>
+    
 
       {/* Balance Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-1 gap-4 mb-6">
         <Card className="bg-gradient-to-br from-primary/10 to-primary/5">
           <CardHeader className="pb-2">
             <CardTitle className="text-lg flex items-center">
               <Wallet className="h-5 w-5 mr-2 text-primary" />
-              Buying Balance
+              Balance
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -404,35 +402,12 @@ export default function ProfilePage() {
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-green-500/10 to-green-500/5">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg flex items-center">
-              <DollarSign className="h-5 w-5 mr-2 text-green-500" />
-              Selling Balance
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex gap-2  justify-between flex-col md:flex-row">
-              <div className="text-2xl font-bold md:text-3xl">
-                {balanceLoading ? (
-                  <div className="h-8 w-32 bg-muted animate-pulse rounded" />
-                ) : (
-                  formatCurrency(balanceData?.balance?.sellingBalance || 0)
-                )}
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-2"
-                onClick={() => router.push("/dashboard/balance")}
-              >
-                <ExternalLink className="h-4 w-4" />
-                Manage
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+       
       </div>
+
+      <div className="w-full mb-6">
+              <CompactPlanIndicator />
+            </div>
 
       {/* Main Content Tabs */}
       <Tabs
@@ -535,7 +510,7 @@ export default function ProfilePage() {
                     variant="outline"
                     size="sm"
                     className="gap-2"
-                    onClick={() => router.push("/dashboard/listings")}
+                    onClick={() => router.push(" /marketplace/listings")}
                   >
                     <Package className="h-4 w-4" />
                     Manage Listings
@@ -555,7 +530,7 @@ export default function ProfilePage() {
                 <Button
                   variant="outline"
                   className="h-auto flex-col items-center justify-center py-4 gap-2"
-                  onClick={() => router.push("/dashboard/balance")}
+                  onClick={() => router.push(" /marketplace/balance")}
                 >
                   <Wallet className="h-6 w-6 text-primary" />
                   <span>Manage Balance</span>
@@ -564,7 +539,7 @@ export default function ProfilePage() {
                 <Button
                   variant="outline"
                   className="h-auto flex-col items-center justify-center py-4 gap-2"
-                  onClick={() => router.push("/dashboard/sell")}
+                  onClick={() => router.push(" /marketplace/sell")}
                 >
                   <Package className="h-6 w-6 text-primary" />
                   <span>Create Listing</span>
@@ -596,7 +571,7 @@ export default function ProfilePage() {
                 <Button
                   variant="outline"
                   className="h-auto flex-col items-center justify-center py-4 gap-2"
-                  onClick={() => router.push("/dashboard/settings#payment")}
+                  onClick={() => router.push(" /marketplace/settings#payment")}
                 >
                   <Wallet2 className="h-6 w-6 text-primary" />
                   <span>Payment Methods</span>
@@ -675,7 +650,7 @@ export default function ProfilePage() {
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => router.push("/dashboard/kyc")}
+                            onClick={() => router.push(" /marketplace/kyc")}
                           >
                             Complete
                           </Button>
@@ -731,7 +706,7 @@ export default function ProfilePage() {
                             size="sm"
                             variant="outline"
                             onClick={() =>
-                              router.push("/dashboard/kyc/documents")
+                              router.push(" /marketplace/kyc/documents")
                             }
                             disabled={!user.kyc}
                           >
@@ -782,7 +757,7 @@ export default function ProfilePage() {
                             size="sm"
                             variant="outline"
                             onClick={() =>
-                              router.push("/dashboard/kyc/documents")
+                              router.push(" /marketplace/kyc/documents")
                             }
                             disabled={!hasIdDocument}
                           >
@@ -835,7 +810,7 @@ export default function ProfilePage() {
                             size="sm"
                             variant="outline"
                             onClick={() =>
-                              router.push("/dashboard/kyc/face-verification")
+                              router.push(" /marketplace/kyc/face-verification")
                             }
                             disabled={!hasAddressProof}
                           >
@@ -890,7 +865,7 @@ export default function ProfilePage() {
             <CardFooter>
               <Button
                 className="w-full"
-                onClick={() => router.push("/dashboard/kyc")}
+                onClick={() => router.push(" /marketplace/kyc")}
                 disabled={isKycVerified}
               >
                 {isKycVerified
@@ -974,7 +949,7 @@ export default function ProfilePage() {
                     variant="outline"
                     size="sm"
                     className="w-full sm:w-auto"
-                    onClick={() => router.push("/dashboard/activity")}
+                    onClick={() => router.push(" /marketplace/activity")}
                   >
                     View All Activity
                   </Button>

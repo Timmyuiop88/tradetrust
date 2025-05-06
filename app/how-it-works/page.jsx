@@ -510,7 +510,7 @@ export default function HowItWorksPage() {
                   <Link href="/signup">Create Account</Link>
                 </Button>
                 <Button size="lg" variant="outline" asChild>
-                  <Link href="/dashboard">Browse Accounts</Link>
+                  <Link href="/marketplace">Browse Accounts</Link>
                 </Button>
               </div>
             </div>

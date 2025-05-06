@@ -61,7 +61,7 @@ function LoginContent() {
         setLoading(false)
       }
     } else {
-      router.push("/dashboard")
+      router.push(" /marketplace")
     }
   }
   

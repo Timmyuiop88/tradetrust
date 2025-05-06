@@ -70,7 +70,7 @@ export function MobileNav() {
           <div className="border-b py-4 px-6">
             <div className="flex items-center justify-between">
               <Link
-                href={session ? "/dashboard" : "/"}
+                href={session ? href="/marketplace" : "/"}
                 className="flex items-center space-x-2"
                 onClick={() => setOpen(false)}
               >
