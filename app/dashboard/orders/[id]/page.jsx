@@ -368,7 +368,7 @@ export default function OrderDetailPage() {
   // Add handleOpenChat function
   const handleOpenChat = useCallback(() => {
     // Navigate to the chat page with the order ID
-    router.push(`/chat/${params.id}`);
+    router.push(`/chat/stream/${params.id}`);
   }, [router, params.id]);
   
   // Add the missing function

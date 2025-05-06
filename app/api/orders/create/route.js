@@ -122,6 +122,25 @@ export async function POST(request) {
       'ORDER_CREATED'
     )
     
+    // After successfully creating the order, create a chat channel
+    try {
+      // Import the createOrderChatChannel function from middleware
+      const { createOrderChatChannel } = await import('@/app/api/chat/stream/middleware');
+      
+      // Create a chat channel for this order
+      await createOrderChatChannel({
+        id: result.order.id,
+        buyerId: result.order.userId,
+        sellerId: result.order.sellerId,
+        orderNumber: result.order.orderNumber
+      });
+      
+      console.log(`Chat channel created for order ${result.order.id}`);
+    } catch (chatError) {
+      // Log the error but don't fail the order creation
+      console.error('Error creating chat channel:', chatError);
+    }
+    
     return NextResponse.json({
       success: true,
       orderId: result.order.id,

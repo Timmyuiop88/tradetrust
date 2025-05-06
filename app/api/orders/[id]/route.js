@@ -13,8 +13,8 @@ export async function GET(request, { params }) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
     
-    // Get the orderId from params
-    const { id: orderId } = params
+    // Get the orderId from params - params is already destructured from context
+    const orderId = params.id;
     
     if (!orderId) {
       return NextResponse.json({ error: 'Order ID is required' }, { status: 400 })

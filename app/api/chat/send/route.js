@@ -60,9 +60,9 @@ export async function POST(request) {
     // Determine if the sender is the buyer or seller
     const isBuyer = order.buyer.id === session.user.id;
     const isSeller = order.listing.seller.id === session.user.id;
-    const isAdmin = session.user.role === 'ADMIN' || session.user.role === 'MODERATOR';
+   
     
-    if (!isBuyer && !isSeller && !isAdmin) {
+    if (!isBuyer && !isSeller ) {
       return NextResponse.json({ 
         error: 'You are not authorized to send messages for this order' 
       }, { status: 403 });

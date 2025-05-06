@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/app/lib/prisma';
 
-export async function GET(request, context) {
+export async function GET(request, { params }) {
   try {
     const session = await getServerSession(authOptions);
     
@@ -11,8 +11,7 @@ export async function GET(request, context) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
-    // Properly await the params object
-    const { params } = context;
+    // Properly extract the ID from params
     const orderId = params.id;
     
     if (!orderId) {
