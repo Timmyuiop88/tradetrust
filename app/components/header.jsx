@@ -8,10 +8,12 @@ import { MobileNav } from "./mobile-nav"
 import { cn } from "@/app/lib/utils"
 import { usePathname } from "next/navigation"
 import Image from "next/image"
+
 export function Header() {
   const { theme, setTheme } = useTheme()
   const [scrolled, setScrolled] = useState(false)
   const pathname = usePathname()
+  const [mounted, setMounted] = useState(false)
   
   // Track scroll position to add shadow when scrolled
   useEffect(() => {
@@ -21,6 +23,10 @@ export function Header() {
     
     window.addEventListener("scroll", handleScroll)
     return () => window.removeEventListener("scroll", handleScroll)
+  }, [])
+
+  useEffect(() => {
+    setMounted(true)
   }, [])
 
   // Function to check if a link is active
@@ -43,8 +49,25 @@ export function Header() {
         {/* Logo and Brand */}
         <div className="flex items-center">
           <Link href="/" className="flex items-center space-x-2">
-           <Image src="/images/logo.png" alt="TradeVero" width={28} height={28} />
-            <span className="font-bold text-lg sm:text-xl">TradeVero</span>
+            {mounted && (
+              theme === "dark" ? (
+                <Image
+                  src="/images/logovero-dark.webp"
+                  alt="TradeVero"
+                  width={200}
+                  height={200}
+                  priority
+                />
+              ) : (
+                <Image
+                  src="/images/logovero-light.webp"
+                  alt="TradeVero"
+                  width={200}
+                  height={200}
+                  priority
+                />
+              )
+            )}
           </Link>
         </div>
         

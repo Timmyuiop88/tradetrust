@@ -655,9 +655,9 @@ export default function OrderDetailPage() {
                 <p className="text-xs sm:text-sm text-muted-foreground">
                   {formatDistance(new Date(order.createdAt), new Date(), { addSuffix: true })}
                 </p>
-                </div>
-               
               </div>
+              
+                </div>
               
               <div className="flex relative pb-4 sm:pb-6">
                 <div className={` left-0 h-5 w-5 sm:h-7 sm:w-7 rounded-full flex items-center justify-center`}>
@@ -769,23 +769,23 @@ export default function OrderDetailPage() {
                     <div className="grid grid-cols-1 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="email">Email / Username</Label>
-                        <Input 
-                          id="email" 
+                  <Input 
+                    id="email" 
                           value={credentials.email || ''}
-                          onChange={(e) => setCredentials({...credentials, email: e.target.value})}
+                    onChange={(e) => setCredentials({...credentials, email: e.target.value})}
                           placeholder="Account email or username"
                           
-                        />
-                      </div>
-                      
+                  />
+                </div>
+                
                       <div className="space-y-2">
                         <Label htmlFor="password">Password</Label>
                         <div className="relative">
-                          <Input 
-                            id="password" 
+                  <Input 
+                    id="password" 
                             type={showPassword.password ? "text" : "password"}
                             value={credentials.password || ''}
-                            onChange={(e) => setCredentials({...credentials, password: e.target.value})}
+                    onChange={(e) => setCredentials({...credentials, password: e.target.value})}
                             placeholder="Account password"
                             
                           />
@@ -801,8 +801,8 @@ export default function OrderDetailPage() {
                             )}
                           </button>
                         </div>
-                      </div>
-
+                </div>
+                
                       <div className="space-y-2">
                         <Label htmlFor="serialKey">Key or Serial Number (Optional)</Label>
                         <Input
@@ -874,7 +874,7 @@ export default function OrderDetailPage() {
                   
                   <TabsContent value="recovery" className="space-y-4 mt-4">
                     <div className="space-y-4">
-                      <div>
+                <div>
                         <h3 className="text-md font-medium mb-2">Recovery Account Details</h3>
                         <p className="text-sm text-muted-foreground mb-4">
                           If this account uses a separate email (e.g., Gmail for a Facebook login), provide those credentials here.
@@ -999,14 +999,14 @@ export default function OrderDetailPage() {
                     
                     <div className="space-y-2">
                       <Label htmlFor="additionalInfo">Additional Information</Label>
-                      <Textarea 
-                        id="additionalInfo" 
+                  <Textarea 
+                    id="additionalInfo" 
                         value={credentials.additionalInfo || ''}
-                        onChange={(e) => setCredentials({...credentials, additionalInfo: e.target.value})}
-                        placeholder="Any additional information the buyer needs to know"
-                        rows={3}
-                      />
-                    </div>
+                    onChange={(e) => setCredentials({...credentials, additionalInfo: e.target.value})}
+                    placeholder="Any additional information the buyer needs to know"
+                    rows={3}
+                  />
+                </div>
                   </TabsContent>
                 </Tabs>
                 
@@ -1045,50 +1045,50 @@ export default function OrderDetailPage() {
               {showCredentials ? (
                 <div className="space-y-4">
                   {/* Login Details Section */}
-                  <div className="space-y-3">
+                <div className="space-y-3">
                     <h4 className="font-medium text-sm text-muted-foreground">Login Details</h4>
                     {order.listing.credentials.email && (
-                    <div>
-                      <Label>Email/Username</Label>
-                      <div className="flex items-center mt-1">
-                        <div className="bg-muted p-2 rounded-md w-full font-mono text-sm">
+                  <div>
+                    <Label>Email/Username</Label>
+                    <div className="flex items-center mt-1">
+                      <div className="bg-muted p-2 rounded-md w-full font-mono text-sm">
                           {order.listing.credentials.email}
-                        </div>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="ml-2"
-                          onClick={() => {
-                            navigator.clipboard.writeText(order.credentials.email)
-                            toast.success('Email copied to clipboard')
-                          }}
-                        >
-                          <Copy className="h-4 w-4" />
-                        </Button>
                       </div>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="ml-2"
+                        onClick={() => {
+                          navigator.clipboard.writeText(order.credentials.email)
+                          toast.success('Email copied to clipboard')
+                        }}
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
                     </div>
+                  </div>
                     )}
-                    
+                  
                     {order.listing.credentials.password && (
-                    <div>
-                      <Label>Password</Label>
-                      <div className="flex items-center mt-1">
-                        <div className="bg-muted p-2 rounded-md w-full font-mono text-sm">
+                  <div>
+                    <Label>Password</Label>
+                    <div className="flex items-center mt-1">
+                      <div className="bg-muted p-2 rounded-md w-full font-mono text-sm">
                           {order.listing.credentials.password}
-                        </div>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="ml-2"
-                          onClick={() => {
-                            navigator.clipboard.writeText(order.listing.credentials.password)
-                            toast.success('Password copied to clipboard')
-                          }}
-                        >
-                          <Copy className="h-4 w-4" />
-                        </Button>
                       </div>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="ml-2"
+                        onClick={() => {
+                            navigator.clipboard.writeText(order.listing.credentials.password)
+                          toast.success('Password copied to clipboard')
+                        }}
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
                     </div>
+                  </div>
                     )}
                     
                     {order.listing.credentials.serialKey && (
@@ -1298,8 +1298,8 @@ export default function OrderDetailPage() {
                       )}
                       
                       {order.listing.credentials.additionalInfo && (
-                        <div>
-                          <Label>Additional Information</Label>
+                    <div>
+                      <Label>Additional Information</Label>
                           <div className="flex items-center mt-1">
                             <div className="bg-muted p-2 rounded-md w-full text-sm whitespace-pre-wrap">
                               {order.listing.credentials.additionalInfo}
@@ -1315,7 +1315,7 @@ export default function OrderDetailPage() {
                             >
                               <Copy className="h-4 w-4" />
                             </Button>
-                          </div>
+                      </div>
                         </div>
                       )}
                       
@@ -1357,7 +1357,7 @@ export default function OrderDetailPage() {
           {isSeller && order.status === 'WAITING_FOR_SELLER' && (
             <div className="flex flex-col gap-3 w-full">
               <div className="flex gap-3">
-                <Button 
+            <Button 
                   className="flex-1" 
                   onClick={() => setShowDeclineConfirmation(true)}
                   variant="outline"
@@ -1370,8 +1370,8 @@ export default function OrderDetailPage() {
                     </span>
                   ) : (
                     'Decline Order'
-                  )}
-                </Button>
+              )}
+            </Button>
                 <Button 
                   className="flex-1" 
                   onClick={() => {

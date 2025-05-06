@@ -26,7 +26,7 @@ import {
 
 export const metadata = {
   title: "About Us | TradeVero",
-  description: "Learn about TradeVero's mission, values, and the team behind the most secure social media account marketplace."
+  description: "Learn about TradeVero's mission, values, and the team behind the most secure digital product marketplace."
 }
 
 export default function AboutPage() {
@@ -43,10 +43,10 @@ export default function AboutPage() {
                 About TradeVero
               </div>
               <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl mb-6">
-                Redefining Social Media <span className="text-primary">Account Trading</span>
+                Empowering Digital <span className="text-primary">Creators</span>
               </h1>
               <p className="text-xl text-muted-foreground mb-8">
-                We're building the world's most secure platform for buying and selling social media accounts, protecting both buyers and sellers through our advanced escrow system.
+                We're building the world's most powerful platform for selling digital products, from ebooks and courses to design assets and event tickets.
               </p>
             </AnimateOnScroll>
           </div>
@@ -69,13 +69,13 @@ export default function AboutPage() {
               <AnimateOnScroll variants={fadeInRight}>
                 <h2 className="text-3xl font-bold mb-6">Our Story</h2>
                 <p className="text-muted-foreground mb-4">
-                  TradeVero was founded in 2022 by a team of social media experts and security professionals who recognized a major problem in the creator economy: the lack of a safe, reliable way to buy and sell social media accounts.
+                  TradeVero was founded in 2022 by a team of digital creators and tech innovators who saw a gap in the market: the need for a comprehensive platform where creators could sell any type of digital product with powerful tools and complete security.
                 </p>
                 <p className="text-muted-foreground mb-4">
-                  We witnessed too many scams, fraud cases, and failed transfers in the growing market for social media accounts. Buyers were getting accounts that didn't match descriptions, and sellers were not receiving payment after transferring their accounts.
+                  We noticed that creators were using multiple platforms to sell different types of content, dealing with complex payment systems, and struggling with content delivery. The market needed a unified solution.
                 </p>
                 <p className="text-muted-foreground mb-6">
-                  That's why we created TradeVero - a secure platform with advanced verification technology and an escrow system that protects both parties throughout the entire transaction process.
+                  That's why we created TradeVero - an all-in-one platform with advanced features for content protection, automated delivery, and flexible payment options that help creators focus on what they do best: creating.
                 </p>
                 <AnimateStagger className="flex flex-wrap gap-4">
                   <StaggerItem className="flex items-center space-x-2">
@@ -84,11 +84,11 @@ export default function AboutPage() {
                   </StaggerItem>
                   <StaggerItem className="flex items-center space-x-2">
                     <Users className="h-5 w-5 text-primary" />
-                    <span className="font-medium">15,000+ Users</span>
+                    <span className="font-medium">50,000+ Creators</span>
                   </StaggerItem>
                   <StaggerItem className="flex items-center space-x-2">
                     <Globe className="h-5 w-5 text-primary" />
-                    <span className="font-medium">Global Service</span>
+                    <span className="font-medium">Global Reach</span>
                   </StaggerItem>
                 </AnimateStagger>
               </AnimateOnScroll>
@@ -105,18 +105,18 @@ export default function AboutPage() {
             <AnimateStagger className="grid md:grid-cols-3 gap-8">
               {[
                 {
-                  title: "Trust & Security",
-                  description: "We believe trust is the foundation of any marketplace. Our platform uses advanced verification and escrow systems to ensure every transaction is secure and transparent.",
+                  title: "Creator Success",
+                  description: "We're dedicated to helping creators monetize their digital content effectively with powerful tools and insights for growth.",
                   icon: Lock
                 },
                 {
                   title: "Innovation",
-                  description: "We're constantly improving our platform with new technologies and features to make account trading faster, safer, and more accessible to everyone.",
+                  description: "We continuously evolve our platform with cutting-edge features to support new content formats and creator needs.",
                   icon: Zap
                 },
                 {
-                  title: "Community First",
-                  description: "We're building more than just a marketplace - we're creating a community where creators and buyers can connect, share knowledge, and grow together.",
+                  title: "Community Growth",
+                  description: "We're fostering a thriving ecosystem where creators can connect, collaborate, and scale their digital businesses.",
                   icon: Users
                 }
               ].map((value, index) => (
@@ -138,73 +138,25 @@ export default function AboutPage() {
           </div>
         </section>
 
-        {/* Our Team */}
-        {/*<section className="py-20">
-          <div className="container px-4 md:px-6">
-            <h2 className="text-3xl font-bold text-center mb-4">Meet Our Team</h2>
-            <p className="text-center text-muted-foreground max-w-[600px] mx-auto mb-16">
-              Our diverse team of experts is passionate about creating the safest platform for trading social media accounts
-            </p>
-            
-            {/* Fixed container styling 
-            <div className="flex justify-center w-full items-center">
-              <AnimateStagger className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8 max-w-6xl">
-                {[
-                  {
-                    name: "Alex Johnson",
-                    role: "Founder & CEO",
-                    image: "/team-placeholder.svg",
-                    bio: "Former social media agency founder with 10+ years in the creator economy."
-                  },
-                  {
-                    name: "Sarah Chen",
-                    role: "CTO",
-                    image: "/team-placeholder.svg",
-                    bio: "Security expert with background in fintech and payment systems."
-                  }
-                ].map((member) => (
-                  <StaggerItem key={member.name}>
-                    <Card className="bg-background border-2 border-muted overflow-hidden h-full">
-                      <div className="aspect-square relative bg-muted">
-                        <Image
-                          src={member.image}
-                          alt={member.name}
-                          fill
-                          className="object-cover"
-                        />
-                      </div>
-                      <CardContent className="p-4">
-                        <h3 className="font-bold text-lg">{member.name}</h3>
-                        <p className="text-primary text-sm mb-2">{member.role}</p>
-                        <p className="text-sm text-muted-foreground">{member.bio}</p>
-                      </CardContent>
-                    </Card>
-                  </StaggerItem>
-                ))}
-              </AnimateStagger>
-            </div>
-          </div>
-        </section>*/}
-
         {/* Stats Section */}
         <AnimateOnScroll variants={fadeIn} className="py-20 bg-gradient-to-b from-muted to-background">
           <div className="container px-4 md:px-6">
             <AnimateStagger className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
               <StaggerItem className="space-y-2">
-                <h3 className="text-3xl md:text-4xl font-bold text-primary">10k+</h3>
-                <p className="text-sm md:text-base text-muted-foreground">Verified Accounts</p>
+                <h3 className="text-3xl md:text-4xl font-bold text-primary">50k+</h3>
+                <p className="text-sm md:text-base text-muted-foreground">Active Creators</p>
               </StaggerItem>
               <StaggerItem className="space-y-2">
-                <h3 className="text-3xl md:text-4xl font-bold text-primary">$5M+</h3>
-                <p className="text-sm md:text-base text-muted-foreground">Transaction Volume</p>
+                <h3 className="text-3xl md:text-4xl font-bold text-primary">$10M+</h3>
+                <p className="text-sm md:text-base text-muted-foreground">Creator Earnings</p>
               </StaggerItem>
               <StaggerItem className="space-y-2">
-                <h3 className="text-3xl md:text-4xl font-bold text-primary">15k+</h3>
-                <p className="text-sm md:text-base text-muted-foreground">Happy Users</p>
+                <h3 className="text-3xl md:text-4xl font-bold text-primary">100k+</h3>
+                <p className="text-sm md:text-base text-muted-foreground">Products Sold</p>
               </StaggerItem>
               <StaggerItem className="space-y-2">
                 <h3 className="text-3xl md:text-4xl font-bold text-primary">99%</h3>
-                <p className="text-sm md:text-base text-muted-foreground">Success Rate</p>
+                <p className="text-sm md:text-base text-muted-foreground">Delivery Success</p>
               </StaggerItem>
             </AnimateStagger>
           </div>
@@ -214,14 +166,14 @@ export default function AboutPage() {
         <AnimateOnScroll variants={zoomIn} className="py-20 bg-gradient-to-br from-primary/10 via-primary/5 to-background">
           <div className="container px-4 md:px-6">
             <div className="max-w-[800px] mx-auto text-center">
-              <h2 className="text-3xl font-bold mb-4">Join the TradeVero Community</h2>
+              <h2 className="text-3xl font-bold mb-4">Start Your Creator Journey</h2>
               <p className="text-lg text-muted-foreground mb-8">
-                Whether you're looking to buy or sell social media accounts, we're here to make the process safe and easy
+                Join thousands of creators selling digital products and building successful online businesses
               </p>
               <AnimateStagger className="flex flex-col sm:flex-row justify-center gap-4">
                 <StaggerItem>
                   <Button size="lg" asChild>
-                    <Link href="/signup">Create Account</Link>
+                    <Link href="/signup">Start Selling Digital</Link>
                   </Button>
                 </StaggerItem>
                 <StaggerItem>

@@ -40,19 +40,19 @@ export default function HowItWorksPage() {
   const features = 
   [
     {
-      title: "Buyer Protection",
-      description: "Your payment is held securely until you verify the account meets all expectations and you have full access. If anything goes wrong, your money is protected.",
+      title: "Crypto-Powered Security",
+      description: "All payments are processed securely using cryptocurrencies and other fast payment methods. Your funds are protected until you confirm the product or service is delivered as promised.",
       icon: CreditCard
     },
     {
-      title: "Secure Transfers",
-      description: "Our step-by-step transfer process ensures accounts change hands safely with minimal risk to account stability or algorithm performance.",
-      icon: Lock
+      title: "Fast & Flexible Payments",
+      description: "TradeVero supports a variety of payment options, including major cryptocurrencies and instant payment methods, ensuring quick and hassle-free transactions.",
+      icon: DollarSign
     },
     {
-      title: "Seller Assurance",
-      description: "Sellers know payment is guaranteed once transfer is complete. No risk of chargebacks or payment disputes after account access is provided.",
-      icon: DollarSign
+      title: "Seller & Buyer Protection",
+      description: "Both buyers and sellers are protected by our escrow system. Sellers are guaranteed payment after successful delivery, and buyers can shop with confidence.",
+      icon: ShieldCheck
     }
   ]
   
@@ -69,10 +69,10 @@ export default function HowItWorksPage() {
                 How TradeVero Works
               </div>
               <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl mb-6">
-                Safe & Secure <span className="text-primary">Account Trading</span>
+                Buy & Sell <span className="text-primary">Digital Products & Services</span> Securely
               </h1>
               <p className="text-xl text-muted-foreground mb-8">
-                Our platform makes buying and selling social media accounts simple and secure through our advanced escrow system and verification technology.
+                TradeVero is a marketplace for digital goods and services, powered by crypto and fast payments. Our escrow system ensures every transaction is safe for both buyers and sellers.
               </p>
             </AnimateOnScroll>
           </div>
@@ -93,9 +93,9 @@ export default function HowItWorksPage() {
                 {/* Buyer Content */}
                 <TabsContent value="buyer" className="space-y-20">
                   <div className="text-center mb-8">
-                    <h2 className="text-3xl font-bold mb-4">How to Buy Accounts</h2>
+                    <h2 className="text-3xl font-bold mb-4">How to Buy Digital Products & Services</h2>
                     <p className="text-lg text-muted-foreground">
-                      Find and purchase verified social media accounts in a few simple steps
+                      Discover, purchase, and receive digital goods or services in just a few steps.
                     </p>
                   </div>
                   
@@ -105,22 +105,22 @@ export default function HowItWorksPage() {
                       <div className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-sm font-medium text-primary mb-4">
                         Step 1
                       </div>
-                      <h3 className="text-2xl font-bold mb-4">Create an Account & Verify</h3>
+                      <h3 className="text-2xl font-bold mb-4">Sign Up & Verify</h3>
                       <p className="text-muted-foreground mb-6">
-                        Sign up for TradeVero and complete the verification process. This helps us maintain a secure marketplace and protect all users.
+                        Create your TradeVero account and complete a quick verification. This keeps our marketplace safe and trustworthy for everyone.
                       </p>
                       <div className="space-y-3">
                         <div className="flex items-start">
                           <Check className="h-5 w-5 text-primary mr-2 mt-0.5" />
-                          <span>Quick registration with email or social accounts</span>
+                          <span>Easy registration with email or social login</span>
                         </div>
                         <div className="flex items-start">
                           <Check className="h-5 w-5 text-primary mr-2 mt-0.5" />
-                          <span>Simple identity verification for your security</span>
+                          <span>Simple identity verification for secure trading</span>
                         </div>
                         <div className="flex items-start">
                           <Check className="h-5 w-5 text-primary mr-2 mt-0.5" />
-                          <span>Create a profile to manage your purchases</span>
+                          <span>Personal dashboard to manage your purchases</span>
                         </div>
                       </div>
                     </AnimateOnScroll>
@@ -154,22 +154,22 @@ export default function HowItWorksPage() {
                       <div className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-sm font-medium text-primary mb-4">
                         Step 2
                       </div>
-                      <h3 className="text-2xl font-bold mb-4">Browse & Select Accounts</h3>
+                      <h3 className="text-2xl font-bold mb-4">Browse & Choose</h3>
                       <p className="text-muted-foreground mb-6">
-                        Explore our marketplace of verified social media accounts across platforms. Filter by followers, engagement rate, niche, and more.
+                        Explore a wide range of digital products and services. Use filters to find exactly what you need, from software and eBooks to design services and more.
                       </p>
                       <div className="space-y-3">
                         <div className="flex items-start">
                           <Check className="h-5 w-5 text-primary mr-2 mt-0.5" />
-                          <span>Advanced filters to find exactly what you need</span>
+                          <span>Advanced search and filtering</span>
                         </div>
                         <div className="flex items-start">
                           <Check className="h-5 w-5 text-primary mr-2 mt-0.5" />
-                          <span>Verified metrics and engagement data</span>
+                          <span>Verified seller ratings and reviews</span>
                         </div>
                         <div className="flex items-start">
                           <Check className="h-5 w-5 text-primary mr-2 mt-0.5" />
-                          <span>Detailed account history and analytics</span>
+                          <span>Detailed product/service descriptions</span>
                         </div>
                       </div>
                     </div>
@@ -181,14 +181,14 @@ export default function HowItWorksPage() {
                       <div className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-sm font-medium text-primary mb-4">
                         Step 3
                       </div>
-                      <h3 className="text-2xl font-bold mb-4">Secure Payment & Escrow</h3>
+                      <h3 className="text-2xl font-bold mb-4">Pay Securely with Crypto</h3>
                       <p className="text-muted-foreground mb-6">
-                        Complete your purchase through our secure payment system. Your payment is held in escrow until the account transfer is verified and complete.
+                        Complete your purchase using your preferred cryptocurrency or fast payment method. Your payment is held in escrow until you confirm delivery.
                       </p>
                       <div className="space-y-3">
                         <div className="flex items-start">
                           <Check className="h-5 w-5 text-primary mr-2 mt-0.5" />
-                          <span>Multiple secure payment options</span>
+                          <span>Supports major cryptocurrencies</span>
                         </div>
                         <div className="flex items-start">
                           <Check className="h-5 w-5 text-primary mr-2 mt-0.5" />
@@ -196,7 +196,7 @@ export default function HowItWorksPage() {
                         </div>
                         <div className="flex items-start">
                           <Check className="h-5 w-5 text-primary mr-2 mt-0.5" />
-                          <span>No payment released until transfer is verified</span>
+                          <span>Release payment only after you receive your order</span>
                         </div>
                       </div>
                     </div>
@@ -230,22 +230,22 @@ export default function HowItWorksPage() {
                       <div className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-sm font-medium text-primary mb-4">
                         Step 4
                       </div>
-                      <h3 className="text-2xl font-bold mb-4">Secure Account Transfer</h3>
+                      <h3 className="text-2xl font-bold mb-4">Receive & Confirm Delivery</h3>
                       <p className="text-muted-foreground mb-6">
-                        Work with the seller through our secure transfer process. Our team monitors the transfer to ensure everything goes smoothly.
+                        Get instant access to your digital product or service. Confirm delivery, and only then is the payment released to the seller.
                       </p>
                       <div className="space-y-3">
                         <div className="flex items-start">
                           <Check className="h-5 w-5 text-primary mr-2 mt-0.5" />
-                          <span>Step-by-step guided transfer process</span>
+                          <span>Instant digital delivery or service fulfillment</span>
                         </div>
                         <div className="flex items-start">
                           <Check className="h-5 w-5 text-primary mr-2 mt-0.5" />
-                          <span>Secure communication with the seller</span>
+                          <span>Easy dispute process if anything goes wrong</span>
                         </div>
                         <div className="flex items-start">
                           <Check className="h-5 w-5 text-primary mr-2 mt-0.5" />
-                          <span>Full access verification before completion</span>
+                          <span>Leave feedback for the seller</span>
                         </div>
                       </div>
                     </div>
@@ -256,21 +256,21 @@ export default function HowItWorksPage() {
                     <h3 className="text-2xl font-bold mb-6">Frequently Asked Questions for Buyers</h3>
                     <div className="space-y-6">
                       <div>
-                        <h4 className="font-semibold mb-2">How do I know the account metrics are real?</h4>
+                        <h4 className="font-semibold mb-2">How do I know the product or service is genuine?</h4>
                         <p className="text-muted-foreground">
-                          All accounts on TradeVero go through our verification process where we validate followers, engagement, and other key metrics. We provide detailed analytics and transparent account history.
+                          All sellers on TradeVero are verified, and products/services are reviewed. Buyer ratings and escrow protection ensure you get what you pay for.
                         </p>
                       </div>
                       <div>
-                        <h4 className="font-semibold mb-2">What happens if the account isn't as described?</h4>
+                        <h4 className="font-semibold mb-2">What if I don't receive my digital product or service?</h4>
                         <p className="text-muted-foreground">
-                          Your money is protected in our escrow system. If the account doesn't match the description or metrics, you can dispute the transaction and our team will investigate.
+                          Your payment is held in escrow until you confirm delivery. If there's an issue, you can open a dispute and our team will help resolve it.
                         </p>
                       </div>
                       <div>
-                        <h4 className="font-semibold mb-2">Is buying social media accounts against platform terms?</h4>
+                        <h4 className="font-semibold mb-2">Which cryptocurrencies can I use?</h4>
                         <p className="text-muted-foreground">
-                          We recommend reviewing each platform's terms of service. TradeVero ensures the transfer process follows best practices to maintain account stability during ownership changes.
+                          TradeVero supports major cryptocurrencies like Bitcoin, Ethereum, and more. Additional fast payment methods are also available.
                         </p>
                       </div>
                     </div>
@@ -280,9 +280,9 @@ export default function HowItWorksPage() {
                 {/* Seller Content */}
                 <TabsContent value="seller" className="space-y-20">
                   <div className="text-center mb-8">
-                    <h2 className="text-3xl font-bold mb-4">How to Sell Your Account</h2>
+                    <h2 className="text-3xl font-bold mb-4">How to Sell Digital Products & Services</h2>
                     <p className="text-lg text-muted-foreground">
-                      Turn your social media asset into cash safely and quickly
+                      Monetize your digital skills or assets quickly and securely with TradeVero.
                     </p>
                   </div>
                   
@@ -292,9 +292,9 @@ export default function HowItWorksPage() {
                       <div className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-sm font-medium text-primary mb-4">
                         Step 1
                       </div>
-                      <h3 className="text-2xl font-bold mb-4">Create an Account & Verify</h3>
+                      <h3 className="text-2xl font-bold mb-4">Register & Verify</h3>
                       <p className="text-muted-foreground mb-6">
-                        Sign up for TradeVero and complete the seller verification process. This builds trust with potential buyers and verifies your ownership.
+                        Sign up as a seller and complete verification. This helps build trust with buyers and keeps the marketplace secure.
                       </p>
                       <div className="space-y-3">
                         <div className="flex items-start">
@@ -307,7 +307,7 @@ export default function HowItWorksPage() {
                         </div>
                         <div className="flex items-start">
                           <Check className="h-5 w-5 text-primary mr-2 mt-0.5" />
-                          <span>Account ownership verification process</span>
+                          <span>Showcase your digital products or services</span>
                         </div>
                       </div>
                     </div>
@@ -341,22 +341,22 @@ export default function HowItWorksPage() {
                       <div className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-sm font-medium text-primary mb-4">
                         Step 2
                       </div>
-                      <h3 className="text-2xl font-bold mb-4">List Your Account</h3>
+                      <h3 className="text-2xl font-bold mb-4">Create a Listing</h3>
                       <p className="text-muted-foreground mb-6">
-                        Create a detailed listing for your social media account, including all relevant metrics, engagement data, and content information.
+                        List your digital product or service with a detailed description, pricing, and delivery details. Attract buyers with clear information and competitive pricing.
                       </p>
                       <div className="space-y-3">
                         <div className="flex items-start">
                           <Check className="h-5 w-5 text-primary mr-2 mt-0.5" />
-                          <span>Automated metrics collection for accuracy</span>
+                          <span>Easy-to-use listing tools</span>
                         </div>
                         <div className="flex items-start">
                           <Check className="h-5 w-5 text-primary mr-2 mt-0.5" />
-                          <span>Set your price or get valuation assistance</span>
+                          <span>Set your own price</span>
                         </div>
                         <div className="flex items-start">
                           <Check className="h-5 w-5 text-primary mr-2 mt-0.5" />
-                          <span>Add detailed description and account highlights</span>
+                          <span>Highlight your unique value</span>
                         </div>
                       </div>
                     </div>
@@ -368,22 +368,22 @@ export default function HowItWorksPage() {
                       <div className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-sm font-medium text-primary mb-4">
                         Step 3
                       </div>
-                      <h3 className="text-2xl font-bold mb-4">Connect with Buyers</h3>
+                      <h3 className="text-2xl font-bold mb-4">Connect & Deliver</h3>
                       <p className="text-muted-foreground mb-6">
-                        Interested buyers will contact you through our secure messaging system. Respond to inquiries and negotiate the final sale price.
+                        Communicate with buyers through our secure messaging system. Deliver your digital product or service promptly after purchase.
                       </p>
                       <div className="space-y-3">
                         <div className="flex items-start">
                           <Check className="h-5 w-5 text-primary mr-2 mt-0.5" />
-                          <span>Secure in-platform communication</span>
+                          <span>In-platform messaging for secure communication</span>
                         </div>
                         <div className="flex items-start">
                           <Check className="h-5 w-5 text-primary mr-2 mt-0.5" />
-                          <span>Receive offers and negotiate price</span>
+                          <span>Deliver files or services directly</span>
                         </div>
                         <div className="flex items-start">
                           <Check className="h-5 w-5 text-primary mr-2 mt-0.5" />
-                          <span>Answer questions about your account</span>
+                          <span>Get notified instantly when you make a sale</span>
                         </div>
                       </div>
                     </div>
@@ -417,22 +417,22 @@ export default function HowItWorksPage() {
                       <div className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-sm font-medium text-primary mb-4">
                         Step 4
                       </div>
-                      <h3 className="text-2xl font-bold mb-4">Safe Transfer & Payment</h3>
+                      <h3 className="text-2xl font-bold mb-4">Get Paid Instantly</h3>
                       <p className="text-muted-foreground mb-6">
-                        Once a buyer purchases your account, follow our secure transfer process. After the transfer is verified, you'll receive your payment.
+                        Once the buyer confirms delivery, your payment is released instantly in your chosen cryptocurrency or fast payment method.
                       </p>
                       <div className="space-y-3">
                         <div className="flex items-start">
                           <Check className="h-5 w-5 text-primary mr-2 mt-0.5" />
-                          <span>Guided transfer process for account security</span>
+                          <span>Instant payouts after confirmation</span>
                         </div>
                         <div className="flex items-start">
                           <Check className="h-5 w-5 text-primary mr-2 mt-0.5" />
-                          <span>Fast payment processing once transfer is complete</span>
+                          <span>Multiple payout options</span>
                         </div>
                         <div className="flex items-start">
                           <Check className="h-5 w-5 text-primary mr-2 mt-0.5" />
-                          <span>Multiple payout options available</span>
+                          <span>Low fees and transparent process</span>
                         </div>
                       </div>
                     </div>
@@ -443,21 +443,21 @@ export default function HowItWorksPage() {
                     <h3 className="text-2xl font-bold mb-6">Frequently Asked Questions for Sellers</h3>
                     <div className="space-y-6">
                       <div>
-                        <h4 className="font-semibold mb-2">How is my account valued?</h4>
+                        <h4 className="font-semibold mb-2">How do I get paid?</h4>
                         <p className="text-muted-foreground">
-                          TradeVero provides valuation guidance based on follower count, engagement rate, niche, account age, and recent sales of similar accounts. You always have the final say on your listing price.
+                          After the buyer confirms delivery, your payment is released instantly in your chosen cryptocurrency or fast payment method.
                         </p>
                       </div>
                       <div>
-                        <h4 className="font-semibold mb-2">When do I get paid after selling my account?</h4>
+                        <h4 className="font-semibold mb-2">What can I sell on TradeVero?</h4>
                         <p className="text-muted-foreground">
-                          Once the buyer confirms they have full access to the account and all transfer steps are complete, your payment is processed immediately. Most sellers receive funds within 1-3 business days.
+                          You can sell any digital product or service, including software, eBooks, design, development, consulting, and more.
                         </p>
                       </div>
                       <div>
-                        <h4 className="font-semibold mb-2">What fees does TradeVero charge?</h4>
+                        <h4 className="font-semibold mb-2">Are there any fees?</h4>
                         <p className="text-muted-foreground">
-                          TradeVero charges a small commission on successful sales. The fee is based on the final sale price and covers our escrow service, transfer assistance, and platform maintenance.
+                          TradeVero charges a small commission on successful sales, which covers escrow, support, and platform maintenance. All fees are transparently displayed before you list.
                         </p>
                       </div>
                     </div>
@@ -474,7 +474,7 @@ export default function HowItWorksPage() {
             <AnimateOnScroll variants={fadeInUp} className="text-center max-w-[800px] mx-auto mb-12">
               <h2 className="text-3xl font-bold mb-4">Our Secure Escrow System</h2>
               <p className="text-lg text-muted-foreground">
-                The safest way to buy and sell social media accounts
+                The safest way to buy and sell digital products and services with crypto and fast payments.
               </p>
             </AnimateOnScroll>
             <div className="grid md:grid-cols-3 gap-8">
@@ -503,14 +503,14 @@ export default function HowItWorksPage() {
             <div className="max-w-[800px] mx-auto text-center">
               <h2 className="text-3xl font-bold mb-4">Ready to Start?</h2>
               <p className="text-lg text-muted-foreground mb-8">
-                Join thousands of users buying and selling social media accounts on the safest platform
+                Join thousands of users buying and selling digital products and services on TradeVero, the safest crypto-powered marketplace.
               </p>
               <div className="flex flex-col sm:flex-row justify-center gap-4">
                 <Button size="lg" asChild>
                   <Link href="/signup">Create Account</Link>
                 </Button>
                 <Button size="lg" variant="outline" asChild>
-                  <Link href="/dashboard">Browse Accounts</Link>
+                  <Link href="/dashboard">Browse Marketplace</Link>
                 </Button>
               </div>
             </div>

@@ -86,18 +86,29 @@
   }
 }
 
-.animate-float {
-  animation: float 6s ease-in-out infinite;
-}
-
 @keyframes float {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-10px);
-  }
+  0% { transform: translateY(0px);}
+  50% { transform: translateY(-12px);}
+  100% { transform: translateY(0px);}
+}
+@keyframes float-reverse {
+  0% { transform: translateY(0px);}
+  50% { transform: translateY(12px);}
+  100% { transform: translateY(0px);}
+}
+@keyframes float-slow {
+  0% { transform: translateY(0px);}
+  50% { transform: translateY(-8px);}
+  100% { transform: translateY(0px);}
+}
+.animate-float {
+  animation: float 3.5s ease-in-out infinite;
+}
+.animate-float-reverse {
+  animation: float-reverse 3.5s ease-in-out infinite;
+}
+.animate-float-slow {
+  animation: float-slow 5s ease-in-out infinite;
 }
 
 /* Custom scrollbar styles */
@@ -152,5 +163,14 @@ html {
 .scrollbar-none {
   -ms-overflow-style: none;  /* IE and Edge */
   scrollbar-width: none;  /* Firefox */
+}
+
+/* Hide scrollbar for stepper on mobile */
+.scrollbar-thin::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-thin {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
