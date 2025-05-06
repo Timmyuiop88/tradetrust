@@ -42,28 +42,28 @@ export function Header() {
 
   return (
     <header className={cn(
-      "sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 transition-all duration-200",
+      "fixed top-0 left-0 w-full z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 transition-all duration-200",
       scrolled && "shadow-sm"
     )}>
       <div className="container flex h-16 items-center justify-between">
         {/* Logo and Brand */}
-        <div className="flex items-center">
-          <Link href="/" className="flex items-center space-x-2">
+        <div>
+          <Link href="/">
             {mounted && (
               theme === "dark" ? (
                 <Image
                   src="/images/logovero-dark.webp"
                   alt="TradeVero"
-                  width={200}
-                  height={200}
+                  width={100}
+                  height={100}
                   priority
                 />
               ) : (
                 <Image
                   src="/images/logovero-light.webp"
                   alt="TradeVero"
-                  width={200}
-                  height={200}
+                  width={100}
+                  height={100}
                   priority
                 />
               )
