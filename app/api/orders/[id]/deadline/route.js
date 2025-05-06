@@ -4,7 +4,7 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { sendEmail } from '@/lib/email';
 import { addMinutes } from 'date-fns';
-import { PushNotificationService } from '@/lib/notifications';
+
 import { StreamChat } from 'stream-chat';
 import * as emailService from '@/lib/email/emailService';
 // Initialize Stream server client
@@ -168,11 +168,7 @@ export async function POST(request, { params }) {
         });
         // Send push notification to seller
         if (seller.pushTokens) {
-          await PushNotificationService.notifyTransactionUpdate(
-            seller.id,
-            'DEADLINE_EXTENDED',
-            order
-          )
+         
         }
 
         // Send system message to chat
@@ -214,11 +210,7 @@ export async function POST(request, { params }) {
 
         // Send push notification to buyer
         if (buyer.pushTokens) {
-          await PushNotificationService.notifyTransactionUpdate(
-            buyer.id,
-            'DEADLINE_EXTENDED',
-            order
-          )
+        
         }
 
         // Send system message to chat
@@ -268,18 +260,8 @@ export async function POST(request, { params }) {
 
         // Send push notifications
       // Send push notification using PushNotificationService
-      await PushNotificationService.notifyTransactionUpdate(
-        buyer.id,
-        'ORDER_AUTO_COMPLETED',
-        order
-      )
+     
 
-         // Send push notification using PushNotificationService
-         await PushNotificationService.notifyTransactionUpdate(
-          seller.id,
-          'ORDER_AUTO_COMPLETED',
-          order
-        )
 
         // Send system message to chat
         await sendSystemMessage(
