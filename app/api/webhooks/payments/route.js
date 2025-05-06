@@ -1,21 +1,16 @@
 import { PrismaClient } from '@prisma/client'
 import { nanoid } from 'nanoid'
-import { stripe } from '@/lib/stripe'
+
 import { encrypt } from '@/lib/encryption'
 
 const prisma = new PrismaClient()
 
 export async function POST(req) {
-  const payload = await req.text()
-  const signature = req.headers.get('stripe-signature')
+
   
   let event
   try {
-    event = stripe.webhooks.constructEvent(
-      payload,
-      signature,
-      process.env.STRIPE_WEBHOOK_SECRET
-    )
+ 
   } catch (err) {
     return Response.json({ error: `Webhook Error: ${err.message}` }, { status: 400 })
   }

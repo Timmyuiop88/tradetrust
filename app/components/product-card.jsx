@@ -42,6 +42,9 @@ export function ProductCard({ product }) {
   const { color, icon: Icon } = getProductTypeDetails(product.type);
   const avgRating = product.reviews?.reduce((acc, review) => acc + review.rating, 0) / product.reviews?.length || 0;
 
+  // Get the correct thumbnail URL from the media relation
+  const thumbnailUrl = product.media?.thumbnail || null;
+
   return (
     <Link href={`/marketplace/products/${product.id}`}>
       <motion.div
@@ -51,10 +54,10 @@ export function ProductCard({ product }) {
         <Card className="group relative overflow-hidden bg-card hover:bg-accent/5 transition-all duration-300">
           {/* Image Container */}
           <div className="aspect-[4/3] relative overflow-hidden bg-muted">
-            {product.thumbnail ? (
+            {thumbnailUrl ? (
               <>
                 <Image
-                  src={product.thumbnail}
+                  src={thumbnailUrl}
                   alt={product.title}
                   fill
                   className="object-cover transition-transform duration-500 group-hover:scale-110"

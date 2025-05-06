@@ -55,6 +55,7 @@ export async function GET(req) {
             rating: true,
           }
         },
+        media: true,
         settings: true,
         ticketTypes: true,
       }
@@ -72,7 +73,7 @@ export async function GET(req) {
         ...productData,
         seller: {
           id: seller.id,
-          name: `${seller.firstName} ${seller.lastName}`.trim(),
+          name: `${seller.firstName || ''} ${seller.lastName || ''}`.trim(),
         },
         avgRating,
         reviewCount: product.reviews.length,
