@@ -2,7 +2,7 @@ import { PrismaClient } from '@prisma/client'
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 import { nanoid } from 'nanoid'
-import { stripe } from '@/lib/stripe'
+
 
 const prisma = new PrismaClient()
 
